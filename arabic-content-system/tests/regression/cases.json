@@ -1,0 +1,110 @@
+{
+  "_doc": "Permanent regression cases built from Round 1 (v3 PDF). Each case targets one script id in the directory under test. See tests/EXPECTED_QUALITIES.md for the human-judged criteria these automated checks cannot cover.",
+  "cases": [
+    {
+      "id": "A1", "representative": true, "type": "mechanism + numbers",
+      "detects": ["contrast-reveal tic", "unsourced numbers", "hook-payoff mismatch", "overclaiming the Nordic"],
+      "max_contrast": 1,
+      "must_not_contain": ["البرنامج كله، مش النوردك", "مش ستريتش وخلاص"],
+      "payoff_keywords": ["بتتمط", "تحت حمل"],
+      "required_sources": ["van Dyk", "Sun"],
+      "forbidden_regex": ["النوردك (لوحده )?(بيقلل|بينص|قلل)"],
+      "keeps_qualifier": ["الأسباب كتير"]
+    },
+    {
+      "id": "B1", "representative": true, "type": "model without data",
+      "detects": ["spoken disclaimers", "MSA connector", "vague hook"],
+      "max_disclaimers": 0,
+      "must_not_contain": ["فإن الوجع", "الرسم ده للتوضيح"],
+      "must_contain": ["الإصابة بتنزّله، والتأهيل بيطلّعه تاني"],
+      "payoff_keywords": ["رجعت", "الاختبارات"],
+      "production_must_contain": ["رسم توضيحي"]
+    },
+    {
+      "id": "A2", "type": "number + demo",
+      "detects": ["relative-vs-absolute numbers", "spoken disclaimers", "generic referral ending"],
+      "max_disclaimers": 0, "max_referral": 0,
+      "required_numbers_anywhere": ["22", "33", "522"],
+      "required_sources": ["Hupperets"],
+      "forbidden_regex": ["35 ?%"]
+    },
+    {
+      "id": "B2", "type": "comparison with stakes",
+      "detects": ["vague hook", "conflating two trials", "generic referral ending"],
+      "max_referral": 0,
+      "must_contain": ["ماتوقفش"],
+      "required_sources": ["Silbernagel", "Kongsgaard"],
+      "forbidden_regex": ["الحقنة (مضرة|بتبوظ|غلط)", "5 من 10"]
+    },
+    {
+      "id": "B3", "representative": true, "type": "demonstration",
+      "detects": ["excessive rewriting of a strong hook", "vague 'margin of error' disclaimer", "unsupported normal values"],
+      "hook_must_contain": ["اقف قدام حيطة"],
+      "required_numbers_anywhere": ["2"],
+      "required_sources": ["Powden"],
+      "forbidden_regex": ["(الطبيعي|طبيعي) [0-9]", "أقل من 2 سنتي (يبقى )?طبيعي"],
+      "payoff_keywords": ["عيده", "تغيير حقيقي"]
+    },
+    {
+      "id": "EP01", "representative": true, "type": "story: decision",
+      "detects": ["over target length", "rewriting protected lines", "forbidden facts"],
+      "must_contain": ["العضمة مالهاش دعوة الماتش قد إيه مهم", "أصعب قرار في الرجوع من إصابة… إنك تقول: لسه"],
+      "forbidden_regex": ["المشط الخامس", "بسبب (ماتش|أم درمان|الجزائر)", "القايمة النهائية"],
+      "max_est_seconds_hi": 60
+    },
+    {
+      "id": "EP02", "type": "story: payoff-first",
+      "detects": ["over target length", "presenting one injury account as fact"],
+      "must_contain": ["مانعرفش ليه نزل بديل", "نفس الحاجة اللي الكاحل بيتعب يرجعلها"],
+      "forbidden_regex": ["اتصاب في التسخين\\.", "اتصاب من حفرة", "الجهاز (رجّعه|قرر)"],
+      "payoff_keywords": ["التحام"]
+    },
+    {
+      "id": "GEDO", "representative": true, "type": "story: paradox",
+      "detects": ["arguing with no one", "unsupported attribution (CAF named him)"],
+      "hook_must_contain": ["مابدأش ولا ماتش"],
+      "must_not_contain": ["ده مش تفسير لجوانه", "والكاف"],
+      "max_contrast": 1,
+      "required_sources": ["Bradley"]
+    },
+    {
+      "id": "EP1", "type": "series ≤25 s",
+      "detects": ["vague condition", "duplicate condition across episodes"],
+      "max_est_seconds_hi": 25,
+      "must_not_contain": ["مالوش علاقة باللي هتلعبه"],
+      "min_refrain": 2
+    },
+    {
+      "id": "EP2", "type": "series ≤25 s, brand line",
+      "detects": ["rewriting the brand line", "over 25 s"],
+      "max_est_seconds_hi": 25,
+      "must_contain": ["التمرين اللي مابيتقلش ومابيتقاسش… هو ده اللي مالوش لازمة"],
+      "required_sources": ["Kongsgaard"],
+      "min_refrain": 2
+    },
+    {
+      "id": "EP3", "representative": true, "type": "series ≤25 s, science correction",
+      "detects": ["overstated injury claim", "over 25 s"],
+      "max_est_seconds_hi": 25,
+      "must_not_contain": ["لوحده كده… مالوش لازمة"],
+      "forbidden_regex": ["مالوش (أي )?علاقة بالإصابات", "الستريتش(ينج)? (مضر|بيضر)"],
+      "required_sources": ["Behm"]
+    },
+    {
+      "id": "EP5", "representative": true, "type": "series ≤25 s, science correction",
+      "detects": ["claim contradicting its own source", "over 25 s"],
+      "max_est_seconds_hi": 25,
+      "must_not_contain": ["مالوش لازمة لو هدفك عضل وقوة"],
+      "forbidden_regex": ["بيلغي (المكاسب|العضل)", "بيحرق العضل"],
+      "must_contain_any": ["أقل"],
+      "required_sources": ["Wilson"]
+    }
+  ],
+  "set_checks": {
+    "max_generic_referral_scripts": 1,
+    "no_repeated_hook_opener": true,
+    "no_similar_endings_within_series": true,
+    "maloosh_conditions_unique": true,
+    "max_question_hooks_in_approved": 2
+  }
+}

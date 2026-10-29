@@ -1,0 +1,27 @@
+# regression: scripts/v4_pass1
+
+FAIL A1    [mechanism + numbers]
+       - lint FAIL: too_long
+FAIL B1    [model without data]
+       - lint FAIL: too_long
+PASS A2    [number + demo]
+PASS B2    [comparison with stakes]
+FAIL B3    [demonstration]
+       - lint FAIL: too_long
+       - hook should keep «اقف قدام حيطة»
+FAIL EP01  [story: decision]
+       - lint FAIL: too_long
+       - estimated upper duration 68s > 60s
+PASS EP02  [story: payoff-first]
+PASS GEDO  [story: paradox]
+PASS EP1   [series ≤25 s]
+FAIL EP2   [series ≤25 s, brand line]
+       - lint FAIL: too_long
+       - estimated upper duration 31s > 25s
+FAIL EP3   [series ≤25 s, science correction]
+       - estimated upper duration 29s > 25s
+PASS EP5   [series ≤25 s, science correction]
+FAIL SET
+       - 4 approved reels open with a question: ['B1', 'A2', 'B2', 'B3']
+
+6/13 passed

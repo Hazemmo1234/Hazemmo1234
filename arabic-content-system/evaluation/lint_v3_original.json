@@ -1,0 +1,198 @@
+{
+  "table": [
+    {
+      "id": "A1",
+      "words": 77,
+      "est_seconds": "35-43",
+      "hook_first_sentence_words": 7,
+      "contrast_reveal": 3,
+      "spoken_disclaimers": 0,
+      "questions": 0,
+      "generic_referral": 1,
+      "refrain": 0
+    },
+    {
+      "id": "B1",
+      "words": 74,
+      "est_seconds": "34-42",
+      "hook_first_sentence_words": 6,
+      "contrast_reveal": 2,
+      "spoken_disclaimers": 2,
+      "questions": 1,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "A2",
+      "words": 87,
+      "est_seconds": "40-49",
+      "hook_first_sentence_words": 3,
+      "contrast_reveal": 2,
+      "spoken_disclaimers": 2,
+      "questions": 2,
+      "generic_referral": 1,
+      "refrain": 0
+    },
+    {
+      "id": "B2",
+      "words": 101,
+      "est_seconds": "47-57",
+      "hook_first_sentence_words": 2,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 1,
+      "questions": 2,
+      "generic_referral": 1,
+      "refrain": 0
+    },
+    {
+      "id": "B3",
+      "words": 89,
+      "est_seconds": "41-50",
+      "hook_first_sentence_words": 12,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 1,
+      "questions": 1,
+      "generic_referral": 1,
+      "refrain": 0
+    },
+    {
+      "id": "EP01",
+      "words": 123,
+      "est_seconds": "57-69",
+      "hook_first_sentence_words": 10,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 0,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "EP02",
+      "words": 116,
+      "est_seconds": "53-65",
+      "hook_first_sentence_words": 6,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 2,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "GEDO",
+      "words": 89,
+      "est_seconds": "41-50",
+      "hook_first_sentence_words": 7,
+      "contrast_reveal": 2,
+      "spoken_disclaimers": 1,
+      "questions": 0,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "EP1",
+      "words": 38,
+      "est_seconds": "18-21",
+      "hook_first_sentence_words": 3,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 1,
+      "generic_referral": 0,
+      "refrain": 5
+    },
+    {
+      "id": "EP2",
+      "words": 36,
+      "est_seconds": "17-20",
+      "hook_first_sentence_words": 4,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 1,
+      "generic_referral": 0,
+      "refrain": 5
+    },
+    {
+      "id": "EP3",
+      "words": 40,
+      "est_seconds": "18-23",
+      "hook_first_sentence_words": 5,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 2,
+      "generic_referral": 0,
+      "refrain": 4
+    },
+    {
+      "id": "EP5",
+      "words": 45,
+      "est_seconds": "21-25",
+      "hook_first_sentence_words": 3,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 0,
+      "generic_referral": 0,
+      "refrain": 4
+    }
+  ],
+  "issues": [
+    {
+      "id": "A1",
+      "level": "FAIL",
+      "code": "contrast_reveal",
+      "msg": "3 'مش X… Y' reveals: ['، مش', 'مش ستريتش وخلاص', 'مش وانت بتستريتش. وانت']"
+    },
+    {
+      "id": "B1",
+      "level": "WARN",
+      "code": "contrast_reveal",
+      "msg": "2 'مش X… Y' reveals (cap 1): ['ده مش', '، مش']"
+    },
+    {
+      "id": "B1",
+      "level": "WARN",
+      "code": "disclaimers",
+      "msg": "2 spoken disclaimers; move to on-screen/caption: ['مش أرقام', 'للتوضيح']"
+    },
+    {
+      "id": "B1",
+      "level": "WARN",
+      "code": "msa",
+      "msg": "MSA markers in spoken text: ['فإن']"
+    },
+    {
+      "id": "A2",
+      "level": "WARN",
+      "code": "contrast_reveal",
+      "msg": "2 'مش X… Y' reveals (cap 1): ['ده مش', 'ده مش']"
+    },
+    {
+      "id": "A2",
+      "level": "WARN",
+      "code": "disclaimers",
+      "msg": "2 spoken disclaimers; move to on-screen/caption: ['مش اختبار', 'مجرد ملاحظة']"
+    },
+    {
+      "id": "EP01",
+      "level": "FAIL",
+      "code": "too_long",
+      "msg": "est 57-69s vs target 45-55s"
+    },
+    {
+      "id": "EP02",
+      "level": "WARN",
+      "code": "long",
+      "msg": "est 53-65s at/above target max 55s"
+    },
+    {
+      "id": "GEDO",
+      "level": "WARN",
+      "code": "contrast_reveal",
+      "msg": "2 'مش X… Y' reveals (cap 1): ['ده مش', 'مش تفسير لجوانه. ده']"
+    },
+    {
+      "id": "SET",
+      "level": "WARN",
+      "code": "repeated_referral_cta",
+      "msg": "generic 'see a professional' ending in 4 scripts: ['A1', 'A2', 'B2', 'B3']"
+    }
+  ]
+}

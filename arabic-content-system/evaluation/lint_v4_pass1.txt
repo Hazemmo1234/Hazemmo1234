@@ -1,0 +1,26 @@
+# lint: scripts/v4_pass1  (12 scripts)
+
+id     words  est_s   hookW  contrast disclaim  Q  refer
+A1       109  50-61     13       0       0    1    0
+B1        93  43-52      6       0       0    2    0
+A2        86  40-48      3       0       0    1    0
+B2       100  46-56      2       0       0    3    0
+B3       115  53-65      5       0       0    2    0
+EP01     121  56-68     11       0       0    0    0
+EP02     112  52-63     14       0       0    2    0
+GEDO      88  41-50      7       0       0    0    0
+EP1       41  19-23      3       0       0    0    0
+EP2       55  25-31      4       0       0    0    0
+EP3       52  24-29      5       0       0    2    0
+EP5       45  21-25      3       0       0    1    0
+
+FAIL A1    too_long               est 50-61s vs target 35-45s
+FAIL B1    too_long               est 43-52s vs target 34-42s
+WARN B2    long                   est 46-56s at/above target max 50s
+FAIL B3    too_long               est 53-65s vs target 38-47s
+FAIL EP01  too_long               est 56-68s vs target 45-55s
+WARN EP02  long                   est 52-63s at/above target max 55s
+FAIL EP2   too_long               est 25-31s vs target 18-25s
+WARN EP3   long                   est 24-29s at/above target max 25s
+
+5 FAIL, 3 WARN

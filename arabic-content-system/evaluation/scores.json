@@ -1,0 +1,804 @@
+{
+  "dimensions": [
+    "hook",
+    "narrative",
+    "voice",
+    "relevance",
+    "originality",
+    "clarity",
+    "practical",
+    "accuracy"
+  ],
+  "max": {
+    "hook": 15,
+    "narrative": 20,
+    "voice": 15,
+    "relevance": 10,
+    "originality": 10,
+    "clarity": 10,
+    "practical": 10,
+    "accuracy": 10
+  },
+  "scripts": {
+    "A1": {
+      "v3": {
+        "scores": {
+          "hook": 11,
+          "narrative": 13,
+          "voice": 10,
+          "relevance": 7,
+          "originality": 7,
+          "clarity": 7,
+          "practical": 4,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) «أكبر حمل… مش وانت بتستريتش. وانت بتجري» is specific, and the stretching contrast is a real scroll-stopper.",
+          "narrative": "(J) Logical order, but the «هوك النص» only restates the mechanism. The Nordic stat arrives with no bridge.",
+          "voice": "(F) 3 contrast reveals in 77 words (lint). «البرنامج كله، مش النوردك لوحده» is a written-style afterthought.",
+          "relevance": "(J) Runners and footballers, but no lived situation is named.",
+          "originality": "(J) The lengthening-under-load mechanism plus the 'programme, not exercise alone' nuance is above typical IG content.",
+          "clarity": "(F) 35–43 s est., within range; the trailing qualifier clutters the ending.",
+          "practical": "(F) Ends on «اتقيّم» with no action.",
+          "accuracy": "(F) Both claims match Sun 2015 and van Dyk 2019; the shooting note flags the mechanism as probable."
+        },
+        "summary": "",
+        "total": 68
+      },
+      "pass1": {
+        "scores": {
+          "hook": 12,
+          "narrative": 16,
+          "voice": 12,
+          "relevance": 8,
+          "originality": 8,
+          "clarity": 4,
+          "practical": 7,
+          "accuracy": 9
+        },
+        "notes": {},
+        "summary": "Fixed the contrast tic and added the 1.4× number as an escalating middle hook, but grew to 109 words (est. 50–61 s vs 35–45). Lint FAIL: too_long.",
+        "total": 76
+      },
+      "final": {
+        "scores": {
+          "hook": 12,
+          "narrative": 16,
+          "voice": 13,
+          "relevance": 8,
+          "originality": 8,
+          "clarity": 8,
+          "practical": 7,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) «فيه لحظتين في الجري السريع، الهامسترينج فيهم شايل أتقل حمل» is specific and visual, but less provocative than v3's stretching contrast. v3's hook is kept as [ALT] for an A/B test. Only +1.",
+          "narrative": "(J) Moment → mechanism → escalating number («عدّى أقصى قوة… بحوالي 40%») → myth correction → proof → audit question. Each beat is new.",
+          "voice": "(F) 0 contrast reveals; «بتتمط وهي شادّة، بتفرمل الركبة» is natural gym Egyptian.",
+          "relevance": "(J) The ending addresses the viewer whose strain keeps coming back.",
+          "originality": "(J) The 40% figure is uncommon in Arabic fitness content (judgement, not checked against competitors).",
+          "clarity": "(F) 85 words, est. 39–48 s, at the upper edge of the target.",
+          "practical": "(J) The audit question «آخر مرة عضلتك اتدرّبت وهي بتتمط تحت حمل… كانت إمتى؟» is actionable, but there's no how-to for the Nordic. Remaining weakness.",
+          "accuracy": "(F) Sun 2015: knee muscle torque 1.4× max isometric in initial stance (n = 8, on screen). van Dyk 2019 RR 0.49 for programmes including the NHE. «الأسباب كتير» keeps it multifactorial."
+        },
+        "summary": "Contrast tic removed, escalating middle hook added, generic referral replaced by an audit question. Hook not clearly better than v3, so v3's is kept as ALT.",
+        "total": 81
+      }
+    },
+    "B1": {
+      "v3": {
+        "scores": {
+          "hook": 10,
+          "narrative": 12,
+          "voice": 9,
+          "relevance": 8,
+          "originality": 6,
+          "clarity": 6,
+          "practical": 5,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) Relatable scenario, but «بالحاجة الغلط» is vague. It doesn't say what was being measured.",
+          "narrative": "(J) The line model is good and «الوجع ممكن يروح وانت لسه هنا» is a genuine middle hook, but a disclaimer opens the body.",
+          "voice": "(F) MSA «فإن الوجع راح», 2 contrast reveals, a spoken disclaimer «الرسم ده للتوضيح، مش أرقام».",
+          "relevance": "(J) The return-to-sport viewer will recognise it.",
+          "originality": "(J) The capacity-gap concept is known in rehab circles, though rarer in Egyptian IG.",
+          "clarity": "(F) 2 spoken disclaimers (~13 of 74 words).",
+          "practical": "(J) «قوة، ونط، ونَفَس» lists categories, not tests.",
+          "accuracy": "(F) No numbers; the on-screen label prevents the graphic being read as data."
+        },
+        "summary": "",
+        "total": 65
+      },
+      "pass1": {
+        "scores": {
+          "hook": 12,
+          "narrative": 15,
+          "voice": 12,
+          "relevance": 8,
+          "originality": 7,
+          "clarity": 5,
+          "practical": 7,
+          "accuracy": 9
+        },
+        "notes": {},
+        "summary": "Hook names the wrong measure («بالوجع»), disclaimer moved on screen, tests named, but 93 words (est. 43–52 s vs 34–42). Lint FAIL.",
+        "total": 75
+      },
+      "final": {
+        "scores": {
+          "hook": 12,
+          "narrative": 15,
+          "voice": 13,
+          "relevance": 8,
+          "originality": 7,
+          "clarity": 8,
+          "practical": 7,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) «يمكن كنت بتقيس جاهزيتك بالوجع» names the specific mistake while keeping v3's honest «يمكن».",
+          "narrative": "(J) Model → middle hook (kept from v3) → «طب تعرف إزاي إنك وصلت فوق؟» opens a second question that the tests answer.",
+          "voice": "(F) MSA and contrast reveals removed; «قصاد السليمة» is natural comparison Egyptian.",
+          "relevance": "(J) Unchanged. Already good in v3.",
+          "originality": "(J) +1: the ending reframes pain as a signal of healing, not of readiness. Still a known concept.",
+          "clarity": "(F) 77 words, est. 35–43 s, on target; disclaimer on screen; CTA moved to the caption.",
+          "practical": "(J) Names three test domains but gives no thresholds. Adding sport-specific criteria (e.g. ≥90% limb symmetry, from ACL literature) is Hazem's call. Remaining weakness.",
+          "accuracy": "(F) Unchanged; nothing overstated."
+        },
+        "summary": "Below the 80 bar (79). Moving practical value needs a decision on whether to state a benchmark that comes from ACL-specific research.",
+        "total": 79
+      }
+    },
+    "A2": {
+      "v3": {
+        "scores": {
+          "hook": 9,
+          "narrative": 13,
+          "voice": 10,
+          "relevance": 8,
+          "originality": 6,
+          "clarity": 6,
+          "practical": 6,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) «كاحلك بطّل يوجعك؟ حلو. بس ده مش معناه…» is a common take that opens on a contrast.",
+          "narrative": "(J) Number → better number → demo, but a disclaimer line («ده مش اختبار ولا تشخيص… مجرد ملاحظة») stalls the end.",
+          "voice": "(F) 2 contrast reveals plus a spoken disclaimer.",
+          "relevance": "(J) Anyone who's sprained an ankle.",
+          "originality": "(J) The proprioception-after-sprain message is fairly common.",
+          "clarity": "(F) 40–49 s est., about 10% of words are disclaimer.",
+          "practical": "(J) The demo is useful, but it ends on «كلّم مختص».",
+          "accuracy": "(F) 500+, ~1/3 and 22% match Hupperets 2009 (522; 33% vs 22%)."
+        },
+        "summary": "",
+        "total": 67
+      },
+      "pass1": {
+        "scores": {
+          "hook": 12,
+          "narrative": 15,
+          "voice": 12,
+          "relevance": 8,
+          "originality": 7,
+          "clarity": 7,
+          "practical": 8,
+          "accuracy": 9
+        },
+        "notes": {},
+        "summary": "Number hook, disclaimers moved on screen, demo kept. Ending shape duplicated B1 (pain vs X aphorism). Question hook (4/5 approved reels opened with a question).",
+        "total": 78
+      },
+      "final": {
+        "scores": {
+          "hook": 13,
+          "narrative": 15,
+          "voice": 13,
+          "relevance": 8,
+          "originality": 7,
+          "clarity": 8,
+          "practical": 8,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) «واحد من كل تلاتة رياضيين لووا كاحلهم، لواه تاني في نفس السنة» is a hard number, immediately relevant, and a statement (fixes the batch's question-hook pattern).",
+          "narrative": "(J) Number → comparison middle hook (22%) → implication → demo → reframe.",
+          "voice": "(F) 0 contrast reveals, 0 spoken disclaimers.",
+          "relevance": "(J) Unchanged.",
+          "originality": "(J) +1: the closing reframe «ماتسألش «لسه بيوجع؟». اسأل «بيسندني؟»» is memorable.",
+          "clarity": "(F) 83 words, est. 38–47 s.",
+          "practical": "(J) Do-it-now demo plus a question the viewer can keep using.",
+          "accuracy": "(F) Absolute numbers (33%→22%) on screen; the hook generalises one trial's control group, and the next line names the trial."
+        },
+        "summary": "Clear improvement in hook, flow and language; accuracy unchanged (already correct).",
+        "total": 81
+      }
+    },
+    "B2": {
+      "v3": {
+        "scores": {
+          "hook": 8,
+          "narrative": 13,
+          "voice": 11,
+          "relevance": 7,
+          "originality": 8,
+          "clarity": 5,
+          "practical": 5,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) Two stacked questions plus the vague tease «ساعات الإجابة بتبقى في النص».",
+          "narrative": "(J) Two trials in sequence work; the spoken disclaimer «مش قاعدة لكل الناس» deflates the middle.",
+          "voice": "(J) Natural, but written-register stretches («إنك تخفف الحمل فترة، ده ممكن يبقى صح»).",
+          "relevance": "(J) 'Tendon' is abstract; no situation.",
+          "originality": "(J) Injection vs heavy slow resistance is a distinctive comparison.",
+          "clarity": "(F) Longest approved reel (47–57 s est.) with a disclaimer line.",
+          "practical": "(J) «يتظبط على قد حالتك» is abstract, and it ends on «اتقيّم».",
+          "accuracy": "(F) Silbernagel (n = 38) and Kongsgaard (n = 39) described correctly."
+        },
+        "summary": "",
+        "total": 66
+      },
+      "pass1": {
+        "scores": {
+          "hook": 12,
+          "narrative": 15,
+          "voice": 12,
+          "relevance": 8,
+          "originality": 8,
+          "clarity": 6,
+          "practical": 9,
+          "accuracy": 9
+        },
+        "notes": {},
+        "summary": "'Third option' hook, pain-monitoring rule as payoff; 100 words (est. 46–56 s vs 40–50).",
+        "total": 79
+      },
+      "final": {
+        "scores": {
+          "hook": 12,
+          "narrative": 16,
+          "voice": 13,
+          "relevance": 8,
+          "originality": 8,
+          "clarity": 8,
+          "practical": 9,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) «قدامك اختيارين مشهورين… التجارب ليها رأي تالت» is a concrete choice with a real gap.",
+          "narrative": "(J) Prediction → result («والاتنين اتحسنوا قد بعض») → stakes reveal («بعد 6 شهور التحسن رجع لورا») → rule.",
+          "voice": "(F) No disclaimers or contrasts; «هدي لحد الصبح؟ كمّل… زاد يوم عن يوم؟ خفف» sounds spoken.",
+          "relevance": "(J) +1: names the two options the viewer is actually offered.",
+          "originality": "(J) Unchanged; already distinctive.",
+          "clarity": "(F) 92 words, est. 42–52 s.",
+          "practical": "(J) The next-morning pain rule is an action the viewer can apply tonight.",
+          "accuracy": "(F) Both trials are on cards with their n; the trials are not conflated; no pain-score number given (secondary sources conflict)."
+        },
+        "summary": "Biggest gain in practical value.",
+        "total": 83
+      }
+    },
+    "B3": {
+      "v3": {
+        "scores": {
+          "hook": 13,
+          "narrative": 12,
+          "voice": 12,
+          "relevance": 6,
+          "originality": 7,
+          "clarity": 8,
+          "practical": 5,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) «اقف قدام حيطة، وفي 30 ثانية هتعرف…» is a strong do-it-now hook. Preserved.",
+          "narrative": "(J) Clear instructions, but the middle hook «فيه هامش خطأ» is vague, and the script ends by deferring.",
+          "voice": "(J) Natural instruction language.",
+          "relevance": "(J) Doesn't say why the viewer should care about ankle bend.",
+          "originality": "(J) The knee-to-wall test is known; the honest framing is good.",
+          "clarity": "(F) 41–50 s est.",
+          "practical": "(F) No measurement, no use for the number; ends on «وريه لمختص».",
+          "accuracy": "(F) Correctly avoids normal values."
+        },
+        "summary": "",
+        "total": 72
+      },
+      "pass1": {
+        "scores": {
+          "hook": 12,
+          "narrative": 15,
+          "voice": 12,
+          "relevance": 8,
+          "originality": 8,
+          "clarity": 4,
+          "practical": 9,
+          "accuracy": 9
+        },
+        "notes": {},
+        "summary": "Replaced the hook with a squat question (lost the strong v3 hook), added MDC and re-test logic; 115 words (est. 53–65 s vs 38–47). Lint FAIL.",
+        "total": 77
+      },
+      "final": {
+        "scores": {
+          "hook": 13,
+          "narrative": 15,
+          "voice": 12,
+          "relevance": 7,
+          "originality": 8,
+          "clarity": 8,
+          "practical": 9,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) v3 hook restored (pass 1 had replaced a strong line: an excessive-rewrite error caught in review).",
+          "narrative": "(J) Instructions → a concrete middle hook («ممكن يختلف لحد 2 سنتي لو عدته») → limits → re-test payoff.",
+          "voice": "(J) Unchanged. Already natural.",
+          "relevance": "(J) +1: squat heel-rise is mentioned, but later and weaker than in pass 1. A trade-off.",
+          "originality": "(J) Using the measurement error to tell real change from noise is rare in IG content (judgement).",
+          "clarity": "(F) 91 words, est. 42–51 s.",
+          "practical": "(J) Measure → train → re-test, with a threshold.",
+          "accuracy": "(F) Powden 2015 MDC 1.6–1.9 cm; applying it to between-leg differences is flagged as an approximation in NOTES."
+        },
+        "summary": "Practical value from 5 to 9. Relevance gain smaller than in pass 1 because the strong v3 hook was kept.",
+        "total": 81
+      }
+    },
+    "EP01": {
+      "v3": {
+        "scores": {
+          "hook": 11,
+          "narrative": 16,
+          "voice": 13,
+          "relevance": 7,
+          "originality": 9,
+          "clarity": 4,
+          "practical": 6,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) Name plus mystery, but «فاته لقب 2010 كله» is ambiguous (Egypt won it) and it opens on a contrast.",
+          "narrative": "(J) Real turn («شحاتة كان مستعد يستناه. بس…»), science bridge, earned ending.",
+          "voice": "(J) Natural; «العضمة مالهاش دعوة الماتش قد إيه مهم» is the best line in the PDF.",
+          "relevance": "(J) Football fans; the injury lesson is indirect.",
+          "originality": "(J) Uses a national story to teach readiness. Distinctive.",
+          "clarity": "(F) Est. 57–69 s against the section's own 45–55 s target.",
+          "practical": "(J) A decision lesson, not an action.",
+          "accuracy": "(F) Careful «ممنوع يتقال» discipline; tournament facts confirmed independently this session."
+        },
+        "summary": "",
+        "total": 75
+      },
+      "pass1": {
+        "scores": {
+          "hook": 13,
+          "narrative": 16,
+          "voice": 13,
+          "relevance": 7,
+          "originality": 9,
+          "clarity": 4,
+          "practical": 6,
+          "accuracy": 9
+        },
+        "notes": {},
+        "summary": "New hook «بطلب منه هو»; still 121 words (est. 56–68 s). Lint FAIL.",
+        "total": 77
+      },
+      "final": {
+        "scores": {
+          "hook": 13,
+          "narrative": 16,
+          "voice": 13,
+          "relevance": 7,
+          "originality": 9,
+          "clarity": 8,
+          "practical": 6,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) «غاب عن بطولة 2010 كلها. بطلب منه هو» is a sharper surprise, and attributed in the middle hook.",
+          "narrative": "(J) Unchanged. Already strong.",
+          "voice": "(J) Unchanged; protected lines kept verbatim.",
+          "relevance": "(J) Not improved. Story format.",
+          "originality": "(J) Unchanged.",
+          "clarity": "(F) 103 words, est. 47–58 s (was 57–69).",
+          "practical": "(J) Not improved: the story teaches a decision, not a drill. Acceptable for this series.",
+          "accuracy": "(F) Unchanged; «الأهلي بيقول» keeps the 40-day figure attributed."
+        },
+        "summary": "Mainly a compression and hook edit. The protected lines are untouched.",
+        "total": 81
+      }
+    },
+    "EP02": {
+      "v3": {
+        "scores": {
+          "hook": 9,
+          "narrative": 14,
+          "voice": 12,
+          "relevance": 6,
+          "originality": 8,
+          "clarity": 5,
+          "practical": 5,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) Three sentences of setup before the hook lands; the famous payoff is hidden.",
+          "narrative": "(J) Good turn and ending, but listing the three injury accounts costs about 8 s.",
+          "voice": "(J) Natural.",
+          "relevance": "(J) Football fans; weak link to the viewer.",
+          "originality": "(J) The 'won it with a duel on a bad ankle' angle is strong.",
+          "clarity": "(F) Est. 53–65 s vs 45–55 s.",
+          "practical": "(J) The general ankle line is informative, not actionable.",
+          "accuracy": "(F) Accounts not presented as fact; substitution reason stated as unknown."
+        },
+        "summary": "",
+        "total": 68
+      },
+      "pass1": {
+        "scores": {
+          "hook": 13,
+          "narrative": 15,
+          "voice": 13,
+          "relevance": 6,
+          "originality": 8,
+          "clarity": 5,
+          "practical": 5,
+          "accuracy": 9
+        },
+        "notes": {},
+        "summary": "Payoff-first cold open; three accounts moved to a card; still 112 words (est. 52–63 s).",
+        "total": 74
+      },
+      "final": {
+        "scores": {
+          "hook": 13,
+          "narrative": 16,
+          "voice": 13,
+          "relevance": 7,
+          "originality": 8,
+          "clarity": 7,
+          "practical": 6,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) «الالتحام اللي جاب جول نهائي 2008، عمله لاعب كاحله كان متصاب من حوالي أسبوع» opens on the famous moment.",
+          "narrative": "(J) Cold open → context → «لسه مش عارف» turn → the minutes → payoff that closes the loop.",
+          "voice": "(J) +1 from cutting the three-account list.",
+          "relevance": "(J) +1: «لو كاحلك انت اتلوى» brings the viewer in.",
+          "originality": "(J) Unchanged.",
+          "clarity": "(F) 108 words, est. 50–61 s, at the target's upper edge.",
+          "practical": "(J) Walking pain-free is named as only the start. Still light.",
+          "accuracy": "(F) «حوالي أسبوع» is an approximation (injury before 4 Feb, final 10 Feb), noted."
+        },
+        "summary": "Below the bar (79). Story length is the constraint: adding more viewer value means cutting story detail, which is an editorial call for Hazem.",
+        "total": 79
+      }
+    },
+    "GEDO": {
+      "v3": {
+        "scores": {
+          "hook": 14,
+          "narrative": 13,
+          "voice": 11,
+          "relevance": 5,
+          "originality": 8,
+          "clarity": 7,
+          "practical": 2,
+          "accuracy": 8
+        },
+        "notes": {
+          "hook": "(J) «هدّاف أمم أفريقيا 2010 مابدأش ولا ماتش» is the strongest hook in the PDF. A paradox in 7 words.",
+          "narrative": "(J) Facts, then the role, then «ده مش تفسير لجوانه. ده وصف للدور» argues with no one.",
+          "voice": "(F) 2 contrast reveals in the explanation.",
+          "relevance": "(J) No link to the viewer's own training.",
+          "originality": "(J) The substitute-physiology angle is fresh.",
+          "clarity": "(F) 41–50 s est.",
+          "practical": "(J) No takeaway.",
+          "accuracy": "(F) «والكاف بعدها سمّته» isn't supported by the cited source (Ahram Online documents the nickname, not who gave it)."
+        },
+        "summary": "",
+        "total": 68
+      },
+      "pass1": {
+        "scores": {
+          "hook": 14,
+          "narrative": 14,
+          "voice": 13,
+          "relevance": 6,
+          "originality": 8,
+          "clarity": 8,
+          "practical": 3,
+          "accuracy": 9
+        },
+        "notes": {},
+        "summary": "Arguing-with-no-one removed, CAF attribution corrected, 85' detail added; no viewer takeaway yet.",
+        "total": 75
+      },
+      "final": {
+        "scores": {
+          "hook": 14,
+          "narrative": 14,
+          "voice": 13,
+          "relevance": 7,
+          "originality": 8,
+          "clarity": 7,
+          "practical": 6,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) Kept verbatim. Not improvable by rewriting.",
+          "narrative": "(J) +1: the 85' detail sharpens the middle; the EPL data line is now framed without arguing.",
+          "voice": "(F) 0 contrast reveals.",
+          "relevance": "(J) +2: the amateur 5-a-side substitute line.",
+          "originality": "(J) Unchanged.",
+          "clarity": "(F) 97 words, est. 45–55 s, around the target's upper edge. Not improved.",
+          "practical": "(J) +4: «فضل سخّن على الخط» gives one action (principle, not trial-based).",
+          "accuracy": "(F) CAF attribution corrected; EPL data from Bradley 2013/2014 described accurately."
+        },
+        "summary": "Below the bar (78). It's an optional companion story; length is its limit.",
+        "total": 78
+      }
+    },
+    "EP1": {
+      "v3": {
+        "scores": {
+          "hook": 11,
+          "narrative": 11,
+          "voice": 12,
+          "relevance": 7,
+          "originality": 7,
+          "clarity": 9,
+          "practical": 6,
+          "accuracy": 7
+        },
+        "notes": {
+          "hook": "(J) The series refrain from a rehab coach is a strong thumb-stop and is qualified within 2 s.",
+          "narrative": "(J) Three parallel conditions; the first («لو مالوش علاقة باللي هتلعبه») is vague, and the stretch line duplicates EP3.",
+          "voice": "(J) Natural.",
+          "relevance": "(J) General gym audience.",
+          "originality": "(J) The series format is distinctive; this episode's content is generic.",
+          "clarity": "(F) 18–21 s.",
+          "practical": "(J) The fatigue condition is actionable; the others are vague.",
+          "accuracy": "(J) 'Useless' is an exaggeration device; the stretch line repeats EP3's science."
+        },
+        "summary": "",
+        "total": 70
+      },
+      "pass1": {
+        "scores": {
+          "hook": 11,
+          "narrative": 13,
+          "voice": 13,
+          "relevance": 8,
+          "originality": 8,
+          "clarity": 9,
+          "practical": 8,
+          "accuracy": 8
+        },
+        "notes": {},
+        "summary": "Concrete conditions (walking only before a sprint, waiting 30 min); stretch line removed to avoid duplicating EP3.",
+        "total": 78
+      },
+      "final": {
+        "scores": {
+          "hook": 11,
+          "narrative": 14,
+          "voice": 13,
+          "relevance": 8,
+          "originality": 8,
+          "clarity": 9,
+          "practical": 8,
+          "accuracy": 8
+        },
+        "notes": {
+          "hook": "(J) Unchanged. Series format.",
+          "narrative": "(J) +3: concrete conditions plus a one-line mechanism («العضلة بتبرد تاني»), but still a list, so medium band.",
+          "voice": "(J) +1.",
+          "relevance": "(J) +1: the sprint and bench-waiting situations are recognisable.",
+          "originality": "(J) +1: the 'waited too long' condition is uncommon.",
+          "clarity": "(F) Unchanged, 20–25 s.",
+          "practical": "(J) +2: «بيبدأ هادي، ويعلى لحد ما يشبه اللي هتعمله» is a usable rule.",
+          "accuracy": "(J) +1: conditions supported by McGowan 2015 and Bishop 2003; 'useless' is still the series' exaggeration."
+        },
+        "summary": "Below the bar (79) because the ≤25 s list format caps the narrative score. Changing the series format needs Hazem's approval.",
+        "total": 79
+      }
+    },
+    "EP2": {
+      "v3": {
+        "scores": {
+          "hook": 11,
+          "narrative": 11,
+          "voice": 13,
+          "relevance": 8,
+          "originality": 8,
+          "clarity": 9,
+          "practical": 6,
+          "accuracy": 8
+        },
+        "notes": {
+          "hook": "(J) Provocative for a rehab account; brand-adjacent.",
+          "narrative": "(J) Conditions without proof; «لو مالوش علاقة برياضتك» repeats EP1's «مالوش علاقة» construction.",
+          "voice": "(J) Natural and rhythmic.",
+          "relevance": "(J) Anyone stuck in rehab.",
+          "originality": "(J) The brand line is distinctive.",
+          "clarity": "(F) 17–20 s.",
+          "practical": "(J) «بنفس الوزن» is useful; the rest is vague.",
+          "accuracy": "(J) Principle-based and labelled as such."
+        },
+        "summary": "",
+        "total": 74
+      },
+      "pass1": {
+        "scores": {
+          "hook": 11,
+          "narrative": 14,
+          "voice": 13,
+          "relevance": 9,
+          "originality": 8,
+          "clarity": 5,
+          "practical": 8,
+          "accuracy": 9
+        },
+        "notes": {},
+        "summary": "Added the red-band image and the Kongsgaard 15→6 progression; 55 words (est. 25–31 s, over 25). Lint FAIL.",
+        "total": 77
+      },
+      "final": {
+        "scores": {
+          "hook": 11,
+          "narrative": 15,
+          "voice": 13,
+          "relevance": 9,
+          "originality": 8,
+          "clarity": 9,
+          "practical": 8,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) Unchanged. Series format.",
+          "narrative": "(J) +4: condition → proof («الوزن كان بيتقل: من 15 عدة، لـ 6») → condition → brand line.",
+          "voice": "(J) Unchanged.",
+          "relevance": "(J) +1: «3 شهور بنفس الباند الأحمر» is a concrete image.",
+          "originality": "(J) Unchanged.",
+          "clarity": "(F) 43 words, est. 20–24 s.",
+          "practical": "(J) +2.",
+          "accuracy": "(F) +1: the progression was verified in the Kongsgaard 2009 full text (15RM → 6RM over 12 weeks)."
+        },
+        "summary": "Brand line kept verbatim; proof added.",
+        "total": 82
+      }
+    },
+    "EP3": {
+      "v3": {
+        "scores": {
+          "hook": 11,
+          "narrative": 11,
+          "voice": 12,
+          "relevance": 7,
+          "originality": 6,
+          "clarity": 9,
+          "practical": 7,
+          "accuracy": 6
+        },
+        "notes": {
+          "hook": "(J) Series refrain.",
+          "narrative": "(J) Three conditions; the injury line is a bare assertion.",
+          "voice": "(J) Natural.",
+          "relevance": "(J) Gym-goers who stretch before lifting.",
+          "originality": "(J) Common topic.",
+          "clarity": "(F) 18–23 s.",
+          "practical": "(J) «خليه قصير، وبعده حركة» is actionable.",
+          "accuracy": "(F) «وفاكره هيحميك من الإصابات؟ لوحده كده… مالوش لازمة» overstates it: Behm 2015 recommends stretching inside a warm-up with dynamic activity to reduce muscle injuries."
+        },
+        "summary": "",
+        "total": 69
+      },
+      "pass1": {
+        "scores": {
+          "hook": 11,
+          "narrative": 14,
+          "voice": 12,
+          "relevance": 7,
+          "originality": 7,
+          "clarity": 6,
+          "practical": 8,
+          "accuracy": 9
+        },
+        "notes": {},
+        "summary": "Injury claim corrected into a myth→nuance turn; 52 words (est. 24–29 s). Over 25.",
+        "total": 74
+      },
+      "final": {
+        "scores": {
+          "hook": 11,
+          "narrative": 15,
+          "voice": 13,
+          "relevance": 8,
+          "originality": 7,
+          "clarity": 9,
+          "practical": 8,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) Unchanged. Series format.",
+          "narrative": "(J) +4: condition with cost → injury myth → nuance («جوه تسخين فيه حركة، ممكن يقلل إصابات العضل») → rule.",
+          "voice": "(J) +1.",
+          "relevance": "(J) +1: «بتمسك الخلفية دقيقة وأكتر قبل السكوات» is a concrete habit.",
+          "originality": "(J) +1: the nuance that it helps *inside* a warm-up is less commonly said.",
+          "clarity": "(F) 44 words, est. 20–25 s.",
+          "practical": "(J) +1: «أقل من دقيقة، وبعده حركة».",
+          "accuracy": "(F) +3: matches Behm 2015 (≥60 s −4.6% vs <60 s −1.1%; no clear effect on all-cause injuries; recommended within a dynamic warm-up for muscle injuries)."
+        },
+        "summary": "The main scientific correction in the series.",
+        "total": 80
+      }
+    },
+    "EP5": {
+      "v3": {
+        "scores": {
+          "hook": 11,
+          "narrative": 10,
+          "voice": 12,
+          "relevance": 8,
+          "originality": 6,
+          "clarity": 8,
+          "practical": 5,
+          "accuracy": 5
+        },
+        "notes": {
+          "hook": "(J) Series refrain.",
+          "narrative": "(J) «مالوش لازمة لو نوعه مش ماشي مع هدفك» is vague and adds nothing new.",
+          "voice": "(J) Natural.",
+          "relevance": "(J) Lifters who do cardio.",
+          "originality": "(J) The interference topic is common.",
+          "clarity": "(F) 21–25 s.",
+          "practical": "(J) «بالجرعة اللي تخدم هدفك» doesn't say what the dose is.",
+          "accuracy": "(F) «مالوش لازمة لو هدفك عضل وقوة، وانت نازل جري كل يوم» contradicts the PDF's own «مش بنقول» note and Wilson 2012 (concurrent hypertrophy ES 0.85 vs 1.23: smaller, not zero)."
+        },
+        "summary": "",
+        "total": 65
+      },
+      "pass1": {
+        "scores": {
+          "hook": 11,
+          "narrative": 13,
+          "voice": 11,
+          "relevance": 8,
+          "originality": 7,
+          "clarity": 9,
+          "practical": 6,
+          "accuracy": 9
+        },
+        "notes": {},
+        "summary": "Claim corrected and running vs cycling added; the opening «…لو هدفك عضل… ؟» read awkwardly.",
+        "total": 74
+      },
+      "final": {
+        "scores": {
+          "hook": 11,
+          "narrative": 15,
+          "voice": 13,
+          "relevance": 8,
+          "originality": 7,
+          "clarity": 9,
+          "practical": 8,
+          "accuracy": 9
+        },
+        "notes": {
+          "hook": "(J) Unchanged. Series format.",
+          "narrative": "(J) +5: data reveal («عضلهم زاد… بس أقل») → twist («الجري أثّر، والعجلة لأ») → rule.",
+          "voice": "(J) +1.",
+          "relevance": "(J) Unchanged.",
+          "originality": "(J) +1: the running-vs-cycling detail is less known.",
+          "clarity": "(F) 40 words, est. 18–23 s.",
+          "practical": "(J) +3: «عجلة أكتر، وجري أقصر» (an applied principle, labelled in NOTES).",
+          "accuracy": "(F) +4: matches Wilson 2012 (21 studies; running, not cycling, significantly reduced gains; duration and frequency inversely related)."
+        },
+        "summary": "The script that contradicted its own source now matches it.",
+        "total": 80
+      }
+    }
+  }
+}

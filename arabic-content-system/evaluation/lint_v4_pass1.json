@@ -1,0 +1,186 @@
+{
+  "table": [
+    {
+      "id": "A1",
+      "words": 109,
+      "est_seconds": "50-61",
+      "hook_first_sentence_words": 13,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 1,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "B1",
+      "words": 93,
+      "est_seconds": "43-52",
+      "hook_first_sentence_words": 6,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 2,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "A2",
+      "words": 86,
+      "est_seconds": "40-48",
+      "hook_first_sentence_words": 3,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 1,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "B2",
+      "words": 100,
+      "est_seconds": "46-56",
+      "hook_first_sentence_words": 2,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 3,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "B3",
+      "words": 115,
+      "est_seconds": "53-65",
+      "hook_first_sentence_words": 5,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 2,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "EP01",
+      "words": 121,
+      "est_seconds": "56-68",
+      "hook_first_sentence_words": 11,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 0,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "EP02",
+      "words": 112,
+      "est_seconds": "52-63",
+      "hook_first_sentence_words": 14,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 2,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "GEDO",
+      "words": 88,
+      "est_seconds": "41-50",
+      "hook_first_sentence_words": 7,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 0,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "EP1",
+      "words": 41,
+      "est_seconds": "19-23",
+      "hook_first_sentence_words": 3,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 0,
+      "generic_referral": 0,
+      "refrain": 4
+    },
+    {
+      "id": "EP2",
+      "words": 55,
+      "est_seconds": "25-31",
+      "hook_first_sentence_words": 4,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 0,
+      "generic_referral": 0,
+      "refrain": 4
+    },
+    {
+      "id": "EP3",
+      "words": 52,
+      "est_seconds": "24-29",
+      "hook_first_sentence_words": 5,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 2,
+      "generic_referral": 0,
+      "refrain": 2
+    },
+    {
+      "id": "EP5",
+      "words": 45,
+      "est_seconds": "21-25",
+      "hook_first_sentence_words": 3,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 1,
+      "generic_referral": 0,
+      "refrain": 1
+    }
+  ],
+  "issues": [
+    {
+      "id": "A1",
+      "level": "FAIL",
+      "code": "too_long",
+      "msg": "est 50-61s vs target 35-45s"
+    },
+    {
+      "id": "B1",
+      "level": "FAIL",
+      "code": "too_long",
+      "msg": "est 43-52s vs target 34-42s"
+    },
+    {
+      "id": "B2",
+      "level": "WARN",
+      "code": "long",
+      "msg": "est 46-56s at/above target max 50s"
+    },
+    {
+      "id": "B3",
+      "level": "FAIL",
+      "code": "too_long",
+      "msg": "est 53-65s vs target 38-47s"
+    },
+    {
+      "id": "EP01",
+      "level": "FAIL",
+      "code": "too_long",
+      "msg": "est 56-68s vs target 45-55s"
+    },
+    {
+      "id": "EP02",
+      "level": "WARN",
+      "code": "long",
+      "msg": "est 52-63s at/above target max 55s"
+    },
+    {
+      "id": "EP2",
+      "level": "FAIL",
+      "code": "too_long",
+      "msg": "est 25-31s vs target 18-25s"
+    },
+    {
+      "id": "EP3",
+      "level": "WARN",
+      "code": "long",
+      "msg": "est 24-29s at/above target max 25s"
+    }
+  ]
+}

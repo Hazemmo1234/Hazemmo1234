@@ -1,0 +1,137 @@
+{
+  "table": [
+    {
+      "id": "A1",
+      "words": 85,
+      "est_seconds": "39-48",
+      "hook_first_sentence_words": 10,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 1,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "B1",
+      "words": 77,
+      "est_seconds": "35-43",
+      "hook_first_sentence_words": 6,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 2,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "A2",
+      "words": 83,
+      "est_seconds": "38-47",
+      "hook_first_sentence_words": 12,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 2,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "B2",
+      "words": 92,
+      "est_seconds": "42-52",
+      "hook_first_sentence_words": 2,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 3,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "B3",
+      "words": 91,
+      "est_seconds": "42-51",
+      "hook_first_sentence_words": 12,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 2,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "EP01",
+      "words": 103,
+      "est_seconds": "47-58",
+      "hook_first_sentence_words": 11,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 0,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "EP02",
+      "words": 106,
+      "est_seconds": "49-60",
+      "hook_first_sentence_words": 14,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 2,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "GEDO",
+      "words": 97,
+      "est_seconds": "45-55",
+      "hook_first_sentence_words": 7,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 0,
+      "generic_referral": 0,
+      "refrain": 0
+    },
+    {
+      "id": "EP1",
+      "words": 44,
+      "est_seconds": "20-25",
+      "hook_first_sentence_words": 3,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 0,
+      "generic_referral": 0,
+      "refrain": 4
+    },
+    {
+      "id": "EP2",
+      "words": 43,
+      "est_seconds": "20-24",
+      "hook_first_sentence_words": 4,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 0,
+      "generic_referral": 0,
+      "refrain": 4
+    },
+    {
+      "id": "EP3",
+      "words": 44,
+      "est_seconds": "20-25",
+      "hook_first_sentence_words": 5,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 1,
+      "generic_referral": 0,
+      "refrain": 2
+    },
+    {
+      "id": "EP5",
+      "words": 40,
+      "est_seconds": "18-23",
+      "hook_first_sentence_words": 3,
+      "contrast_reveal": 0,
+      "spoken_disclaimers": 0,
+      "questions": 0,
+      "generic_referral": 0,
+      "refrain": 1
+    }
+  ],
+  "issues": []
+}

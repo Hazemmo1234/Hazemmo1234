@@ -1,0 +1,28 @@
+# lint: scripts/v3_original  (12 scripts)
+
+id     words  est_s   hookW  contrast disclaim  Q  refer
+A1        77  35-43      7       3       0    0    1
+B1        74  34-42      6       2       2    1    0
+A2        87  40-49      3       2       2    2    1
+B2       101  47-57      2       0       1    2    1
+B3        89  41-50     12       0       1    1    1
+EP01     123  57-69     10       0       0    0    0
+EP02     116  53-65      6       0       0    2    0
+GEDO      89  41-50      7       2       1    0    0
+EP1       38  18-21      3       0       0    1    0
+EP2       36  17-20      4       0       0    1    0
+EP3       40  18-23      5       0       0    2    0
+EP5       45  21-25      3       0       0    0    0
+
+FAIL A1    contrast_reveal        3 'مش X… Y' reveals: ['، مش', 'مش ستريتش وخلاص', 'مش وانت بتستريتش. وانت']
+WARN B1    contrast_reveal        2 'مش X… Y' reveals (cap 1): ['ده مش', '، مش']
+WARN B1    disclaimers            2 spoken disclaimers; move to on-screen/caption: ['مش أرقام', 'للتوضيح']
+WARN B1    msa                    MSA markers in spoken text: ['فإن']
+WARN A2    contrast_reveal        2 'مش X… Y' reveals (cap 1): ['ده مش', 'ده مش']
+WARN A2    disclaimers            2 spoken disclaimers; move to on-screen/caption: ['مش اختبار', 'مجرد ملاحظة']
+FAIL EP01  too_long               est 57-69s vs target 45-55s
+WARN EP02  long                   est 53-65s at/above target max 55s
+WARN GEDO  contrast_reveal        2 'مش X… Y' reveals (cap 1): ['ده مش', 'مش تفسير لجوانه. ده']
+WARN SET   repeated_referral_cta  generic 'see a professional' ending in 4 scripts: ['A1', 'A2', 'B2', 'B3']
+
+2 FAIL, 8 WARN

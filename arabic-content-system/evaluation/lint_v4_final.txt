@@ -1,0 +1,18 @@
+# lint: scripts/v4_final  (12 scripts)
+
+id     words  est_s   hookW  contrast disclaim  Q  refer
+A1        85  39-48     10       0       0    1    0
+B1        77  35-43      6       0       0    2    0
+A2        83  38-47     12       0       0    2    0
+B2        92  42-52      2       0       0    3    0
+B3        91  42-51     12       0       0    2    0
+EP01     103  47-58     11       0       0    0    0
+EP02     106  49-60     14       0       0    2    0
+GEDO      97  45-55      7       0       0    0    0
+EP1       44  20-25      3       0       0    0    0
+EP2       43  20-24      4       0       0    0    0
+EP3       44  20-25      5       0       0    1    0
+EP5       40  18-23      3       0       0    0    0
+
+
+0 FAIL, 0 WARN
