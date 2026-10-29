@@ -1,0 +1,178 @@
+{
+  "_doc": "Regression cases for the 7-episode injury series (v6). Run: python3 -I content_system/tests/run_regression.py scripts/series_final content_system/tests/cases_series.json",
+  "cases": [
+    {
+      "id": "S1",
+      "type": "stress fracture",
+      "min_sci": 2,
+      "sci_integrated": true,
+      "max_est_seconds_hi": 88,
+      "hook_must_not_contain": [
+        "طلب"
+      ],
+      "mid_must_contain": [
+        "طلب"
+      ],
+      "must_contain": [
+        "كسر إجهادي",
+        "أم درمان",
+        "لسه"
+      ],
+      "forbidden_regex": [
+        "المشط الخامس عند أبو تريكة",
+        "بسبب (ماتش|أم درمان|الجزاير)",
+        "انتقام",
+        "(حزين|زعلان|كان حاسس)"
+      ],
+      "required_sources": [
+        "Ekstrand J, van Dijk",
+        "FilGoal, 9 Jan 2017",
+        "Warden"
+      ],
+      "production_must_contain": [
+        "مش معروف أنهي مشط"
+      ]
+    },
+    {
+      "id": "S2",
+      "type": "hamstring tear",
+      "min_sci": 2,
+      "sci_integrated": true,
+      "max_est_seconds_hi": 88,
+      "must_contain": [
+        "قطع حقيقي",
+        "16%",
+        "لو جاهز"
+      ],
+      "forbidden_regex": [
+        "رجوع تدريجي من الدكة",
+        "نزّلوه بديل عشان",
+        "درجة (أولى|تانية|تالتة)"
+      ],
+      "required_sources": [
+        "Ekstrand J, Hägglund",
+        "Lijnders",
+        "Brentford"
+      ],
+      "payoff_keywords": [
+        "أقصى سرعتك"
+      ]
+    },
+    {
+      "id": "S3",
+      "type": "suspected concussion",
+      "min_sci": 2,
+      "sci_integrated": true,
+      "max_est_seconds_hi": 88,
+      "must_contain": [
+        "اشتباه ارتجاج",
+        "نفس اليوم",
+        "مش لازم يبقى إغماء"
+      ],
+      "forbidden_regex": [
+        "كان عنده ارتجاج",
+        "ارتجاج مؤكد",
+        "الجهاز الطبي (أهمل|غلط)"
+      ],
+      "required_sources": [
+        "Patricios",
+        "Headway"
+      ],
+      "payoff_keywords": [
+        "يطلع"
+      ]
+    },
+    {
+      "id": "S4",
+      "type": "ACL",
+      "min_sci": 2,
+      "sci_integrated": true,
+      "max_est_seconds_hi": 88,
+      "must_contain": [
+        "الرباط الصليبي",
+        "الشهر التاسع",
+        "69 دراسة"
+      ],
+      "forbidden_regex": [
+        "وتر الركبة اللي اتاخد",
+        "جاب الجول بعد لفة",
+        "ضمان"
+      ],
+      "required_sources": [
+        "Grindem",
+        "Ardern",
+        "Aston Villa"
+      ]
+    },
+    {
+      "id": "S5",
+      "type": "shoulder dislocation",
+      "min_sci": 2,
+      "sci_integrated": true,
+      "max_est_seconds_hi": 88,
+      "must_contain": [
+        "كورة جولف",
+        "4 من كل 10"
+      ],
+      "forbidden_regex": [
+        "أول خلع (ليه|للشناوي)",
+        "اتعمله عملية",
+        "خلع (أمامي|لقدام) (للشناوي|عند الشناوي)"
+      ],
+      "required_sources": [
+        "Olds",
+        "El Shenawy"
+      ]
+    },
+    {
+      "id": "S6",
+      "type": "meniscus",
+      "min_sci": 2,
+      "sci_integrated": true,
+      "max_est_seconds_hi": 88,
+      "must_contain": [
+        "الغضروف الهلالي",
+        "مافيهوش دم"
+      ],
+      "forbidden_regex": [
+        "الرباط الداخلي",
+        "رجله (اليمين|الشمال)",
+        "اتعمله عملية"
+      ],
+      "required_sources": [
+        "Petersen",
+        "Ghana FA"
+      ]
+    },
+    {
+      "id": "S7",
+      "type": "ankle (bonus, no public diagnosis)",
+      "min_sci": 1,
+      "max_est_seconds_hi": 88,
+      "must_contain": [
+        "مفيش تشخيص معلن",
+        "الكاميرون تاني",
+        "500 رياضي"
+      ],
+      "hook_must_not_contain": [
+        "التحام",
+        "سونج"
+      ],
+      "forbidden_regex": [
+        "دقيقة 7[67]",
+        "اتصاب (في التسخين|من حفرة|من التحام)",
+        "قطع في (الرباط|الأربطة)"
+      ],
+      "required_sources": [
+        "Hupperets",
+        "Al Jazeera"
+      ]
+    }
+  ],
+  "set_checks": {
+    "max_generic_referral_scripts": 1,
+    "no_repeated_hook_opener": true,
+    "injuries_unique": true,
+    "structures_unique_all": true
+  }
+}

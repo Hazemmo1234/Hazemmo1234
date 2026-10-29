@@ -1,0 +1,26 @@
+{
+  "_doc": "10x10 rubric (content_system/guides/rubric.md): opening, coherence, progression, middle_hook, egyptian, originality, concision, payoff, integrity, spoken. v3 and v5 scores carried from v5/evaluation/scores_v5.json; v6 scored in this session by the editor (Claude). Editorial diagnostics, not predictions.",
+  "partA": {
+    "A1":   {"v6": [8,8,8,7,8,7,7,8,9,8], "why": "Adds a how-to for the Nordic (described, no invented dose) and the stretching distinction as a plain statement; longer, so concision is 7."},
+    "B1":   {"v6": [8,8,8,7,8,7,8,8,9,8], "why": "The staircase image now has a 'training' rung; the ending separates 'back to training' from 'back to the match', the exact distinction the brand teaches."},
+    "A2":   {"v6": [8,8,8,7,8,7,8,8,9,8], "why": "Adds the why (ligaments heal + fast-reacting muscles) between the trial and the demo; labelled as a principle."},
+    "B2":   {"v6": [8,8,8,8,8,8,7,8,9,8], "why": "The verified mechanism (heavy slow resistance raised collagen turnover) explains *why* loading beats rest."},
+    "B3":   {"v6": [8,8,8,8,8,8,7,8,9,8], "why": "Says why the number matters (squat and landing compensations, framed as 'may'), before the measurement-error turn."},
+    "EP01": {"v6": [9,9,9,9,8,8,7,9,9,8], "why": "= S1. The stress-fracture science is now part of the story (what it is, refracture and warning pain), and the ending gives a red flag the viewer can act on."},
+    "EP02": {"v6": [8,9,9,8,8,8,7,8,9,8], "why": "= S7. The ankle science sits mid-story; the ending links to the balance-training trial."},
+    "GEDO": {"v6": [9,8,8,8,8,8,7,8,9,8], "why": "Rebuilt around two documented fatigue/substitute numbers (−12% second half; subs +15%). The story now teaches performance physiology."},
+    "EP1":  {"v6": [7,7,7,7,8,7,8,8,8,8], "why": "Kept from v5 (already rebuilt in v5: conditions reordered, three-part rule)."},
+    "EP2":  {"v6": [7,8,7,7,8,7,8,7,9,8], "why": "Kept from v5: already rebuilt from v3 (brand line, proof); no change found that improved it."},
+    "EP3":  {"v6": [7,8,7,7,8,6,8,7,9,8], "why": "Kept from v5 (science correction already applied)."},
+    "EP5":  {"v6": [7,8,7,7,8,6,8,7,9,8], "why": "Kept from v5 (science correction already applied)."}
+  },
+  "series": {
+    "S1": {"v6": [9,9,9,9,8,8,7,9,9,8], "learn": "What a stress fracture is (repeated load faster than bone repair), that it can recur (a third were refractures in an MT-5 cohort) and often gives warning pain; act early."},
+    "S2": {"v6": [8,9,9,8,8,8,7,8,9,8], "learn": "Why a hamstring tear takes weeks when pain settles in days (the lengthening load at sprint speed), the 16% re-injury rule of thumb, and that return is set by top-speed tolerance."},
+    "S3": {"v6": [9,8,8,8,8,8,8,9,9,8], "learn": "Concussion needs no blackout; symptoms can be delayed; suspected = remove, no same-day return, graded return; a happy ending doesn't validate playing on."},
+    "S4": {"v6": [8,8,9,8,8,8,7,8,9,8], "learn": "What the ACL does, what reconstruction is, why ~9 months matters (−51% per month to 9 months), and that only ~2/3 return to their previous level: time AND criteria."},
+    "S5": {"v6": [8,8,8,8,8,8,7,8,9,8], "learn": "Why the shoulder dislocates (shallow socket, soft-tissue restraints), the 39% recurrence after a first dislocation, and why goalkeepers' positions shape the rehab."},
+    "S6": {"v6": [8,8,8,8,8,8,8,8,8,8], "learn": "What the meniscus does, why the inner part heals poorly (no blood supply), and why initial timelines are estimates that the knee's response overrides."},
+    "S7": {"v6": [8,9,9,8,8,8,7,8,8,8], "learn": "How common ankle injuries happen in general, why walking returns long before duels, and that balance training cut re-sprains 33% → 22%. Integrity 8: Zidan's own diagnosis isn't public."}
+  }
+}

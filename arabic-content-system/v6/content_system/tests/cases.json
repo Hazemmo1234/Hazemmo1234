@@ -1,0 +1,261 @@
+{
+  "_doc": "Regression cases for Part A (all 12 original scripts, v6). Run: python3 -I content_system/tests/run_regression.py scripts/partA_final",
+  "cases": [
+    {
+      "id": "A1",
+      "type": "educational: mechanism + numbers",
+      "max_contrast": 1,
+      "must_not_contain": [
+        "البرنامج كله، مش النوردك",
+        "مش ستريتش وخلاص"
+      ],
+      "payoff_keywords": [
+        "بتتمط"
+      ],
+      "required_sources": [
+        "van Dyk",
+        "Sun"
+      ],
+      "forbidden_regex": [
+        "النوردك لوحده (بيقلل|بينص|قلل)"
+      ],
+      "keeps_qualifier": [
+        "أول سؤال"
+      ],
+      "production_must_contain": [
+        "أسباب الشد المتكرر كتير"
+      ]
+    },
+    {
+      "id": "B1",
+      "type": "educational: model without data",
+      "max_disclaimers": 0,
+      "must_not_contain": [
+        "فإن الوجع",
+        "الرسم ده للتوضيح"
+      ],
+      "payoff_keywords": [
+        "قارن"
+      ],
+      "production_must_contain": [
+        "رسم توضيحي"
+      ]
+    },
+    {
+      "id": "A2",
+      "type": "educational: number + demo",
+      "max_disclaimers": 0,
+      "max_referral": 0,
+      "required_numbers_anywhere": [
+        "22",
+        "33",
+        "522"
+      ],
+      "required_sources": [
+        "Hupperets"
+      ],
+      "forbidden_regex": [
+        "35 ?%"
+      ],
+      "must_contain": [
+        "بيسندني"
+      ]
+    },
+    {
+      "id": "B2",
+      "type": "educational: comparison",
+      "max_referral": 0,
+      "must_contain": [
+        "ماتوقفش"
+      ],
+      "required_sources": [
+        "Silbernagel",
+        "Kongsgaard"
+      ],
+      "forbidden_regex": [
+        "الحقنة (مضرة|بتبوظ|غلط)",
+        "5 من 10"
+      ]
+    },
+    {
+      "id": "B3",
+      "type": "educational: demonstration",
+      "hook_must_contain": [
+        "اقف قدام حيطة",
+        "بيتني"
+      ],
+      "required_numbers_anywhere": [
+        "2"
+      ],
+      "required_sources": [
+        "Powden"
+      ],
+      "forbidden_regex": [
+        "(الطبيعي|طبيعي) [0-9]",
+        "أقل من 2 سنتي (يبقى )?طبيعي"
+      ],
+      "payoff_keywords": [
+        "تقيس تاني",
+        "تغيير حقيقي"
+      ]
+    },
+    {
+      "id": "EP01",
+      "type": "story → series S1",
+      "max_est_seconds_hi": 88,
+      "hook_must_contain": [
+        "ما لعبش"
+      ],
+      "hook_must_not_contain": [
+        "طلب",
+        "بطلب"
+      ],
+      "mid_must_contain": [
+        "طلب"
+      ],
+      "must_contain": [
+        "أم درمان",
+        "العضمة مالهاش دعوة الماتش قد إيه مهم",
+        "لسه",
+        "كسر إجهادي"
+      ],
+      "forbidden_regex": [
+        "انتقام",
+        "المشط الخامس",
+        "بسبب (ماتش|أم درمان|الجزاير)",
+        "القايمة",
+        "(حزين|زعلان|اتكسر قلبه|كان حاسس)"
+      ],
+      "payoff_keywords": [
+        "لسه"
+      ],
+      "required_sources": [
+        "FilGoal, 9 Jan 2017",
+        "Ekstrand J, van Dijk"
+      ],
+      "min_sci": 2,
+      "sci_integrated": true
+    },
+    {
+      "id": "EP02",
+      "type": "story → series S7",
+      "max_est_seconds_hi": 88,
+      "hook_must_contain": [
+        "2006"
+      ],
+      "hook_must_not_contain": [
+        "التحام",
+        "سونج",
+        "أبو تريكة"
+      ],
+      "must_contain": [
+        "الكاميرون تاني",
+        "مفيش تشخيص معلن",
+        "جاب جولين"
+      ],
+      "forbidden_regex": [
+        "دقيقة 7[67]",
+        "(حزين|زعلان|كان حاسس|متضايق)",
+        "اتصاب (في التسخين|من حفرة|من التحام)"
+      ],
+      "payoff_keywords": [
+        "التحام"
+      ],
+      "required_sources": [
+        "Al Jazeera",
+        "2008 Africa Cup"
+      ],
+      "min_sci": 1
+    },
+    {
+      "id": "GEDO",
+      "type": "performance science story",
+      "max_est_seconds_hi": 82,
+      "hook_must_contain": [
+        "مابدأش ولا ماتش"
+      ],
+      "must_not_contain": [
+        "والكاف",
+        "ده مش تفسير لجوانه"
+      ],
+      "must_contain": [
+        "الأرقام دي عامة",
+        "قبل البطولة بأسبوعين",
+        "15%"
+      ],
+      "forbidden_regex": [
+        "(مكان|بدل) أبو تريكة",
+        "دقيقة 8[45]",
+        "173|168"
+      ],
+      "required_sources": [
+        "Bradley",
+        "Gedo (footballer)"
+      ],
+      "max_contrast": 1,
+      "min_sci": 1
+    },
+    {
+      "id": "EP1",
+      "type": "series ≤25 s",
+      "max_est_seconds_hi": 25,
+      "must_not_contain": [
+        "مالوش علاقة باللي هتلعبه"
+      ],
+      "min_refrain": 2
+    },
+    {
+      "id": "EP2",
+      "type": "series ≤25 s, brand line",
+      "max_est_seconds_hi": 25,
+      "must_contain": [
+        "التمرين اللي مابيتقلش ومابيتقاسش… هو ده اللي مالوش لازمة"
+      ],
+      "required_sources": [
+        "Kongsgaard"
+      ],
+      "min_refrain": 2
+    },
+    {
+      "id": "EP3",
+      "type": "series ≤25 s, science correction",
+      "max_est_seconds_hi": 25,
+      "must_not_contain": [
+        "لوحده كده… مالوش لازمة"
+      ],
+      "forbidden_regex": [
+        "مالوش (أي )?علاقة بالإصابات",
+        "الستريتش(ينج)? (مضر|بيضر)"
+      ],
+      "required_sources": [
+        "Behm"
+      ]
+    },
+    {
+      "id": "EP5",
+      "type": "series ≤25 s, science correction",
+      "max_est_seconds_hi": 25,
+      "must_not_contain": [
+        "مالوش لازمة لو هدفك عضل وقوة"
+      ],
+      "forbidden_regex": [
+        "بيلغي (المكاسب|العضل)",
+        "بيحرق العضل"
+      ],
+      "must_contain_any": [
+        "أقل"
+      ],
+      "required_sources": [
+        "Wilson"
+      ]
+    }
+  ],
+  "set_checks": {
+    "max_generic_referral_scripts": 1,
+    "no_repeated_hook_opener": true,
+    "no_similar_endings_within_series": true,
+    "maloosh_conditions_unique": true,
+    "max_question_hooks_in_approved": 2,
+    "story_structures_unique": false
+  }
+}
