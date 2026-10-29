@@ -1,3 +1,5 @@
+> **Latest: Round 1 v5 is in [`v5/`](v5/README.md)**: full rewrite (AFCON stories rebuilt), a 10-skill system, and `v5/rewritten_scripts.pdf`. This page documents v4.
+
 # Arabic short-form content system: usage guide
 
 A reusable Claude Code system for writing, checking and improving Egyptian-Arabic reel

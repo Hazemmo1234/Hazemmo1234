@@ -1,3 +1,5 @@
+> **Current system: `v5/` (start Claude Code in `arabic-content-system/v5`).** Everything below describes the v4 system, kept for comparison. Its skills moved to `legacy_v4_skills/`.
+
 # Arabic short-form content system: project instructions
 
 This folder is a self-contained writing system for @hazemmohamed.rehab reel scripts in
