@@ -31,10 +31,17 @@ export async function middleware(request: NextRequest) {
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
   let viewer: Viewer | null = null;
   let inactive = false;
+  // D28 / AC-49: a deactivated coach's existing session is rejected by Supabase Auth
+  // (user_banned). Clear the dead session cookies on this device and say why.
+  if (!user && userError?.code === "user_banned") {
+    inactive = true;
+    await supabase.auth.signOut({ scope: "local" });
+  }
   let syncLocale: Locale | null = null;
   if (user) {
     const { data: profile } = await supabase

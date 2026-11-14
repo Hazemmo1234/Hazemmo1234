@@ -9,14 +9,24 @@ export function Field({
   label,
   hint,
   error,
+  trailing,
   ...input
-}: InputHTMLAttributes<HTMLInputElement> & { label: ReactNode; hint?: ReactNode; error?: ReactNode }) {
+}: InputHTMLAttributes<HTMLInputElement> & { label: ReactNode; hint?: ReactNode; error?: ReactNode; trailing?: ReactNode }) {
   const id = useId();
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   return (
     <div>
       <label htmlFor={id} className="mb-1.5 block text-start text-sm font-semibold">{label}</label>
-      <input id={id} aria-invalid={error ? true : undefined} aria-describedby={describedBy} className={inputClasses} {...input} />
+      <div className="relative">
+        <input
+          id={id}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
+          className={`${inputClasses} ${trailing ? "pe-14" : ""}`}
+          {...input}
+        />
+        {trailing && <div className="absolute inset-y-0 end-1 flex items-center">{trailing}</div>}
+      </div>
       {error ? (
         <p id={`${id}-error`} className="mt-1.5 text-start text-sm font-semibold text-down">{error}</p>
       ) : hint ? (

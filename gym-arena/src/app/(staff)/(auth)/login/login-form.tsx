@@ -26,7 +26,9 @@ export function LoginForm({ initialError }: { initialError: LoginError }) {
       const supabase = createClient();
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError || !data.user) {
-        setError(authError?.status === 400 || authError?.status === 401 ? "credentials" : authError ? "network" : "credentials");
+        // AC-48 / D28: a deactivated coach is banned at the Auth level
+        if (authError?.code === "user_banned") setError("inactive");
+        else setError(authError?.status === 400 || authError?.status === 401 ? "credentials" : authError ? "network" : "credentials");
         return;
       }
       // AC-1: inactive accounts are denied with "Account inactive"
