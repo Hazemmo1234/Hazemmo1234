@@ -171,11 +171,13 @@ create table public.season_results (
   total               numeric(8,4) not null check (total between 0 and 1000),
   rank                int null,
   rookie_rank         int null,
+  member_active       boolean not null default true,   -- status at close; inactive = unranked (D29)
   baseline_json       jsonb not null default '{}'::jsonb,
   month_best_json     jsonb not null default '{}'::jsonb,
   frozen_at           timestamptz not null default now(),
   primary key (season_id, member_id),
-  check ((is_rookie and rank is null) or (not is_rookie and rookie_rank is null))  -- BR-R2
+  check ((is_rookie and rank is null) or (not is_rookie and rookie_rank is null)),  -- BR-R2
+  check (member_active or (rank is null and rookie_rank is null))                   -- BR-P5 / D29
 );
 
 -- ───────────────────────── daily_rank_snapshots ─────────────────────────

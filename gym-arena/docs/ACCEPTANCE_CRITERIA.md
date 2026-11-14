@@ -62,6 +62,9 @@ Format: Given / When / Then. Each maps to an FR.
 - **AC-41 (BR-S7)** A season cannot be closed by a direct database update or created already closed, by any role; an entry's `season_id` cannot be changed.
 - **AC-42 (BR-S7)** After a championship close, `season_results` has exactly one row per participant, computed from the data as of the close; a close that cannot produce complete results changes nothing.
 - **AC-43 (BR-S7)** Concurrent close requests: exactly one succeeds. An entry write racing with a close either lands before the results are computed or is rejected with `SEASON_CLOSED`.
+- **AC-51 (BR-S7, BR-P5)** Given a participant who became inactive during the season, when the championship is closed, then `season_results` contains their row with their earned points, `member_active = false`, and no rank; a close that omits them changes nothing.
+- **AC-52 (BR-P5, BR-W1)** A member inactive at close is never ranked and never a winner: a result that gives them a rank is rejected, and the ranks of active members are the same as if the inactive member were not there.
+- **AC-53 (BR-P5)** An inactive member does not appear on the live leaderboard, the coach leaderboard or the TV, before or after close; their frozen result remains readable in season history.
 - **AC-44 (BR-S10)** Closing a preseason makes its entries immutable, writes no `season_results`, shows no winners, and its entries are the baselines of the next championship.
 - **AC-45 (BR-E9)** Given coach A submitted an entry today and the member is then reassigned to coach B: coach B's void attempt returns 403 FORBIDDEN; coach A can still undo it today; the entry keeps `logged_by` = coach A.
 - **AC-46 (BR-E9)** A coach cannot void an entry the Admin submitted for their member.

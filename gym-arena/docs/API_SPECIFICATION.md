@@ -66,9 +66,10 @@ Server rules on `POST /api/entries` (all must pass):
 | PATCH /api/seasons/:id | admin | `{ name?, ends_on? }` (not closed; starts_on only if scheduled) | season |
 | POST /api/seasons/:id/close | admin | | `{ results }` (409 unless today > ends_on and not closed). Atomic, recomputed on the server inside one transaction under the season lock (see SYSTEM_ARCHITECTURE "Close & reveal"). For a preseason: freezes baselines and returns `{ results: [] }` — no `season_results`, no winners |
 | POST /api/seasons/:id/reveal | admin | | season (championship only; 409 for a preseason) |
-| GET /api/seasons/:id/results | admin, coach | | frozen results |
+| GET /api/seasons/:id/results | admin, coach | | frozen results: ranked rows (main board, rookies) plus unranked rows for members who were inactive at close, flagged `member_active: false` (D29) |
 
 ## Leaderboard
+Live leaderboards and the TV never include inactive members (BR-P5).
 | Method & path | Role | Returns |
 |---|---|---|
 | GET /api/leaderboard?season_id= | admin, coach | `{ main: Row[], rookies: Row[] }`, Row = `{ rank, member_id, full_name, photo_url, total, improvement_points, categories:{…}, coach_name }` (no phone) |

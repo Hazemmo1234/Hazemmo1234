@@ -108,15 +108,16 @@ Indexes: `(season_id, member_id)`, `(member_id, category, performed_on)`, `(seas
 Partial unique `(member_id, attended_on) where voided_at is null`.
 
 ### season_results — frozen at close
-Written only by the championship close operation. A preseason close writes no rows (D20).
+Written only by the championship close operation. A preseason close writes no rows (D20). One row for **every** season participant, including members inactive at close (D29).
 | Column | Type |
 |---|---|
 | season_id, member_id | PK |
 | is_rookie | boolean |
 | deadlift, bench, squat, pullups, pushups, treadmill, consistency | numeric(8,4) |
 | improvement_points, total | numeric(8,4) |
-| rank | int (null for rookies) |
-| rookie_rank | int (null for non-rookies) |
+| rank | int (null for rookies and for members inactive at close) |
+| rookie_rank | int (null for non-rookies and for members inactive at close) |
+| member_active | boolean — whether the member was active at close; inactive members are stored unranked (D29) |
 | baseline_json, month_best_json | jsonb (B and M per category, for audit) |
 | frozen_at | timestamptz |
 

@@ -61,7 +61,7 @@ Repository: the application lives in `gym-arena/` inside a repository that also 
   3. Lock the season row (`FOR UPDATE`). Every entry and attendance mutation takes a shared lock on the same season row, so writes wait for the close and then fail with `SEASON_CLOSED`; a second close request waits and then fails the same way.
   4. Read the authoritative entries, attendance, participants and baselines inside the transaction.
   5. Compute results with `modules/scoring` (TypeScript — formulas are never duplicated in SQL, D14).
-  6. Verify completeness: exactly one result per participant, none for non-participants.
+  6. Verify completeness: exactly one result per participant — including members inactive at close, who are scored but unranked (D29) — and none for non-participants.
   7. Insert `season_results`, set `closed_at` / `closed_by`, write the audit row; commit.
   8. Any failure rolls back the whole operation. `closed_at` cannot be set by any other path.
   - A client-supplied fingerprint may be added as an extra safeguard, never as a replacement for recomputation.

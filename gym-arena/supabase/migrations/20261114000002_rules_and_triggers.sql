@@ -650,6 +650,8 @@ begin
     raise exception 'FORBIDDEN: results are written only by the close operation' using errcode = 'P0001';
   end if;
   new.frozen_at := now();
+  -- D29: the member's status at close is recorded by the database, not by the caller
+  select m.status = 'active' into new.member_active from public.members m where m.id = new.member_id;
   return new;
 end $$;
 create trigger season_results_before_insert before insert on public.season_results
@@ -854,7 +856,8 @@ begin
       improvement_points numeric, total numeric, rank int, rookie_rank int,
       baseline_json jsonb, month_best_json jsonb);
 
-    -- Completeness (AC-42): results only for participants, and every active participant has one.
+    -- Completeness (AC-42, AC-51): results only for participants, and EVERY participant has
+    -- one — including members who became inactive during the season (D29).
     if exists (
       select 1 from public.season_results r
       where r.season_id = p_season_id and not exists (
@@ -865,12 +868,21 @@ begin
     end if;
     if exists (
       select 1 from public.season_participants sp
-      join public.members m on m.id = sp.member_id and m.status = 'active'
       where sp.season_id = p_season_id and not exists (
         select 1 from public.season_results r
         where r.season_id = sp.season_id and r.member_id = sp.member_id)
     ) then
       raise exception 'INCOMPLETE_RESULTS: a participant has no result' using errcode = 'P0001';
+    end if;
+    -- BR-P5 / D29: a member inactive at close keeps their points but is never ranked.
+    -- The status is taken from the database, never from the caller.
+    if exists (
+      select 1 from public.season_results r
+      join public.members m on m.id = r.member_id
+      where r.season_id = p_season_id and m.status = 'inactive'
+        and (r.rank is not null or r.rookie_rank is not null)
+    ) then
+      raise exception 'VALIDATION: an inactive member cannot be ranked' using errcode = 'P0001';
     end if;
   end if;
 

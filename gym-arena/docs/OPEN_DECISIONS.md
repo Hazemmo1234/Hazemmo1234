@@ -51,6 +51,7 @@ These are final. The original product model (7 categories, 1000 weighted points,
 | D26 | Coach void ownership | A coach may void only an entry **they submitted** (`logged_by`), same day only. Reassigning a member does not transfer ownership of existing entries to the new coach. Admin corrections (void or edit) require a mandatory reason and are always audited. Supersedes the earlier "own members" reading. |
 | D27 | Database connection for season close | The close operation uses a server-only PostgreSQL connection with a restricted role (`SEASON_CLOSE_DATABASE_URL`). See SECURITY_SPECIFICATION §7. The secret is not created until deployment. |
 | D28 | Deactivated coaches | On deactivation: block new sign-ins at the Auth level, revoke existing sessions as far as the platform allows, and keep the inactive-profile check on every server and database path. History and audit records are kept. Implemented in M2 with regression tests. |
+| D29 | Inactive participants at close | Every season participant gets a frozen result at close, **including members who became inactive during the season**; their points are computed with the same formulas as everyone else. Inactive members stay excluded from live leaderboards, from ranking and from the podium: their frozen result has no rank (`rank` and `rookie_rank` are empty) and they can never be a winner. Their historical result is preserved. No scoring or participation rule changes. |
 
 ## Still open (decide before launch, none block M0–M5)
 - Exact prize announcement text and who hands prizes (outside system).

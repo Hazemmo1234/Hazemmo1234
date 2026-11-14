@@ -12,7 +12,7 @@ Everything in PRD FR-1 … FR-18.
 | M3 | Coach logging | Today, member card, entry sheet with preview, photo rule + upload, attendance, undo | M1, M2 |
 | M4 | Leaderboards | Leaderboard API, coach leaderboard, admin dashboard | M1, M3 |
 | M5 | TV | `/tv` live mode, polling, animations, ticker, rookies strip, daily snapshot job | M4 |
-| M6 | Season lifecycle | Preseason mode, preseason close (freeze baselines, no results), between mode, close → frozen results (transactional, recomputed with the scoring module — needs M1), reveal, history, audit log screen | M1, M4, M5 |
+| M6 | Season lifecycle | Preseason mode, preseason close (freeze baselines, no results), between mode, close → frozen results for every participant, inactive ones unranked (transactional, recomputed with the scoring module — needs M1), reveal, history, audit log screen | M1, M4, M5 |
 | M7 | Polish & launch | PWA manifest/icons, empty/error states, performance pass, E2E suite, gym TV test, coach training | all |
 
 Suggested timeline for one developer with Claude Code: M0–M1 week 1 · M2–M3 week 2 · M4–M5 week 3 · M6–M7 week 4. Launch preseason at the start of week 5, Season 1 two weeks later.

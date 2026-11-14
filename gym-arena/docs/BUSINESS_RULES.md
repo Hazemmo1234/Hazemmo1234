@@ -9,7 +9,7 @@ Every rule has an ID. Code comments and tests should reference these IDs.
 - **BR-S4** Logging is allowed only while a season is active. Between seasons (no active season), logging is blocked and the coach sees the next start date.
 - **BR-S5** After `ends_on`, logging locks automatically at 00:00 Cairo. The Admin presses **Close** to freeze results (BR-S7). Close is only allowed when `today > ends_on`.
 - **BR-S6** Admin can extend `ends_on` only while the season is not closed.
-- **BR-S7** Closing a championship writes a frozen copy of every participant's category points, total, and rank into `season_results`. After close, nothing in that season can change. No corrections after close. Closing is one atomic operation: results and closure are committed together or not at all; a season can never be closed by any other path, and entries can never be moved into a closed season.
+- **BR-S7** Closing a championship writes a frozen copy of every participant's category points, total, and rank into `season_results` — every participant, including those who are inactive at close (stored unranked, BR-P5). After close, nothing in that season can change. No corrections after close. Closing is one atomic operation: results and closure are committed together or not at all; a season can never be closed by any other path, and entries can never be moved into a closed season.
 - **BR-S8** After close, Admin can trigger the **Winner Reveal** on the TV (3rd → 2nd → 1st).
 - **BR-S9** Launch: Season #1 is preceded by a **2-week preseason**. Entries logged in preseason are baselines for Season #1.
 - **BR-S10** The Admin closes a preseason with the same Close action (allowed when `today > ends_on`). Closing freezes its entries as baseline data. A preseason close creates no winners, no ranking and no `season_results`, and has no reveal.
@@ -19,7 +19,7 @@ Every rule has an ID. Code comments and tests should reference these IDs.
 - **BR-P2** Member ID is generated automatically: `GA-000001`, sequential, never reused.
 - **BR-P3** Member fields: full name (required), phone (required, Egyptian mobile format), photo (optional) + photo consent flag, assigned coach, status (`active`/`inactive`), join date. No bodyweight.
 - **BR-P4** A member is a participant of every active season while `active`. `planned_sessions` per season defaults to 12; the coach may edit it at any time.
-- **BR-P5** `inactive` members are hidden from TV and leaderboards and cannot receive entries; their history is kept. Reactivation restores them.
+- **BR-P5** `inactive` members are hidden from TV and leaderboards and cannot receive entries; their history is kept. Reactivation restores them. A member who is inactive when a season is closed still receives a frozen result for that season (their points as earned), but without a rank: they are not on the final board and cannot be a winner (D29).
 - **BR-P6** Coach change: Admin reassigns. All past entries keep `logged_by`. Points always belong to the member. Assignment history is stored.
 - **BR-P7** Coach deactivation: Admin must reassign the coach's active clients first; the coach can no longer sign in; their entries and audit records remain. Deactivation blocks new sign-ins, ends the coach's existing sessions as far as the sign-in platform allows, and an inactive profile is refused on every request regardless of any session that is still alive (D28).
 - **BR-P8** TV shows the photo only if `photo_consent = true`; otherwise an initials avatar.
@@ -43,7 +43,7 @@ Every rule has an ID. Code comments and tests should reference these IDs.
 - **BR-R3** On the coach screen, a rookie's test tiles show "Building baseline".
 
 ## Winners
-- **BR-W1** Winners = ranks 1–3 on the main board at close (ties share a rank; if a tie puts 4 people in the top 3 ranks, all are shown as winners — prize handling is outside the system).
+- **BR-W1** Winners = ranks 1–3 on the main board at close (active, non-rookie participants only) (ties share a rank; if a tie puts 4 people in the top 3 ranks, all are shown as winners — prize handling is outside the system).
 - **BR-W2** Final results and winners are permanent and visible in Season History.
 
 ## Privacy & security (technical minimum)

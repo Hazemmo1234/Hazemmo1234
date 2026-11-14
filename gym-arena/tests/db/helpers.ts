@@ -92,9 +92,7 @@ export async function endedSeason(type: "championship" | "preseason") {
           values (${`Test ${type} ${month}`}, ${type}, ${`${month}-01`}::date, (${`${month}-01`}::date + 27))
           returning id, starts_on::text as starts_on`;
         const participants = await o`
-          select sp.member_id from public.season_participants sp
-          join public.members m on m.id = sp.member_id and m.status = 'active'
-          where sp.season_id = ${row.id}`;
+          select sp.member_id from public.season_participants sp where sp.season_id = ${row.id}`;
         return { id: row.id as string, startsOn: row.starts_on as string, participants: participants.map((p) => p.member_id as string) };
       } catch (e) {
         if (!String(e).includes("seasons_no_overlap")) throw e;

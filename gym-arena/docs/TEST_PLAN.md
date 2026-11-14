@@ -36,6 +36,7 @@ Rules: the workflow uses only the local stack's built-in development keys; **no 
 - Direct `closed_at` update, insert of an already-closed season (admin and service role), and `season_id` change are rejected (AC-41).
 - Close with missing, extra or fabricated results is impossible; concurrent closes → exactly one success; write racing a close (AC-42, AC-43).
 - Preseason close freezes entries and writes no results (AC-44).
+- Inactive participants: close requires their result; it is stored unranked and flagged; a ranked result for an inactive member is rejected (AC-51, AC-52). Scoring unit tests (M1): an inactive participant is scored with the normal formulas but excluded from ranking, and removing them does not change anyone's rank. Leaderboard/TV tests (M4/M5): AC-53.
 - `ends_on` cannot move before existing entries; last active admin cannot be deactivated; coach cannot change `joined_on` / `created_by`.
 - `photo_path` outside the member's folder is rejected; evidence upload with an invalid season segment is rejected.
 - Deactivated coach's still-valid token reads nothing and writes nothing; new sign-in is refused; existing sessions are revoked (AC-48–50, M2).

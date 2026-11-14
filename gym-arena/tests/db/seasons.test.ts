@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { addDays, today } from "@/lib/time";
 import {
   ACTIVE_SEASON, ADMIN, COACH1, INACTIVE_MEMBER, PAST_SEASON,
-  closerConnection, endedSeason, fakeResults, owner, service, signIn,
+  closerConnection, endedSeason, fakeResults, newMember, owner, service, signIn,
 } from "./helpers";
 
 let admin: SupabaseClient, coach1: SupabaseClient;
@@ -114,7 +114,9 @@ describe("close contract: begin_season_close / finish_season_close (D21)", () =>
     const [outsider] = await o`select id from public.members where id not in (select member_id from public.season_participants where season_id = ${s.id}) limit 1`;
     await o.end();
     if (outsider) {
-      await expect(close(s.id, fakeResults([...s.participants, outsider.id]))).rejects.toThrow(/INCOMPLETE_RESULTS: result for a non-participant/);
+      // the only non-participants are inactive members, so give the outsider an unranked row
+      const extra = { ...fakeResults([outsider.id])[0], rank: null };
+      await expect(close(s.id, [...fakeResults(s.participants), extra])).rejects.toThrow(/INCOMPLETE_RESULTS: result for a non-participant/);
     }
     await expect(close(s.id, [...fakeResults(s.participants), ...fakeResults(s.participants.slice(0, 1))])).rejects.toThrow(/duplicate key/);
     // every failure rolled back completely
@@ -192,6 +194,53 @@ describe("close contract: begin_season_close / finish_season_close (D21)", () =>
     expect(early.error?.message).toMatch(/reveal requires a closed season/);
     await close(s.id, fakeResults(s.participants));
     expect((await admin.from("seasons").update({ reveal_started_at: new Date().toISOString() }).eq("id", s.id)).error).toBeNull();
+  });
+});
+
+describe("inactive participants at close (D29, BR-P5, AC-51, AC-52)", () => {
+  /** A season whose participants include one member who became inactive during it. */
+  async function seasonWithInactiveParticipant() {
+    const member = await newMember(admin);
+    const s = await endedSeason("championship");           // member is active → becomes a participant
+    expect(s.participants).toContain(member.id);
+    expect((await admin.from("members").update({ status: "inactive" }).eq("id", member.id)).error).toBeNull();
+    const active = s.participants.filter((id) => id !== member.id);
+    return { s, inactiveId: member.id, active };
+  }
+  const unranked = (id: string) => ({ ...fakeResults([id])[0], rank: null, total: 321, improvement_points: 231 });
+
+  it("AC-51: a close that omits the inactive participant changes nothing", async () => {
+    const { s, active } = await seasonWithInactiveParticipant();
+    await expect(close(s.id, fakeResults(active))).rejects.toThrow(/INCOMPLETE_RESULTS: a participant has no result/);
+    expect(await state(s.id)).toMatchObject({ closed: false, results: 0 });
+  });
+
+  it("AC-52: an inactive member can never be given a rank (main board or rookies)", async () => {
+    const { s, inactiveId, active } = await seasonWithInactiveParticipant();
+    const ranked = { ...unranked(inactiveId), rank: 1 };
+    await expect(close(s.id, [...fakeResults(active), ranked])).rejects.toThrow(/season_results_check|an inactive member cannot be ranked/);
+    const rookieRanked = { ...unranked(inactiveId), is_rookie: true, rookie_rank: 1 };
+    await expect(close(s.id, [...fakeResults(active), rookieRanked])).rejects.toThrow(/season_results_check|an inactive member cannot be ranked/);
+    expect(await state(s.id)).toMatchObject({ closed: false, results: 0 });
+  });
+
+  it("AC-51: their earned points are frozen, unranked and flagged; active members keep their ranks", async () => {
+    const { s, inactiveId, active } = await seasonWithInactiveParticipant();
+    // the caller cannot mark an inactive member as active
+    await close(s.id, [...fakeResults(active), { ...unranked(inactiveId), member_active: true }]);
+    expect(await state(s.id)).toMatchObject({ closed: true, results: s.participants.length });
+    const { data: row } = await admin.from("season_results")
+      .select("total, improvement_points, rank, rookie_rank, member_active").eq("season_id", s.id).eq("member_id", inactiveId).single();
+    expect(row).toMatchObject({ rank: null, rookie_rank: null, member_active: false });
+    expect(Number(row!.total)).toBe(321);
+    const { data: ranked } = await admin.from("season_results")
+      .select("rank, member_active").eq("season_id", s.id).not("rank", "is", null).order("rank");
+    expect(ranked!.map((r) => r.rank)).toEqual(active.map((_, i) => i + 1));
+    expect(ranked!.every((r) => r.member_active)).toBe(true);
+    // history is preserved even though the member is inactive, and cannot be altered
+    const o = owner();
+    await expect(o`update public.season_results set rank = 1 where season_id = ${s.id} and member_id = ${inactiveId}`).rejects.toThrow(/IMMUTABLE/);
+    await o.end();
   });
 });
 
