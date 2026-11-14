@@ -16,7 +16,7 @@ The owner asked Claude to finalize the remaining details. These are the defaults
 ## Defaults chosen by Claude (no owner input yet)
 | # | Topic | Default |
 |---|---|---|
-| D1 | UI language | Arabic RTL, Western digits, English category names |
+| D1 | UI language | **Superseded by D15.** Arabic (default, RTL) + English (LTR); Western digits and English category names in both languages |
 | D2 | Coach login | Email + password created by Admin |
 | D3 | TV access | Secret key in URL, regenerable |
 | D4 | TV refresh | Polling every 10 s |
@@ -30,6 +30,27 @@ The owner asked Claude to finalize the remaining details. These are the defaults
 | D12 | Phone | Required, unique, Egyptian mobile |
 | D13 | Images | Compressed client-side to ≤1280 px WebP |
 | D14 | Scoring engine | TypeScript pure module (server-side), not SQL |
+
+## Decisions approved by the owner after the M0 audit (November 2026)
+These are final. The original product model (7 categories, 1000 weighted points, Most Improved, rookies, auto-approval, photo rule, attendance rules, season lifecycle, DFN brand) is unchanged. No approval queue, no extra categories.
+
+| # | Topic | Decision |
+|---|---|---|
+| D15 | Bilingual application | The whole application supports **Arabic and English**. Arabic is the default. Arabic renders RTL, English LTR, applied at document and component level. Every user-facing string (screens, forms, navigation, validation, errors, empty/loading states, dashboards, settings, TV) is translated. Dates and numbers follow the selected locale, always with Western digits (0–9) and the Africa/Cairo calendar day. Category names stay in English in both languages. Switching language never changes business logic, scoring, permissions or stored data. Every milestone ships both languages from the start. |
+| D16 | Staff language preference | Stored on the staff profile (`profiles.locale`). A cookie is the fallback for the login page and initial resolution. Resolution order: profile → cookie → Arabic. |
+| D17 | TV language | The TV has its **own independent language setting** (`app_settings.tv_locale`, default Arabic), set by the Admin in Settings. It never follows a signed-in user's language or cookie. |
+| D18 | Gym and season names | One name field each. Shown exactly as the Admin typed it in both languages. No separate translated name fields. Member names are never translated. |
+| D19 | Server-only writes | All writes to `entries` and `attendance` go through authenticated server-side APIs. Clients have no direct insert/update permission on these tables. The server derives the acting user from the verified Supabase Auth session; a user ID supplied by the client is never trusted. Every business authorization rule is re-checked on the server, and the service role is never a way around those rules. BR-E6 (photo rule) is enforced on this path. |
+| D20 | Preseason closure | The Admin can close a preseason through the normal close operation. Closing freezes its baseline data (the season becomes immutable). It creates **no winners and no `season_results` rows**. |
+| D21 | Season close architecture | Scoring formulas stay in the one TypeScript module (D14); they are never duplicated in SQL. Close is a trusted server operation: authenticate the Admin → one PostgreSQL transaction on one connection → lock the season → read authoritative data → compute with the scoring module → verify one result per participant → write frozen results and close atomically. Entry and attendance mutations coordinate with the same season lock. Any failure rolls back everything. Full championship close depends on M1 scoring being implemented and tested. |
+| D22 | Migration strategy | Before the first cloud deployment: the three original migration files are edited in place, followed by one controlled reset of the disposable **local** database and re-verification. After the first cloud deployment, migrations are permanently add-only. |
+| D23 | Repository layout | The application stays in `gym-arena/` inside the existing repository (which also holds an unrelated project). It is not moved to a separate repository. Work happens on one branch per milestone with a PR into `main`. |
+
+| D24 | Security specification | `docs/SECURITY_SPECIFICATION.md` consolidates the security model. It is an index and summary: where it and another document describe the same rule, the other document (BUSINESS_RULES, USER_ROLES, DATABASE_SCHEMA, SYSTEM_ARCHITECTURE, API) holds the detail and wins. |
+| D25 | Database tests in CI | GitHub Actions also runs the DB/RLS suite on an isolated, disposable local Supabase stack built from clean migrations, plus build and E2E checks, alongside the existing lint, typecheck and unit jobs. CI has no access to any cloud project. Approved requirement; implemented in the M0 close-out. |
+| D26 | Coach void ownership | A coach may void only an entry **they submitted** (`logged_by`), same day only. Reassigning a member does not transfer ownership of existing entries to the new coach. Admin corrections (void or edit) require a mandatory reason and are always audited. Supersedes the earlier "own members" reading. |
+| D27 | Database connection for season close | The close operation uses a server-only PostgreSQL connection with a restricted role (`SEASON_CLOSE_DATABASE_URL`). See SECURITY_SPECIFICATION §7. The secret is not created until deployment. |
+| D28 | Deactivated coaches | On deactivation: block new sign-ins at the Auth level, revoke existing sessions as far as the platform allows, and keep the inactive-profile check on every server and database path. History and audit records are kept. Implemented in M2 with regression tests. |
 
 ## Still open (decide before launch, none block M0–M5)
 - Exact prize announcement text and who hands prizes (outside system).

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE, isLocale, type Locale } from "@/i18n/config";
 import { decideAccess, routeArea, type Viewer } from "@/lib/routes";
 import type { UserRole } from "@/lib/supabase/types";
 
@@ -34,20 +35,33 @@ export async function middleware(request: NextRequest) {
 
   let viewer: Viewer | null = null;
   let inactive = false;
+  let syncLocale: Locale | null = null;
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, is_active")
+      .select("role, is_active, locale")
       .eq("id", user.id)
-      .maybeSingle<{ role: UserRole; is_active: boolean }>();
+      .maybeSingle<{ role: UserRole; is_active: boolean; locale: string }>();
     if (profile?.is_active) {
       viewer = { role: profile.role, isActive: true };
+      // BR-L3: the profile's language wins over the device cookie. Sync the cookie so
+      // this very request already renders in the staff member's language.
+      if (isLocale(profile.locale) && request.cookies.get(LOCALE_COOKIE)?.value !== profile.locale) {
+        syncLocale = profile.locale;
+        request.cookies.set(LOCALE_COOKIE, profile.locale);
+        const refreshed = NextResponse.next({ request });
+        response.cookies.getAll().forEach((c) => refreshed.cookies.set(c));
+        response = refreshed;
+      }
     } else {
       // AC-1 / BR-P7: inactive (or profile-less) users are signed out
       inactive = true;
       await supabase.auth.signOut();
     }
   }
+
+  const localeCookie = { path: "/", maxAge: LOCALE_COOKIE_MAX_AGE, sameSite: "lax" as const };
+  if (syncLocale) response.cookies.set(LOCALE_COOKIE, syncLocale, localeCookie);
 
   const decision = decideAccess(pathname, viewer);
   if (decision.kind === "allow") return response;

@@ -14,6 +14,7 @@ A monthly **"Most Improved" championship** inside the gym: coaches log their cli
 - Every member competes **against their own previous best**, so men/women, young/old, light/heavy compete on one board with no normalization formulas.
 - **7 categories, 1000 points:** Deadlift 100 · Bench 100 · Squat 100 · Pull-ups 150 · Push-ups 150 · Treadmill 200 · Consistency 200.
 - **Full trust in coaches:** coaches log, results count immediately, no approval queue.
+- **Two languages:** Arabic (default, RTL) and English (LTR) across the coach, admin and TV experiences. The TV has its own language setting.
 
 ## Users
 | User | What they need |

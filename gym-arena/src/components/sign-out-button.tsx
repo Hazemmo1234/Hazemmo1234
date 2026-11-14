@@ -1,10 +1,12 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export function SignOutButton() {
   const router = useRouter();
+  const t = useTranslations("common");
   return (
     <button
       type="button"
@@ -15,7 +17,7 @@ export function SignOutButton() {
       }}
       className="min-h-11 rounded-lg px-3 text-sm text-text-muted hover:text-text"
     >
-      خروج
+      {t("signOut")}
     </button>
   );
 }

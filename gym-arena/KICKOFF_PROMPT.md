@@ -1,5 +1,7 @@
 You are starting the GYM ARENA project from scratch in this repository.
 
+> **Amendments (November 2026, approved by the owner — see `docs/OPEN_DECISIONS.md` D15–D23).** Where this prompt differs, the amendments win: (1) the app lives in `gym-arena/` inside the existing repository, not at the repo root; (2) the UI is Arabic **and** English (Arabic default, RTL/LTR, independent TV language); (3) entries and attendance are written only through server APIs; (4) before the first cloud deployment the original migrations are edited in place and the local database reset once — afterwards migrations are add-only; (5) M0 is not complete until the post-audit repair and bilingual foundation pass; (6) CI also runs build, database and E2E jobs on a disposable local stack (D25); (7) read `docs/SECURITY_SPECIFICATION.md` together with the other specs.
+
 ## 0. Context
 - The repo root contains `CLAUDE.md`, `docs/` (13 product/tech specs) and `public/brand/` (DFN GYM logo + icons).
 - All product decisions are final. Read `CLAUDE.md`, then every file in `docs/` in the order CLAUDE.md lists, before writing any code.
@@ -45,4 +47,4 @@ Stop and report test results.
 - Follow `docs/ACCEPTANCE_CRITERIA.md`; reference rule IDs (e.g. `// BR-E6`) in code where enforced.
 - Small, meaningful commits with clear messages. Work on a branch per milestone and open a PR into `main`.
 - After each milestone: run lint, typecheck and tests; fix failures before reporting.
-- UI text in Arabic, numbers in Western digits, category names in English.
+- UI text in Arabic **and English** (Arabic default; RTL/LTR), numbers in Western digits, category names in English. No literal user-facing strings in components.

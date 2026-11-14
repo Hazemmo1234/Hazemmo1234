@@ -22,7 +22,7 @@ Format: Given / When / Then. Each maps to an FR.
 - **AC-13 (FR-7)** Given B = 100, when logging e1RM 98 without photo, then saved (no photo needed).
 - **AC-14 (FR-7)** Given treadmill credited km = 50, when logging 5 km without photo, then saved.
 - **AC-15 (FR-8)** When any entry is saved for a member today, then one `auto` attendance row exists for today; logging a second category does not create another.
-- **AC-16 (FR-9)** Given a coach's entry from today, when they undo, then it's voided, points recompute, and an audit row exists. Given yesterday's entry, then 403 VOID_WINDOW_PASSED.
+- **AC-16 (FR-9)** Given an entry the coach submitted today, when they undo, then it's voided, points recompute, and an audit row exists. Given yesterday's entry, then 403 VOID_WINDOW_PASSED.
 - **AC-17 (BR-E10)** Given the only entry of the day is voided and attendance was `auto`, then attendance is voided too; if `manual`, it stays.
 - **AC-18 (BR-S4)** Given no active season, when logging, then 409 NO_ACTIVE_SEASON and the coach sees the next start date.
 
@@ -47,3 +47,27 @@ Format: Given / When / Then. Each maps to an FR.
 ## Coach UX
 - **AC-31** From the Today screen, logging a non-photo entry takes ≤ 4 taps + typing the number.
 - **AC-32** All coach screens usable at 360 px width; tap targets ≥ 44 px.
+
+## Language (FR-19)
+- **AC-33 (BR-L1)** Every screen, form, validation message, error, empty and loading state in Coach, Admin and TV is available in Arabic and English; the two message catalogs have identical keys.
+- **AC-34 (BR-L2)** In Arabic the document is `lang="ar" dir="rtl"`; in English `lang="en" dir="ltr"`. Switching language changes text, direction and alignment immediately without a manual reload, with no horizontal overflow at 360 px in either language.
+- **AC-35 (BR-L3)** A staff member's chosen language persists after sign-out/sign-in and on another device. Before sign-in the last choice on that device is used; with no choice, Arabic.
+- **AC-36 (BR-L4)** Changing the TV language in Settings changes a running TV within one poll (~10 s), regardless of the language of any signed-in user on that device.
+- **AC-37 (BR-L5)** Member names, gym name and season names appear exactly as entered in both languages; category names are English in both; all digits are Western.
+- **AC-38 (BR-L6)** For the same data, totals, ranks, permissions and API results are identical in both languages.
+
+## Write integrity & closing (BR-X4, BR-S7, BR-S10)
+- **AC-39 (BR-X4)** A signed-in coach calling the database directly (table insert/update or function call, bypassing the API) cannot create, edit or void an entry or attendance row.
+- **AC-40 (BR-X4)** The API ignores any acting-user ID in a request body; the entry's `logged_by` is always the session user.
+- **AC-41 (BR-S7)** A season cannot be closed by a direct database update or created already closed, by any role; an entry's `season_id` cannot be changed.
+- **AC-42 (BR-S7)** After a championship close, `season_results` has exactly one row per participant, computed from the data as of the close; a close that cannot produce complete results changes nothing.
+- **AC-43 (BR-S7)** Concurrent close requests: exactly one succeeds. An entry write racing with a close either lands before the results are computed or is rejected with `SEASON_CLOSED`.
+- **AC-44 (BR-S10)** Closing a preseason makes its entries immutable, writes no `season_results`, shows no winners, and its entries are the baselines of the next championship.
+- **AC-45 (BR-E9)** Given coach A submitted an entry today and the member is then reassigned to coach B: coach B's void attempt returns 403 FORBIDDEN; coach A can still undo it today; the entry keeps `logged_by` = coach A.
+- **AC-46 (BR-E9)** A coach cannot void an entry the Admin submitted for their member.
+- **AC-47 (BR-E11)** An Admin void or edit without a reason returns 422 VALIDATION and changes nothing; with a reason, the audit row contains actor, time, before, after and the reason.
+
+## Deactivation (BR-P7) — M2
+- **AC-48** After a coach is deactivated, a new sign-in attempt is refused at the Auth level, and the Login screen shows "Account inactive".
+- **AC-49** A session the coach held before deactivation gets no data and cannot write, on the very next request (API and direct database), without waiting for the session to expire.
+- **AC-50** The deactivated coach's entries, attendance records and audit rows are unchanged; reactivation restores sign-in.

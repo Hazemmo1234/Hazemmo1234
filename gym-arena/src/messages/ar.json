@@ -1,0 +1,45 @@
+{
+  "common": {
+    "appName": "DFN Arena",
+    "tagline": "بطولة الأكثر تطورًا الشهرية",
+    "signOut": "خروج",
+    "language": "اللغة",
+    "underConstruction": "قيد الإنشاء"
+  },
+  "auth": {
+    "pageTitle": "تسجيل الدخول",
+    "staffSignIn": "دخول فريق العمل",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "submit": "دخول",
+    "submitting": "جارٍ الدخول…",
+    "errors": {
+      "credentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+      "inactive": "الحساب غير مفعّل — تواصل مع الإدارة",
+      "network": "تعذّر الاتصال، حاول مرة أخرى"
+    }
+  },
+  "coach": {
+    "role": "المدرب",
+    "todayPlaceholder": "شاشة اليوم"
+  },
+  "admin": {
+    "role": "الإدارة",
+    "dashboardPlaceholder": "لوحة التحكم"
+  },
+  "tv": {
+    "notAuthorized": "الشاشة غير مصرّح لها"
+  },
+  "errors": {
+    "UNAUTHENTICATED": "يجب تسجيل الدخول أولًا",
+    "FORBIDDEN": "غير مسموح لك بهذا الإجراء",
+    "NOT_FOUND": "العنصر غير موجود",
+    "VALIDATION": "البيانات غير صحيحة",
+    "NO_ACTIVE_SEASON": "لا توجد بطولة جارية الآن",
+    "ALREADY_LOGGED_TODAY": "تم التسجيل اليوم بالفعل",
+    "PHOTO_REQUIRED": "الصورة مطلوبة للرقم الجديد",
+    "SEASON_CLOSED": "البطولة أُغلقت ولا يمكن تعديلها",
+    "VOID_WINDOW_PASSED": "انتهت مهلة التراجع (نفس اليوم فقط)",
+    "UNKNOWN": "حدث خطأ غير متوقع، حاول مرة أخرى"
+  }
+}

@@ -9,9 +9,10 @@ Every rule has an ID. Code comments and tests should reference these IDs.
 - **BR-S4** Logging is allowed only while a season is active. Between seasons (no active season), logging is blocked and the coach sees the next start date.
 - **BR-S5** After `ends_on`, logging locks automatically at 00:00 Cairo. The Admin presses **Close** to freeze results (BR-S7). Close is only allowed when `today > ends_on`.
 - **BR-S6** Admin can extend `ends_on` only while the season is not closed.
-- **BR-S7** Closing writes a frozen copy of every participant's category points, total, and rank into `season_results`. After close, nothing in that season can change. No corrections after close.
+- **BR-S7** Closing a championship writes a frozen copy of every participant's category points, total, and rank into `season_results`. After close, nothing in that season can change. No corrections after close. Closing is one atomic operation: results and closure are committed together or not at all; a season can never be closed by any other path, and entries can never be moved into a closed season.
 - **BR-S8** After close, Admin can trigger the **Winner Reveal** on the TV (3rd → 2nd → 1st).
 - **BR-S9** Launch: Season #1 is preceded by a **2-week preseason**. Entries logged in preseason are baselines for Season #1.
+- **BR-S10** The Admin closes a preseason with the same Close action (allowed when `today > ends_on`). Closing freezes its entries as baseline data. A preseason close creates no winners, no ranking and no `season_results`, and has no reveal.
 
 ## Participants
 - **BR-P1** A coach registers only clients who agreed to participate. Registration = consent to appear on the TV with full name.
@@ -20,7 +21,7 @@ Every rule has an ID. Code comments and tests should reference these IDs.
 - **BR-P4** A member is a participant of every active season while `active`. `planned_sessions` per season defaults to 12; the coach may edit it at any time.
 - **BR-P5** `inactive` members are hidden from TV and leaderboards and cannot receive entries; their history is kept. Reactivation restores them.
 - **BR-P6** Coach change: Admin reassigns. All past entries keep `logged_by`. Points always belong to the member. Assignment history is stored.
-- **BR-P7** Coach deactivation: Admin must reassign the coach's active clients first; the coach can no longer sign in; their entries remain.
+- **BR-P7** Coach deactivation: Admin must reassign the coach's active clients first; the coach can no longer sign in; their entries and audit records remain. Deactivation blocks new sign-ins, ends the coach's existing sessions as far as the sign-in platform allows, and an inactive profile is refused on every request regardless of any session that is still alive (D28).
 - **BR-P8** TV shows the photo only if `photo_consent = true`; otherwise an initials avatar.
 
 ## Entries
@@ -32,9 +33,9 @@ Every rule has an ID. Code comments and tests should reference these IDs.
 - **BR-E6** Photo is required when the entry increases the member's season total (see SCORING §6); optional otherwise.
 - **BR-E7** Logging any result for a member automatically records attendance for that day (`source = auto`). A one-tap "Attended" button records attendance with no result (`source = manual`).
 - **BR-E8** Nothing is hard-deleted. "Delete" = void (`voided_at`, `voided_by`, `void_reason`).
-- **BR-E9** A coach may void their own entry **on the same day only**. The Admin may void or edit any entry until the season is closed.
+- **BR-E9** A coach may void an entry **they submitted themselves** (`logged_by`), **on the same day only**. Ownership of an entry never moves: if the member is reassigned, the new coach cannot void entries the previous coach submitted, and the submitting coach keeps the same-day right to undo their own entry. The Admin may void or edit any entry until the season is closed; every such correction requires a written reason.
 - **BR-E10** If the voided entry was the member's only entry that day and attendance was `auto`, the auto attendance is voided too.
-- **BR-E11** Every Admin edit/void, every coach void, every reassignment, and every season close is written to the audit log (who, when, before, after).
+- **BR-E11** Every Admin edit/void (with its mandatory reason), every coach void, every reassignment, and every season close is written to the audit log (who, when, before, after).
 
 ## Rookies
 - **BR-R1** Rookie = no entries in any category before the season start (see SCORING §1).
@@ -49,3 +50,12 @@ Every rule has an ID. Code comments and tests should reference these IDs.
 - **BR-X1** All staff sign in. Coaches see and edit only their own clients (enforced by RLS).
 - **BR-X2** TV payload contains only: rank, full name, photo URL (if consented), points, category points, rank movement, rookie flag, recent new-best events. Never phone numbers, member IDs, coach notes, or evidence photos.
 - **BR-X3** Evidence photos are private; visible to the Admin and the coach of that member only, via short-lived signed URLs.
+- **BR-X4** Entries and attendance are written only through authenticated server-side APIs. The server takes the acting user from the verified sign-in session, never from a user ID sent by the client, and re-checks every rule (role, own member, active season, date, uniqueness, photo rule). Clients cannot write these tables directly.
+
+## Language
+- **BR-L1** The application is fully available in Arabic and English. Arabic is the default.
+- **BR-L2** Arabic renders right-to-left, English left-to-right, across the whole screen (document and components).
+- **BR-L3** Each staff member's language is saved on their profile and follows them across devices. Before sign-in, a cookie remembers the last choice; with neither, Arabic is used.
+- **BR-L4** The TV has its own language, set by the Admin in Settings (default Arabic). It is independent of any staff member's language.
+- **BR-L5** Never translated: member names, the gym name and season names (shown as entered). Category names stay in English in both languages. Digits are Western (0–9) in both languages.
+- **BR-L6** Language is presentation only. It never changes scoring, ranking, permissions, dates of record or stored data.

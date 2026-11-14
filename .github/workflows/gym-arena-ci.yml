@@ -1,17 +1,32 @@
 name: gym-arena CI
 
+# D25 (docs/TEST_PLAN.md "Continuous integration").
+# Every job uses only a DISPOSABLE local Supabase stack created inside the runner.
+# This workflow holds no cloud credentials, never links the CLI and never passes
+# --remote / --linked, so it cannot reach a real project.
+
 on:
   push:
     paths: ["gym-arena/**", ".github/workflows/gym-arena-ci.yml"]
   pull_request:
     paths: ["gym-arena/**", ".github/workflows/gym-arena-ci.yml"]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: gym-arena-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: gym-arena
+
 jobs:
   check:
+    name: Lint, typecheck, unit tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: gym-arena
+    timeout-minutes: 10
     env:
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
@@ -26,3 +41,75 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test:coverage
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # placeholders only — the build needs the variable names, not a real project
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: gym-arena/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  database:
+    name: Database, RLS and security regression tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: gym-arena/package-lock.json
+      - run: npm ci
+      - name: Refuse to run if the CLI is linked or cloud credentials are present
+        run: |
+          test ! -f supabase/.temp/project-ref
+          test -z "${SUPABASE_ACCESS_TOKEN:-}"
+          test -z "${SUPABASE_DB_PASSWORD:-}"
+      - name: Start a disposable local stack (clean migrations + seed)
+        run: npx supabase start > /dev/null
+      - name: Export local stack settings (values are never printed)
+        run: bash scripts/ci-local-env.sh
+      - run: npm run test:db
+      - name: Stop the stack and discard its data
+        if: always()
+        run: npx supabase stop --no-backup > /dev/null 2>&1 || true
+
+  e2e:
+    name: End-to-end (phone + TV, Arabic + English)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: gym-arena/package-lock.json
+      - run: npm ci
+      - name: Refuse to run if the CLI is linked or cloud credentials are present
+        run: |
+          test ! -f supabase/.temp/project-ref
+          test -z "${SUPABASE_ACCESS_TOKEN:-}"
+          test -z "${SUPABASE_DB_PASSWORD:-}"
+      - run: npx playwright install --with-deps chromium
+      - name: Start a disposable local stack (clean migrations + seed)
+        run: npx supabase start > /dev/null
+      - name: Export local stack settings (values are never printed)
+        run: bash scripts/ci-local-env.sh
+      - run: npm run build
+      - run: npm run test:e2e
+      - name: Stop the stack and discard its data
+        if: always()
+        run: npx supabase stop --no-backup > /dev/null 2>&1 || true

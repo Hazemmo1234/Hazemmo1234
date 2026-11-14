@@ -1,6 +1,6 @@
 # GYM ARENA — UX & Screen Specification
 
-Language: **Arabic UI, RTL**, Western digits (0–9), category names in English (gym vocabulary: Deadlift, Bench, Squat, Pull-ups, Push-ups, Treadmill). Coach screens are mobile-first (360–430 px). Admin is responsive (desktop-first). TV is 1920×1080 base, scaled to fit.
+Language: **Arabic (default, RTL) and English (LTR)** — see "Language & direction" below. Western digits (0–9) and category names in English (gym vocabulary: Deadlift, Bench, Squat, Pull-ups, Push-ups, Treadmill) in both languages. Coach screens are mobile-first (360–430 px). Admin is responsive (desktop-first). TV is 1920×1080 base, scaled to fit.
 
 ## Brand — DFN GYM (replaces the brief's navy/electric-blue direction)
 
@@ -28,6 +28,15 @@ TODO for owner: provide SVG or transparent PNG of the wordmark for a sharper TV 
 
 Rules: red = brand energy and "live/new best" moments; gold/silver/bronze are reserved for the podium; green/red only for movement and status. Dark theme only in MVP.
 
+### Language & direction (D15–D18, BR-L1–L6)
+- Every screen exists in Arabic and English. No screen, state or message is Arabic-only or English-only.
+- A visible **language switcher** (العربية / English) is on the Login screen and in the Coach and Admin headers. Switching applies immediately — text, direction and alignment — with no manual reload, and is remembered (profile for signed-in staff, cookie before sign-in).
+- Direction: `rtl` for Arabic, `ltr` for English on the document. Layout uses start/end (logical) spacing so it mirrors automatically. Directional icons (back arrows, chevrons) mirror; rank-movement arrows (▲▼), numbers, weights and the logo do not.
+- Dates and numbers are formatted for the selected language, always with Western digits. Units: `kg`, `km`, reps.
+- Email, password and numeric inputs are always left-to-right.
+- Not translated: member names, gym name, season names (shown as entered); category names (English).
+- The TV uses its own language from Settings (A7), not the viewer's.
+
 ### Typography
 Numbers and headings: a bold condensed italic sports face to echo the logo (e.g. "Barlow Condensed" 700/800 italic for Latin + "Cairo" 700/800 for Arabic). Body: "Cairo" 400/600. Tabular numerals for all scores.
 
@@ -42,7 +51,7 @@ Login (centered tile, 96 px) · Coach/Admin header (32 px tile, left in RTL = ri
 ## A. Coach (mobile)
 
 ### C1 Login
-Email + password. Errors: wrong credentials, account inactive. Loading on submit.
+Email + password. Language switcher. Errors: wrong credentials, account inactive. Loading on submit.
 
 ### C2 Today (home)
 - Header: season name + "X days left" (or "Preseason — logging baselines" / "No active championship — next starts DATE").
@@ -58,7 +67,7 @@ Email + password. Errors: wrong credentials, account inactive. Loading on submit
 - 7 tiles (2-column grid): category name, baseline → month best, points / max with thin progress bar, ✓ "Logged today" (tile disabled), "Building baseline" for rookie/no-baseline.
 - "Attended today" button (disabled with ✓ if attendance exists).
 - Consistency tile shows attended / planned and an edit-plan pencil.
-- Footer link: "Today's entries" (list with Undo for same-day voids).
+- Footer link: "Today's entries" (list with Undo for same-day voids). Undo appears only on entries this coach submitted (BR-E9); entries submitted by someone else are shown without it.
 - States: closed season → tiles read-only with "Championship ended".
 
 ### C4 Entry sheet (bottom sheet)
@@ -87,7 +96,7 @@ Past seasons → final top 3 + own clients' final ranks.
 Cards: season status & days left · participants (active) · entries today · members with ≥1 entry this week (%) · new bests this season · Top 5 now · entries per category (bar) · coaches with clients logged today. Alerts: "Season ended — close it" (if today > ends_on and not closed), "No season scheduled for next month".
 
 ### A2 Seasons
-List (name, type, dates, status). Create (suggests next calendar month). Edit/extend. **Close** button (only when ended) with confirmation summary of the final top 3. **Start reveal** button after close. View frozen results.
+List (name, type, dates, status). Create (suggests next calendar month). Edit/extend. **Close** button (only when ended) with confirmation summary of the final top 3. **Start reveal** button after close. View frozen results. For a preseason, Close confirms "baselines will be frozen" (no top 3, no reveal, no results — BR-S10). The season name is one field, shown as typed in both languages.
 
 ### A3 Members
 Table: code, name, phone, coach, status, rank, total. Filters: coach, status, rookie. Actions: add, edit, reassign coach, activate/deactivate, view card.
@@ -96,17 +105,19 @@ Table: code, name, phone, coach, status, rank, total. Filters: coach, status, ro
 List, create (name, email, temp password), deactivate (blocked while they have active members → prompt to reassign).
 
 ### A5 Entries
-Filterable log (date, coach, member, category, voided). Row actions: edit values, change date (within season), void with reason, view photo.
+Filterable log (date, coach, member, category, voided). Row actions: edit values, change date (within season), void, view photo. Every edit, date change and void asks for a reason (required) before saving (BR-E9).
 
 ### A6 Audit log
 Chronological, filter by action/actor.
 
 ### A7 Settings
-Gym name, TV link with key (copy), regenerate key.
+Gym name (one field, shown as typed in both languages), **TV language** (العربية / English, default Arabic), TV link with key (copy), regenerate key.
 
 ---
 
 ## C. TV (`/tv?key=…`)
+
+Language: taken from the Admin's TV language setting (A7), delivered in the TV state; a running TV switches language and direction on its next poll. All TV text below is shown in that language.
 
 ### Modes
 | Mode | When | Content |
@@ -125,5 +136,5 @@ Rank number · movement arrow (▲2 green / ▼1 red / – ) · avatar · full n
 - Position changes animate (FLIP, 600 ms ease-out). No flashing faster than 3 Hz.
 - Readable at 5 m: names ≥ 40 px, points ≥ 56 px on 1080p.
 - Network loss: keep last state, small "reconnecting" dot; never blank screen.
-- Invalid key: plain "Display not authorized".
+- Invalid key: plain "Display not authorized" (in the TV language).
 - Rookies: a compact strip under the main list ("Rookies of the month") showing top 5.

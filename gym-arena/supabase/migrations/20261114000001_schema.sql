@@ -27,6 +27,7 @@ create table public.profiles (
   full_name   text not null check (length(btrim(full_name)) > 0),
   role        public.user_role not null,
   is_active   boolean not null default true,
+  locale      text not null default 'ar' check (locale in ('ar','en')),   -- D16
   created_at  timestamptz not null default now()
 );
 
@@ -39,7 +40,8 @@ create table public.members (
   full_name      text not null check (length(btrim(full_name)) > 0),
   -- BR-P3 / D12: Egyptian mobile, E.164-normalized (+20 1[0125] xxxxxxxx)
   phone          text not null unique check (phone ~ '^\+201[0125][0-9]{8}$'),
-  photo_path     text null,
+  -- avatars bucket; must sit under this member's own folder (SECURITY_SPECIFICATION §8)
+  photo_path     text null check (photo_path is null or photo_path like 'members/' || id::text || '/%'),
   photo_consent  boolean not null default false,
   coach_id       uuid not null references public.profiles (id),
   status         public.member_status not null default 'active',
@@ -195,6 +197,7 @@ create table public.audit_log (
   entity_id    uuid null,
   before       jsonb null,
   after        jsonb null,
+  reason       text null,          -- mandatory for Admin corrections (BR-E9, D26)
   created_at   timestamptz not null default now()
 );
 create index audit_log_created_idx on public.audit_log (created_at desc);
@@ -205,7 +208,8 @@ create index audit_log_actor_idx on public.audit_log (actor_id);
 create table public.app_settings (
   id        int primary key default 1 check (id = 1),
   tv_key    text not null check (length(tv_key) >= 32),   -- D3
-  gym_name  text null
+  gym_name  text null,             -- one field, shown as entered in both languages (D18)
+  tv_locale text not null default 'ar' check (tv_locale in ('ar','en'))   -- D17
 );
 insert into public.app_settings (id, tv_key, gym_name)
 values (1, encode(extensions.gen_random_bytes(24), 'hex'), 'DFN GYM');

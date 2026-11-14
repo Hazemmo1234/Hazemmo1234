@@ -21,6 +21,7 @@ create type attendance_src  as enum ('auto','manual');
 | full_name | text not null | |
 | role | user_role not null | |
 | is_active | boolean not null default true | inactive coaches cannot sign in (checked in middleware + RLS) |
+| locale | text not null default 'ar' check (locale in ('ar','en')) | staff UI language (D16) |
 | created_at | timestamptz default now() | |
 
 ### members
@@ -52,10 +53,10 @@ Constraint: one open row per member (partial unique index on member_id where end
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| name | text not null | e.g. "Arena — December 2026" |
+| name | text not null | e.g. "Arena — December 2026". One field, shown as entered in both languages (D18) |
 | type | season_type not null | |
 | starts_on / ends_on | date not null | check ends_on ≥ starts_on |
-| closed_at | timestamptz null | set by Close |
+| closed_at | timestamptz null | set **only** by the close operation (never by a direct update or on insert) |
 | closed_by | uuid FK → profiles | |
 | reveal_started_at | timestamptz null | set by "Start reveal" |
 | created_at | timestamptz | |
@@ -76,14 +77,14 @@ Rows created when a season is created (all active members) and when a member is 
 |---|---|---|
 | id | uuid PK | |
 | member_id | uuid FK not null | |
-| season_id | uuid FK not null | season active on performed_on |
+| season_id | uuid FK not null | season active on performed_on; derived by the database, **immutable** after insert |
 | category | category_code not null | |
 | performed_on | date not null | Cairo date |
 | weight_kg | numeric(6,2) null | lifts only |
 | reps | int null | lifts (3–5), pullups, pushups |
 | km | numeric(5,2) null | treadmill only |
 | value | numeric(10,4) not null | lifts: e1RM; pullups/pushups: reps; treadmill: km |
-| photo_path | text null | `evidence` bucket |
+| photo_path | text null | `evidence` bucket; must be under this entry's member folder |
 | logged_by | uuid FK → profiles not null | |
 | created_at | timestamptz default now() | |
 | voided_at | timestamptz null | |
@@ -107,6 +108,7 @@ Indexes: `(season_id, member_id)`, `(member_id, category, performed_on)`, `(seas
 Partial unique `(member_id, attended_on) where voided_at is null`.
 
 ### season_results — frozen at close
+Written only by the championship close operation. A preseason close writes no rows (D20).
 | Column | Type |
 |---|---|
 | season_id, member_id | PK |
@@ -134,6 +136,7 @@ Written once per day at 00:05 Cairo by a scheduled job (Supabase `pg_cron` calli
 | action | text (`entry.void`, `entry.edit`, `member.reassign`, `member.deactivate`, `season.close`, `season.extend`, `tv_key.regenerate`, …) |
 | entity_type, entity_id | text, uuid |
 | before, after | jsonb |
+| reason | text null — mandatory for Admin corrections (`entry.void`, `entry.edit`) |
 | created_at | timestamptz |
 
 ### app_settings — single row
@@ -141,7 +144,8 @@ Written once per day at 00:05 Cairo by a scheduled job (Supabase `pg_cron` calli
 |---|---|
 | id | int PK check (id = 1) |
 | tv_key | text not null (random 32+ chars) |
-| gym_name | text |
+| gym_name | text (one field, shown as entered in both languages — D18) |
+| tv_locale | text not null default 'ar' check (tv_locale in ('ar','en')) — TV language, independent of staff (D17) |
 
 ## Storage
 | Bucket | Public | Path | Access |
@@ -161,11 +165,21 @@ Helper: `is_active_coach()` similarly.
 | coach_assignments | admin; coach own members | via server function | via server function | none |
 | seasons | all authenticated | admin | admin (not after closed_at) | none |
 | season_participants | admin; coach own | admin; coach own | admin; coach own (planned_sessions only, season not closed) | none |
-| entries | admin; coach own members | coach own members with performed_on = today & active season; admin within active season | admin (until close); coach only void fields on own same-day rows | none |
+| entries | admin; coach own members | **none for clients — server only (D19)** | **none for clients — server only (D19)** | none |
 | attendance | same as entries | same | same | none |
 | season_results | all authenticated | server (service role) on close | none | none |
 | audit_log | admin | server | none | none |
 | daily_rank_snapshots | admin | server | none | none |
 | app_settings | admin | none | admin | none |
+
+**Entries and attendance writes (D19, BR-X4):** the `authenticated` role has no insert/update grant on these tables. The server calls server-only functions (`server_log_entry`, `server_void_entry`, `server_edit_entry`, `server_log_attendance`; executable by the service role only) with the acting user taken from the verified session. The rules are applied by table triggers for that acting user, so they hold on every path; a write with no acting staff user is rejected whatever the database role. Attendance rows are never edited directly — they are voided only as a consequence of voiding entries (BR-E10). those functions enforce the same rules that used to be client-facing policies — coach: own active members, `performed_on` = today (Cairo), active non-closed season, void only entries they submitted (`logged_by` = acting coach) on the same day — regardless of the member's current coach (D26); admin: any member, any date within the active season up to today, edit/void until close with a mandatory reason. Read policies are unchanged.
+
+**Season lock:** the close operation locks the season row `FOR UPDATE` (`begin_season_close`); every entry/attendance write takes a shared lock on that row first (`lock_open_season`) (D21). Function execute rights are revoked from everyone by default and granted back per role.
+
+**Integrity guards (from the M0 security audit):** `seasons.ends_on` cannot be moved before the latest non-voided entry; the last active admin cannot be deactivated; coaches cannot change `joined_on`, `created_by`, `created_at` on members; `members.photo_path` / `entries.photo_path` must sit under that member's folder; the evidence path's season segment must be a real season; staff can update only their own `profiles.locale` (nothing else on their profile).
+
+**Season-close database role (D27):** a dedicated login role used only by the close operation — see SECURITY_SPECIFICATION §7 for its exact permissions.
+
+**Migrations:** see SYSTEM_ARCHITECTURE "Migrations" (D22). `seed.sql` must abort unless it is running against a local database.
 
 **Leaderboard for coaches:** coaches must see all members' names and points but not their phones. Implement leaderboard via a server route (service role, curated fields), not by widening `members` RLS.

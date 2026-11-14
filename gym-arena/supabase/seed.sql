@@ -9,7 +9,24 @@
 --   admin@gym-arena.local · coach1@gym-arena.local · coach2@… · coach3@…
 -- TV: /tv?key=dev-tv-key-0123456789abcdef0123456789abcdef
 --
--- Note: season_results for the closed season are written in M1 (needs modules/scoring).
+-- Note: season_results for the closed season are written in M1 (needs modules/scoring);
+-- until then this seed closes the past season without results, which only an owner
+-- session can do.
+
+-- ── SAFETY GUARD (SECURITY_SPECIFICATION §10) ──────────────────────────────────────
+-- Must stay the FIRST statement. Aborts unless this is a local Supabase stack, which
+-- is recognised by the well-known local development JWT secret, and refuses to run on
+-- a database that already has staff accounts.
+do $$
+begin
+  if current_setting('app.settings.jwt_secret', true)
+       is distinct from 'super-secret-jwt-token-with-at-least-32-characters-long' then
+    raise exception 'SEED_REFUSED: seed.sql runs only on a local development database';
+  end if;
+  if exists (select 1 from auth.users) then
+    raise exception 'SEED_REFUSED: this database already has accounts';
+  end if;
+end $$;
 
 do $$
 declare
@@ -153,6 +170,9 @@ begin
   update public.members set status = 'inactive'
   where id in ('00000000-0000-4000-c000-000000000039', '00000000-0000-4000-c000-000000000040');
 
-  -- close the past season (today > ends_on, BR-S5)
+  -- close the past season (today > ends_on, BR-S5). Seed-only shortcut: the real path is
+  -- begin_season_close / finish_season_close with results from modules/scoring (M1).
+  perform set_config('app.actor_id', v_admin::text, true);
+  perform set_config('arena.closing_season', v_past::text, true);
   update public.seasons set closed_at = now(), closed_by = v_admin where id = v_past;
 end $$;

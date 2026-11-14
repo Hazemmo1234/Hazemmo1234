@@ -1,19 +1,15 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type LoginError = "credentials" | "inactive" | "network" | null;
 
-const MESSAGES: Record<Exclude<LoginError, null>, string> = {
-  credentials: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
-  inactive: "الحساب غير مفعّل — تواصل مع الإدارة",
-  network: "تعذّر الاتصال، حاول مرة أخرى",
-};
-
 export function LoginForm({ initialError }: { initialError: LoginError }) {
   const router = useRouter();
+  const t = useTranslations("auth");
   const [error, setError] = useState<LoginError>(initialError);
   const [loading, setLoading] = useState(false);
 
@@ -54,7 +50,7 @@ export function LoginForm({ initialError }: { initialError: LoginError }) {
   return (
     <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-border bg-surface p-6" noValidate>
       <label className="block">
-        <span className="mb-1.5 block text-sm font-semibold">البريد الإلكتروني</span>
+        <span className="mb-1.5 block text-start text-sm font-semibold">{t("email")}</span>
         <input
           name="email"
           type="email"
@@ -66,7 +62,7 @@ export function LoginForm({ initialError }: { initialError: LoginError }) {
         />
       </label>
       <label className="block">
-        <span className="mb-1.5 block text-sm font-semibold">كلمة المرور</span>
+        <span className="mb-1.5 block text-start text-sm font-semibold">{t("password")}</span>
         <input
           name="password"
           type="password"
@@ -77,8 +73,8 @@ export function LoginForm({ initialError }: { initialError: LoginError }) {
         />
       </label>
       {error && (
-        <p role="alert" className="text-sm font-semibold text-down">
-          {MESSAGES[error]}
+        <p role="alert" className="text-start text-sm font-semibold text-down">
+          {t(`errors.${error}`)}
         </p>
       )}
       <button
@@ -86,7 +82,7 @@ export function LoginForm({ initialError }: { initialError: LoginError }) {
         disabled={loading}
         className="h-12 w-full rounded-xl bg-brand font-bold text-white transition-colors hover:bg-brand-hover disabled:opacity-60"
       >
-        {loading ? "جارٍ الدخول…" : "دخول"}
+        {loading ? t("submitting") : t("submit")}
       </button>
     </form>
   );

@@ -1,0 +1,45 @@
+{
+  "common": {
+    "appName": "DFN Arena",
+    "tagline": "The monthly Most Improved championship",
+    "signOut": "Sign out",
+    "language": "Language",
+    "underConstruction": "Under construction"
+  },
+  "auth": {
+    "pageTitle": "Sign in",
+    "staffSignIn": "Staff sign-in",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "errors": {
+      "credentials": "Incorrect email or password",
+      "inactive": "Account inactive — contact the admin",
+      "network": "Connection failed, please try again"
+    }
+  },
+  "coach": {
+    "role": "Coach",
+    "todayPlaceholder": "Today screen"
+  },
+  "admin": {
+    "role": "Admin",
+    "dashboardPlaceholder": "Dashboard"
+  },
+  "tv": {
+    "notAuthorized": "Display not authorized"
+  },
+  "errors": {
+    "UNAUTHENTICATED": "Please sign in first",
+    "FORBIDDEN": "You are not allowed to do this",
+    "NOT_FOUND": "Not found",
+    "VALIDATION": "The data is not valid",
+    "NO_ACTIVE_SEASON": "There is no active championship right now",
+    "ALREADY_LOGGED_TODAY": "Already logged today",
+    "PHOTO_REQUIRED": "A photo is required for a new best",
+    "SEASON_CLOSED": "The championship is closed and cannot be changed",
+    "VOID_WINDOW_PASSED": "The undo window has passed (same day only)",
+    "UNKNOWN": "Something went wrong, please try again"
+  }
+}

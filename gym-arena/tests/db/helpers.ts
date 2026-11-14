@@ -1,0 +1,114 @@
+/**
+ * Shared helpers for database tests. These tests run ONLY against a local,
+ * disposable Supabase stack (`npx supabase start`, seeded by supabase/seed.sql).
+ */
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import postgres from "postgres";
+
+export const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
+const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+export const DB_URL = process.env.TEST_DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+
+// Hard stop: never run destructive-looking tests against anything but localhost.
+for (const u of [URL, DB_URL]) {
+  const host = new globalThis.URL(u).hostname;
+  if (host !== "127.0.0.1" && host !== "localhost") {
+    throw new Error(`Database tests refuse to run against a non-local host: ${host}`);
+  }
+}
+
+export const PASSWORD = "Password123!";
+export const ADMIN = "00000000-0000-4000-a000-000000000001";
+export const COACH1 = "00000000-0000-4000-a000-000000000011";
+export const COACH2 = "00000000-0000-4000-a000-000000000012";
+export const PAST_SEASON = "00000000-0000-4000-b000-000000000001";
+export const ACTIVE_SEASON = "00000000-0000-4000-b000-000000000002";
+export const MEMBER_OF_COACH1 = "00000000-0000-4000-c000-000000000003"; // seed i=3 → coach1
+export const MEMBER_OF_COACH2 = "00000000-0000-4000-c000-000000000001"; // seed i=1 → coach2
+export const INACTIVE_MEMBER = "00000000-0000-4000-c000-000000000039";
+
+const opts = { auth: { persistSession: false, autoRefreshToken: false } };
+export const anon = () => createClient(URL, ANON, opts);
+/** Service-role client = what the Next.js server uses. */
+export const service = createClient(URL, SERVICE, opts);
+
+export async function signIn(email: string, password = PASSWORD): Promise<SupabaseClient> {
+  const client = anon();
+  const { error } = await client.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return client;
+}
+
+/** Owner connection (migrations/seed level) — for test fixtures only. */
+export const owner = () => postgres(DB_URL, { max: 1, onnotice: () => {} });
+
+const CLOSER_PASSWORD = "local-test-closer";
+/** Connection as the restricted season-close role (D27). Login is enabled for local tests only. */
+export async function closerConnection(max = 1) {
+  const o = owner();
+  await o.unsafe(`alter role arena_season_closer login password '${CLOSER_PASSWORD}'`);
+  await o.end();
+  const u = new globalThis.URL(DB_URL);
+  u.username = "arena_season_closer";
+  u.password = CLOSER_PASSWORD;
+  return postgres(u.toString(), { max, onnotice: () => {} });
+}
+
+let seq = 0;
+const run = Math.floor(Math.random() * 9000) + 1000;
+export const nextPhone = () => `+2011${run}${String(++seq).padStart(4, "0")}`;
+
+export interface TestMember {
+  id: string;
+  member_code: string;
+  coach_id: string;
+}
+export async function newMember(client: SupabaseClient, coachId: string = COACH1): Promise<TestMember> {
+  const { data, error } = await client
+    .from("members")
+    .insert({ full_name: `Test ${run}-${seq}`, phone: nextPhone(), photo_consent: false, coach_id: coachId })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as TestMember;
+}
+
+/** Calls a server-only function the way the server does: service role + verified actor. */
+export function serverLog(actor: string, member: string, category: string, fields: Record<string, unknown> = {}) {
+  return service.rpc("server_log_entry", { p_actor: actor, p_member_id: member, p_category: category, ...fields });
+}
+
+/** An ended, unclosed season far in the past with all active members as participants. */
+export async function endedSeason(type: "championship" | "preseason") {
+  const o = owner();
+  try {
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const year = 1900 + Math.floor(Math.random() * 110);
+      const month = `${year}-${String(1 + Math.floor(Math.random() * 12)).padStart(2, "0")}`;
+      try {
+        const [row] = await o`
+          insert into public.seasons (name, type, starts_on, ends_on)
+          values (${`Test ${type} ${month}`}, ${type}, ${`${month}-01`}::date, (${`${month}-01`}::date + 27))
+          returning id, starts_on::text as starts_on`;
+        const participants = await o`
+          select sp.member_id from public.season_participants sp
+          join public.members m on m.id = sp.member_id and m.status = 'active'
+          where sp.season_id = ${row.id}`;
+        return { id: row.id as string, startsOn: row.starts_on as string, participants: participants.map((p) => p.member_id as string) };
+      } catch (e) {
+        if (!String(e).includes("seasons_no_overlap")) throw e;
+      }
+    }
+    throw new Error("could not find a free month for a test season");
+  } finally {
+    await o.end();
+  }
+}
+
+export function fakeResults(memberIds: string[]) {
+  return memberIds.map((member_id, i) => ({
+    member_id, is_rookie: false, deadlift: 10, bench: 10, squat: 10, pullups: 30, pushups: 30,
+    treadmill: 40, consistency: 50, improvement_points: 90, total: 180, rank: i + 1, rookie_rank: null,
+  }));
+}
