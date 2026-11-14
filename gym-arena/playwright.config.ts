@@ -4,7 +4,10 @@ const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 
 export default defineConfig({
   testDir: "./e2e",
-  fullyParallel: true,
+  // One shared local database with shared seed accounts whose language preference is
+  // stored on the profile: run serially so tests never change each other's state.
+  fullyParallel: false,
+  workers: 1,
   retries: process.env.CI ? 2 : 0,
   use: { baseURL, trace: "off", ...(process.env.PW_CHROMIUM_PATH ? { launchOptions: { executablePath: process.env.PW_CHROMIUM_PATH } } : {}) },
   projects: [

@@ -41,5 +41,41 @@
     "SEASON_CLOSED": "البطولة أُغلقت ولا يمكن تعديلها",
     "VOID_WINDOW_PASSED": "انتهت مهلة التراجع (نفس اليوم فقط)",
     "UNKNOWN": "حدث خطأ غير متوقع، حاول مرة أخرى"
+  },
+  "nav": {
+    "label": "قائمة الإدارة",
+    "adminArea": "لوحة الإدارة",
+    "role": "الإدارة",
+    "dashboard": "الرئيسية",
+    "seasons": "البطولات",
+    "members": "الأعضاء",
+    "coaches": "المدربون",
+    "settings": "الإعدادات",
+    "soon": "قريبًا"
+  },
+  "states": {
+    "loadErrorTitle": "تعذّر تحميل الصفحة",
+    "loadErrorBody": "تحقّق من الاتصال ثم حاول مرة أخرى.",
+    "retry": "إعادة المحاولة"
+  },
+  "dashboard": {
+    "title": "الرئيسية",
+    "live": "جارية الآن",
+    "type": {
+      "preseason": "فترة تمهيدية",
+      "championship": "بطولة"
+    },
+    "participants": "{count, plural, =0 {لا يوجد مشاركون} one {مشارك واحد} two {مشاركان} few {# مشاركين} many {# مشاركًا} other {# مشارك}}",
+    "daysLeft": "{count, plural, =0 {انتهت اليوم} one {يوم متبقٍ} two {يومان متبقيان} few {أيام متبقية} many {يومًا متبقيًا} other {يوم متبقٍ}}",
+    "noActiveSeason": "لا توجد بطولة جارية الآن",
+    "nextStarts": "تبدأ «<n>{name}</n>» يوم {date} — {count, plural, =0 {اليوم} one {بعد يوم واحد} two {بعد يومين} few {بعد # أيام} many {بعد # يومًا} other {بعد # يوم}}",
+    "noSeasonScheduled": "لا توجد بطولة مجدولة. أنشئ بطولة جديدة من صفحة البطولات.",
+    "activeMembers": "الأعضاء النشطون",
+    "entriesToday": "نتائج اليوم",
+    "coachesLoggedToday": "مدربون سجّلوا اليوم",
+    "coachesLoggedTodayHint": "من إجمالي المدربين النشطين",
+    "alertAwaitingClose": "انتهت «<n>{name}</n>» — في انتظار الإغلاق",
+    "alertNoNextSeason": "لا توجد بطولة مجدولة للشهر القادم",
+    "openSeasons": "البطولات"
   }
 }

@@ -41,5 +41,41 @@
     "SEASON_CLOSED": "The championship is closed and cannot be changed",
     "VOID_WINDOW_PASSED": "The undo window has passed (same day only)",
     "UNKNOWN": "Something went wrong, please try again"
+  },
+  "nav": {
+    "label": "Admin navigation",
+    "adminArea": "Admin",
+    "role": "Admin",
+    "dashboard": "Dashboard",
+    "seasons": "Seasons",
+    "members": "Members",
+    "coaches": "Coaches",
+    "settings": "Settings",
+    "soon": "Soon"
+  },
+  "states": {
+    "loadErrorTitle": "Couldn't load this page",
+    "loadErrorBody": "Check the connection and try again.",
+    "retry": "Try again"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "live": "Live now",
+    "type": {
+      "preseason": "Preseason",
+      "championship": "Championship"
+    },
+    "participants": "{count, plural, =0 {No participants} one {# participant} other {# participants}}",
+    "daysLeft": "{count, plural, =0 {Ends today} one {day left} other {days left}}",
+    "noActiveSeason": "No championship is running right now",
+    "nextStarts": "“<n>{name}</n>” starts on {date} — {count, plural, =0 {today} one {in # day} other {in # days}}",
+    "noSeasonScheduled": "No season is scheduled. Create one on the Seasons page.",
+    "activeMembers": "Active members",
+    "entriesToday": "Results logged today",
+    "coachesLoggedToday": "Coaches who logged today",
+    "coachesLoggedTodayHint": "of all active coaches",
+    "alertAwaitingClose": "“<n>{name}</n>” has ended — waiting to be closed",
+    "alertNoNextSeason": "No season is scheduled for next month",
+    "openSeasons": "Seasons"
   }
 }

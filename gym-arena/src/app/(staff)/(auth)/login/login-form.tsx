@@ -3,7 +3,9 @@
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { HOME_BY_ROLE } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/client";
+import type { UserRole } from "@/lib/supabase/types";
 
 type LoginError = "credentials" | "inactive" | "network" | null;
 
@@ -30,15 +32,17 @@ export function LoginForm({ initialError }: { initialError: LoginError }) {
       // AC-1: inactive accounts are denied with "Account inactive"
       const { data: profile } = await supabase
         .from("profiles")
-        .select("is_active")
+        .select("is_active, role")
         .eq("id", data.user.id)
-        .maybeSingle<{ is_active: boolean }>();
+        .maybeSingle<{ is_active: boolean; role: UserRole }>();
       if (!profile?.is_active) {
         await supabase.auth.signOut();
         setError("inactive");
         return;
       }
-      router.replace("/");
+      // Go straight to the role's home. Navigating to "/" and relying on the middleware
+      // redirect left the client router on "/", so later refreshes re-ran the redirect.
+      router.replace(HOME_BY_ROLE[profile.role]);
       router.refresh();
     } catch {
       setError("network");

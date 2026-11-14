@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE, isLocale, type Locale } from "@/i18n/config";
-import { decideAccess, routeArea, type Viewer } from "@/lib/routes";
+import { SESSION_AWARE_PUBLIC, decideAccess, routeArea, type Viewer } from "@/lib/routes";
 import type { UserRole } from "@/lib/supabase/types";
 
 /**
@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   // TV / cron are authenticated by key/secret in their handlers, not by session.
-  if (routeArea(pathname) === "public" && !pathname.startsWith("/login")) return response;
+  if (routeArea(pathname) === "public" && !SESSION_AWARE_PUBLIC.some((p) => pathname.startsWith(p))) return response;
 
   const {
     data: { user },

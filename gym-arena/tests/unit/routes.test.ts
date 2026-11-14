@@ -8,6 +8,7 @@ describe("route access (USER_ROLES, AC-1, AC-2)", () => {
   it("classifies areas", () => {
     expect(routeArea("/tv")).toBe("public");
     expect(routeArea("/api/tv/state")).toBe("public");
+    expect(routeArea("/api/locale")).toBe("public"); // language switch works signed out (login page)
     expect(routeArea("/admin/seasons")).toBe("admin");
     expect(routeArea("/members/123")).toBe("coach");
     expect(routeArea("/api/me")).toBe("api");

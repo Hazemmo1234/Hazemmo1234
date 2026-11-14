@@ -8,7 +8,9 @@ export const HOME_BY_ROLE: Record<UserRole, string> = {
 
 const COACH_PREFIXES = ["/today", "/members", "/leaderboard", "/history"];
 /** Public paths: login, TV (key-protected in its own handler), cron (secret), static assets. */
-const PUBLIC_PREFIXES = ["/login", "/tv", "/api/tv", "/api/cron", "/brand", "/manifest.webmanifest"];
+const PUBLIC_PREFIXES = ["/login", "/api/locale", "/tv", "/api/tv", "/api/cron", "/brand", "/manifest.webmanifest"];
+/** Public paths that still need the staff session refreshed (they act on it if present). */
+export const SESSION_AWARE_PUBLIC = ["/login", "/api/locale"];
 
 export type RouteArea = "public" | "admin" | "coach" | "api" | "root" | "other";
 

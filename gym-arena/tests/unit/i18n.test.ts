@@ -124,3 +124,13 @@ describe("database errors → stable API codes", () => {
     expect(statusFor("VOID_WINDOW_PASSED")).toBe(403);
   });
 });
+
+describe("admin initials", () => {
+  it("uses letters only, Arabic or Latin", async () => {
+    const { initials } = await import("@/lib/initials");
+    expect(initials("Hazem (Admin)")).toBe("HA");
+    expect(initials("  Coach   Omar ")).toBe("CO");
+    expect(initials("حازم محمد")).toBe("حم");
+    expect(initials("Mona")).toBe("M");
+  });
+});
