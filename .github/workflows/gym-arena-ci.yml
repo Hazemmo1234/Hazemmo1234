@@ -82,6 +82,8 @@ jobs:
       - name: Export local stack settings (values are never printed)
         run: bash scripts/ci-local-env.sh
       - run: npm run test:db
+        env:
+          TEST_DB_ISOLATED: "1" # this runner's stack is created fresh and thrown away
       - name: Stop the stack and discard its data
         if: always()
         run: npx supabase stop --no-backup > /dev/null 2>&1 || true
@@ -110,6 +112,8 @@ jobs:
         run: bash scripts/ci-local-env.sh
       - run: npm run build
       - run: npm run test:e2e
+        env:
+          E2E_ALLOW_WRITES: "1" # this runner's stack is created fresh and thrown away
       - name: Stop the stack and discard its data
         if: always()
         run: npx supabase stop --no-backup > /dev/null 2>&1 || true

@@ -17,7 +17,7 @@ export interface AdminNavItem {
 
 export const ADMIN_NAV: readonly AdminNavItem[] = [
   { key: "dashboard", href: "/admin/dashboard", icon: DashboardIcon, ready: true },
-  { key: "seasons", href: "/admin/seasons", icon: CalendarIcon, ready: false },
+  { key: "seasons", href: "/admin/seasons", icon: CalendarIcon, ready: true },
   { key: "members", href: "/admin/members", icon: MembersIcon, ready: false },
   { key: "coaches", href: "/admin/coaches", icon: CoachIcon, ready: false },
   { key: "settings", href: "/admin/settings", icon: SettingsIcon, ready: false },

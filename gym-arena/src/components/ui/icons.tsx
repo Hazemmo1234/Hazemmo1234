@@ -67,3 +67,15 @@ export const TvIcon = (p: IconProps) => (
 export const ActivityIcon = (p: IconProps) => (
   <Svg {...p}><path d="M3 12h4l3-8 4 16 3-8h4" /></Svg>
 );
+export const PencilIcon = (p: IconProps) => (
+  <Svg {...p}><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17z" /><path d="m14.5 7.5 3 3" /></Svg>
+);
+export const CloseIcon = (p: IconProps) => (
+  <Svg {...p}><path d="M6 6l12 12M18 6 6 18" /></Svg>
+);
+export const LockIcon = (p: IconProps) => (
+  <Svg {...p}><rect x="4.5" y="10.5" width="15" height="10" rx="2" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" /></Svg>
+);
+export const CheckIcon = (p: IconProps) => (
+  <Svg {...p}><path d="m5 12.5 4.5 4.5L19 7.5" /></Svg>
+);

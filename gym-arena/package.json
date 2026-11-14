@@ -13,7 +13,10 @@
     "test:db": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run --config vitest.db.config.mts",
     "test:e2e": "playwright test --trace off",
     "db:reset": "supabase db reset",
-    "create-admin": "node --env-file-if-exists=.env.local --import tsx scripts/create-admin.ts"
+    "create-admin": "node --env-file-if-exists=.env.local --import tsx scripts/create-admin.ts",
+    "test:stack": "bash scripts/test-stack.sh",
+    "test:db:isolated": "bash scripts/test-stack.sh reset && bash scripts/test-stack.sh env > .test-stack/.env.test && node --env-file=.test-stack/.env.test node_modules/vitest/vitest.mjs run --config vitest.db.config.mts",
+    "test:e2e:isolated": "bash scripts/e2e-isolated.sh"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

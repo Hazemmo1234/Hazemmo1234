@@ -15,6 +15,11 @@ export const ERROR_STATUS = {
 
 export type ErrorCode = keyof typeof ERROR_STATUS;
 
-export function apiError(code: ErrorCode, message: string) {
-  return NextResponse.json({ error: { code, message } }, { status: ERROR_STATUS[code] });
+/**
+ * `{ error: { code, message, reason? } }`. `code` is the stable API code; `reason` is an
+ * optional machine-readable detail the UI can translate (e.g. "overlap"). `message` is
+ * for developers and is never shown to users (D15).
+ */
+export function apiError(code: ErrorCode, message: string, reason?: string) {
+  return NextResponse.json({ error: { code, message, ...(reason ? { reason } : {}) } }, { status: ERROR_STATUS[code] });
 }

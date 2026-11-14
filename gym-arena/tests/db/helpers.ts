@@ -10,11 +10,26 @@ const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 export const DB_URL = process.env.TEST_DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
-// Hard stop: never run destructive-looking tests against anything but localhost.
+// The database suite creates rows (members, seasons, entries, audit rows) on every run and
+// rows can never be deleted (BR-E8). It therefore runs only on a database explicitly marked
+// as disposable: CI's fresh stack or an isolated local test stack (TEST_DB_ISOLATED=1).
+if (process.env.TEST_DB_ISOLATED !== "1") {
+  throw new Error(
+    "Database tests refuse to run without TEST_DB_ISOLATED=1. They create permanent rows; " +
+      "never point them at the development database.",
+  );
+}
+
+// Hard stop: never run destructive-looking tests against anything but localhost, and never
+// against the development stack's ports (54321/54322) — except in CI, whose stack on those
+// ports is created fresh for the run and thrown away.
 for (const u of [URL, DB_URL]) {
-  const host = new globalThis.URL(u).hostname;
-  if (host !== "127.0.0.1" && host !== "localhost") {
-    throw new Error(`Database tests refuse to run against a non-local host: ${host}`);
+  const { hostname, port } = new globalThis.URL(u);
+  if (hostname !== "127.0.0.1" && hostname !== "localhost") {
+    throw new Error(`Database tests refuse to run against a non-local host: ${hostname}`);
+  }
+  if ((port === "54321" || port === "54322") && process.env.CI !== "true") {
+    throw new Error("Database tests refuse the development stack (54321/54322). Use npm run test:db:isolated.");
   }
 }
 

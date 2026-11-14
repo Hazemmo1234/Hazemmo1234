@@ -66,7 +66,7 @@ test.describe("staff language preference (AC-35)", () => {
   });
 });
 
-test.describe("TV language is independent of staff language (AC-36, BR-L4)", () => {
+test.describe("TV language is independent of staff language (AC-36, BR-L4) @writes", () => {
   test.skip(LOCAL_ONLY, "seed accounts exist only locally");
   test.describe.configure({ mode: "serial" });
 

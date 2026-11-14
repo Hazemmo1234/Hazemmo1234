@@ -4,7 +4,10 @@
     "tagline": "The monthly Most Improved championship",
     "signOut": "Sign out",
     "language": "Language",
-    "underConstruction": "Under construction"
+    "underConstruction": "Under construction",
+    "close": "Close",
+    "cancel": "Cancel",
+    "save": "Save"
   },
   "auth": {
     "pageTitle": "Sign in",
@@ -77,5 +80,56 @@
     "alertAwaitingClose": "“<n>{name}</n>” has ended — waiting to be closed",
     "alertNoNextSeason": "No season is scheduled for next month",
     "openSeasons": "Seasons"
+  },
+  "seasons": {
+    "title": "Seasons",
+    "description": "One championship per month. Dates never overlap.",
+    "new": "New season",
+    "create": "Create season",
+    "createTitle": "New season",
+    "createDescription": "Dates are suggested for next month and can be changed.",
+    "editTitle": "Edit season",
+    "edit": "Edit",
+    "editNamed": "Edit {name}",
+    "emptyTitle": "No seasons yet",
+    "emptyBody": "Create the first season. Next month is suggested for you.",
+    "name": "Season name",
+    "type": "Type",
+    "startsOn": "Start date",
+    "endsOn": "End date",
+    "suggestedName": "Arena — {month}",
+    "typeLabel": {
+      "championship": "Championship",
+      "preseason": "Preseason"
+    },
+    "status": {
+      "active": "Live",
+      "scheduled": "Scheduled",
+      "ended": "Ended",
+      "closed": "Closed"
+    },
+    "daysLeft": "{count, plural, =0 {Ends today} one {# day left} other {# days left}}",
+    "startsIn": "{count, plural, =0 {Starts today} one {Starts in # day} other {Starts in # days}}",
+    "participants": "{count, plural, =0 {No participants} one {{n} participant} other {{n} participants}}",
+    "awaitingCloseHint": "Waiting to be closed",
+    "closedHint": "Results frozen",
+    "readOnly": "Read-only",
+    "hintStartLocked": "The start date can't change once the season has started.",
+    "hintExtendOnly": "The end date can only be extended.",
+    "hintParticipants": "All active members are added as participants automatically.",
+    "toastCreated": "Season created",
+    "toastUpdated": "Changes saved",
+    "errors": {
+      "name_required": "Enter a season name.",
+      "name_too_long": "The name is longer than {max} characters.",
+      "invalid_date": "That date isn't valid.",
+      "end_before_start": "The end date must be on or after the start date.",
+      "extend_only": "Once a season has started, its end date can only be extended.",
+      "before_entries": "Results are already logged after this date.",
+      "started": "The start date can't change once the season has started.",
+      "overlap": "These dates overlap another season. Pick a period that doesn't cross any season.",
+      "closed": "This season is closed and can't be changed.",
+      "nothing_to_update": "There's nothing to save."
+    }
   }
 }

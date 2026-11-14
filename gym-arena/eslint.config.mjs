@@ -29,6 +29,8 @@ const eslintConfig = [
       "coverage/**",
       "test-results/**",
       "playwright-report/**",
+      ".next-test/**",
+      ".test-stack/**",
     ],
   },
 ];

@@ -37,3 +37,18 @@ export function formatTime(instant: Date, locale: Locale): string {
     hour12: false,
   }).format(instant);
 }
+
+/** Month and year in the selected language (e.g. "December 2026") — for suggested season names. */
+export function formatMonthYear(date: IsoDate, locale: Locale): string {
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], { timeZone: "UTC", month: "long", year: "numeric" }).format(
+    new Date(`${date}T00:00:00Z`),
+  );
+}
+
+/** Compact range for lists, e.g. "1 Dec – 31 Dec 2026". */
+export function formatDateRange(startsOn: IsoDate, endsOn: IsoDate, locale: Locale): string {
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }).formatRange(
+    new Date(`${startsOn}T00:00:00Z`),
+    new Date(`${endsOn}T00:00:00Z`),
+  );
+}

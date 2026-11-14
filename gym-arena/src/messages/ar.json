@@ -4,7 +4,10 @@
     "tagline": "بطولة الأكثر تطورًا الشهرية",
     "signOut": "خروج",
     "language": "اللغة",
-    "underConstruction": "قيد الإنشاء"
+    "underConstruction": "قيد الإنشاء",
+    "close": "إغلاق",
+    "cancel": "إلغاء",
+    "save": "حفظ"
   },
   "auth": {
     "pageTitle": "تسجيل الدخول",
@@ -77,5 +80,56 @@
     "alertAwaitingClose": "انتهت «<n>{name}</n>» — في انتظار الإغلاق",
     "alertNoNextSeason": "لا توجد بطولة مجدولة للشهر القادم",
     "openSeasons": "البطولات"
+  },
+  "seasons": {
+    "title": "البطولات",
+    "description": "بطولة واحدة كل شهر. لا تتداخل التواريخ أبدًا.",
+    "new": "بطولة جديدة",
+    "create": "إنشاء البطولة",
+    "createTitle": "بطولة جديدة",
+    "createDescription": "التواريخ مقترحة للشهر القادم ويمكن تعديلها.",
+    "editTitle": "تعديل البطولة",
+    "edit": "تعديل",
+    "editNamed": "تعديل {name}",
+    "emptyTitle": "لا توجد بطولات بعد",
+    "emptyBody": "أنشئ أول بطولة. يُقترح عليك الشهر القادم تلقائيًا.",
+    "name": "اسم البطولة",
+    "type": "النوع",
+    "startsOn": "تاريخ البداية",
+    "endsOn": "تاريخ النهاية",
+    "suggestedName": "بطولة {month}",
+    "typeLabel": {
+      "championship": "بطولة",
+      "preseason": "فترة تمهيدية"
+    },
+    "status": {
+      "active": "جارية",
+      "scheduled": "مجدولة",
+      "ended": "انتهت",
+      "closed": "مغلقة"
+    },
+    "daysLeft": "{count, plural, =0 {تنتهي اليوم} one {يوم واحد متبقٍ} two {يومان متبقيان} few {# أيام متبقية} many {# يومًا متبقيًا} other {# يوم متبقٍ}}",
+    "startsIn": "{count, plural, =0 {تبدأ اليوم} one {تبدأ بعد يوم} two {تبدأ بعد يومين} few {تبدأ بعد # أيام} many {تبدأ بعد # يومًا} other {تبدأ بعد # يوم}}",
+    "participants": "{count, plural, =0 {بدون مشاركين} one {مشارك واحد} two {مشاركان} few {{n} مشاركين} many {{n} مشاركًا} other {{n} مشارك}}",
+    "awaitingCloseHint": "في انتظار الإغلاق",
+    "closedHint": "النتائج مجمّدة",
+    "readOnly": "للعرض فقط",
+    "hintStartLocked": "لا يمكن تغيير تاريخ البداية بعد بدء البطولة.",
+    "hintExtendOnly": "يمكن تمديد تاريخ النهاية فقط.",
+    "hintParticipants": "يُضاف كل الأعضاء النشطين كمشاركين تلقائيًا.",
+    "toastCreated": "تم إنشاء البطولة",
+    "toastUpdated": "تم حفظ التغييرات",
+    "errors": {
+      "name_required": "اكتب اسم البطولة.",
+      "name_too_long": "الاسم أطول من {max} حرفًا.",
+      "invalid_date": "التاريخ غير صحيح.",
+      "end_before_start": "تاريخ النهاية يجب أن يكون في يوم البداية أو بعده.",
+      "extend_only": "بعد بدء البطولة يمكن تمديد تاريخ النهاية فقط.",
+      "before_entries": "توجد نتائج مسجّلة بعد هذا التاريخ.",
+      "started": "لا يمكن تغيير تاريخ البداية بعد بدء البطولة.",
+      "overlap": "هذه التواريخ تتداخل مع بطولة أخرى. اختر فترة لا تتقاطع مع أي بطولة.",
+      "closed": "هذه البطولة مغلقة ولا يمكن تعديلها.",
+      "nothing_to_update": "لا يوجد تغيير للحفظ."
+    }
   }
 }

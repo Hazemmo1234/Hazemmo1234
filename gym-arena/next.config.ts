@@ -37,6 +37,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The isolated test build (scripts/e2e-isolated.sh) goes to its own folder so it never
+  // mixes with the development build.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
   async headers() {
     return [
