@@ -1,0 +1,9 @@
+/** Public env (safe for the browser). Server-only secrets live in lib/supabase/service.ts. */
+export function publicEnv() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  }
+  return { url, anonKey };
+}
