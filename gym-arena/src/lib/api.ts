@@ -20,6 +20,6 @@ export type ErrorCode = keyof typeof ERROR_STATUS;
  * optional machine-readable detail the UI can translate (e.g. "overlap"). `message` is
  * for developers and is never shown to users (D15).
  */
-export function apiError(code: ErrorCode, message: string, reason?: string) {
-  return NextResponse.json({ error: { code, message, ...(reason ? { reason } : {}) } }, { status: ERROR_STATUS[code] });
+export function apiError(code: ErrorCode, message: string, reason?: string, extra?: Record<string, string>) {
+  return NextResponse.json({ error: { code, message, ...(reason ? { reason } : {}), ...(extra ?? {}) } }, { status: ERROR_STATUS[code] });
 }

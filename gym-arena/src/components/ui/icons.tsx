@@ -88,3 +88,12 @@ export const EyeOffIcon = (p: IconProps) => (
 export const UserOffIcon = (p: IconProps) => (
   <Svg {...p}><circle cx="10" cy="8" r="3.5" /><path d="M3.5 20c.6-3.4 3.2-5.5 6.5-5.5 1.3 0 2.5.3 3.5 1M16 16l5 5M21 16l-5 5" /></Svg>
 );
+export const CameraIcon = (p: IconProps) => (
+  <Svg {...p}><path d="M4 8h3l1.5-2.5h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" /><circle cx="12" cy="13" r="3.5" /></Svg>
+);
+export const SwapIcon = (p: IconProps) => (
+  <Svg {...p}><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" /></Svg>
+);
+export const SearchIcon = (p: IconProps) => (
+  <Svg {...p}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.2-4.2" /></Svg>
+);

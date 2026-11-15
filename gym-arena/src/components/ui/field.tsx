@@ -1,4 +1,4 @@
-import { useId, type InputHTMLAttributes, type ReactNode } from "react";
+import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 
 export const inputClasses =
   "h-12 w-full rounded-xl border border-border bg-surface-2 px-4 text-base text-text outline-none transition-colors " +
@@ -69,5 +69,41 @@ export function Segmented<T extends string>({
         ))}
       </div>
     </div>
+  );
+}
+
+/** Native select, styled like the inputs (accessible on every platform, incl. iPad). */
+export function SelectField({
+  label,
+  hint,
+  error,
+  children,
+  ...select
+}: SelectHTMLAttributes<HTMLSelectElement> & { label: ReactNode; hint?: ReactNode; error?: ReactNode }) {
+  const id = useId();
+  const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1.5 block text-start text-sm font-semibold">{label}</label>
+      <select id={id} aria-invalid={error ? true : undefined} aria-describedby={describedBy} className={`${inputClasses} appearance-auto`} {...select}>
+        {children}
+      </select>
+      {error ? (
+        <p id={`${id}-error`} className="mt-1.5 text-start text-sm font-semibold text-down">{error}</p>
+      ) : hint ? (
+        <p id={`${id}-hint`} className="mt-1.5 text-start text-xs text-text-muted">{hint}</p>
+      ) : null}
+    </div>
+  );
+}
+
+/** Checkbox with a large tap target (≥ 44 px row). */
+export function CheckboxField({ label, checked, onChange }: { label: ReactNode; checked: boolean; onChange: (checked: boolean) => void }) {
+  const id = useId();
+  return (
+    <label htmlFor={id} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-border bg-surface-2 px-4 py-3 text-start text-sm">
+      <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 size-5 shrink-0 accent-brand" />
+      <span>{label}</span>
+    </label>
   );
 }

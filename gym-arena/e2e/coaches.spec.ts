@@ -65,8 +65,8 @@ test.describe("coaches", () => {
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: "لا يمكن إيقاف الحساب الآن" })).toBeVisible();
     await expect(dialog.getByText(/يجب نقلهم إلى مدرب آخر أولًا/)).toBeVisible();
-    await expect(dialog.getByText(/عند توفرها/)).toBeVisible(); // Members page not available yet: no link
-    await expect(dialog.getByRole("link")).toHaveCount(0);
+    await expect(dialog.getByText("انقل العملاء إلى مدرب آخر من صفحة الأعضاء، ثم أعد المحاولة.")).toBeVisible();
+    await expect(dialog.getByRole("link", { name: "فتح صفحة الأعضاء" })).toHaveAttribute("href", `/admin/members?coach=${COACH1}`);
     await expect(dialog.getByRole("button", { name: "إيقاف الحساب" })).toHaveCount(0);
     await page.keyboard.press("Escape");
 
