@@ -34,20 +34,28 @@ export type SeasonResult<T> = { ok: true; data: T } | { ok: false; code: ErrorCo
 
 const COLUMNS = "id, name, type, starts_on, ends_on, closed_at, reveal_started_at, created_at";
 
-/** Newest first. */
+type SeasonWithCount = SeasonRow & { season_participants: Array<{ count: number }> };
+
+/**
+ * Newest first, each with its participant count.
+ *
+ * The count is an embedded aggregate (`season_participants(count)`): PostgREST computes
+ * count(*) per season inside the same SQL statement, so no participant rows are
+ * transferred and the API row limit (max_rows) cannot truncate it. It runs with the
+ * caller's own role under RLS, exactly like the season list itself: an admin counts all
+ * participants, a coach only their own clients. A season with no participants counts 0.
+ */
 export async function listSeasons(supabase: SupabaseClient, today: IsoDate): Promise<SeasonListItem[]> {
-  const [seasons, participants] = await Promise.all([
-    supabase.from("seasons").select(COLUMNS).order("starts_on", { ascending: false }),
-    supabase.from("season_participants").select("season_id"),
-  ]);
-  if (seasons.error) throw new Error(seasons.error.message);
-  const counts = new Map<string, number>();
-  for (const row of participants.data ?? []) counts.set(row.season_id, (counts.get(row.season_id) ?? 0) + 1);
-  return (seasons.data as SeasonRow[]).map((s) => ({
+  const { data, error } = await supabase
+    .from("seasons")
+    .select(`${COLUMNS}, season_participants(count)`)
+    .order("starts_on", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data as SeasonWithCount[]).map(({ season_participants, ...s }) => ({
     ...s,
     status: seasonStatus(s, today),
     days: seasonDaysLeft(s, today),
-    participants: counts.get(s.id) ?? 0,
+    participants: season_participants[0]?.count ?? 0,
   }));
 }
 
