@@ -5,6 +5,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { addDays, today } from "@/lib/time";
 import {
   ACTIVE_SEASON, ADMIN, COACH1, INACTIVE_MEMBER, PAST_SEASON,
@@ -41,13 +42,79 @@ describe("season rules", () => {
     expect(c.error).not.toBeNull();
   });
 
+  // G-10 runs on its OWN seasons (tests/FIXTURES.md, reserved year 1653) and never touches
+  // the shared seed season. The old version shrank the seed season and relied on entries
+  // dated "today" to make the database refuse; after Cairo midnight there were none, the
+  // shrink was (correctly) allowed, and the shared season was left ending yesterday.
+  const G10 = { name: "G-10 fixture", start: "1653-01-01", end: "1653-01-28", entryOn: "1653-01-20" } as const;
+  const G10_EMPTY = { name: "G-10 empty fixture", start: "1653-03-01", end: "1653-03-28" } as const;
+  const COACH3 = "00000000-0000-4000-a000-000000000013";
+
+  /** Idempotent: the seasons, one member and one entry on G10.entryOn — created once, then reused. */
+  async function g10Fixture() {
+    const o = owner();
+    try {
+      for (const f of [G10, G10_EMPTY]) {
+        await o`insert into public.seasons (name, type, starts_on, ends_on)
+                select ${f.name}, 'championship', ${f.start}::date, ${f.end}::date
+                where not exists (select 1 from public.seasons where name = ${f.name})`;
+      }
+      let [m] = await o`select id from public.members where full_name = 'G-10 fixture member' order by member_code limit 1`;
+      if (!m) [m] = await o`insert into public.members (full_name, phone, coach_id) values ('G-10 fixture member', '+201500000653', ${COACH3}::uuid) returning id`;
+      await o`insert into public.entries (member_id, season_id, category, performed_on, reps, value, logged_by)
+              select ${m.id}::uuid, '00000000-0000-0000-0000-000000000000', 'pullups', ${G10.entryOn}::date, 5, 0, ${COACH3}::uuid
+              where not exists (select 1 from public.entries e where e.member_id = ${m.id}::uuid and e.performed_on = ${G10.entryOn}::date and e.voided_at is null)`;
+      const seasons = await o`select id, name, ends_on::text as ends_on from public.seasons where name in (${G10.name}, ${G10_EMPTY.name})`;
+      const byName = new Map(seasons.map((r) => [r.name as string, r]));
+      // the prerequisite, checked BEFORE anything is attempted: the last entry of G10 is on entryOn
+      const [last] = await o`select max(performed_on)::text as d from public.entries where season_id = ${byName.get(G10.name)!.id} and voided_at is null`;
+      const [emptyLast] = await o`select count(*)::int as n from public.entries where season_id = ${byName.get(G10_EMPTY.name)!.id}`;
+      return { g10: byName.get(G10.name)!, empty: byName.get(G10_EMPTY.name)!, lastEntry: last.d as string, emptyEntries: emptyLast.n as number };
+    } finally {
+      await o.end();
+    }
+  }
+  const seasonState = async (id: string) => {
+    const o = owner();
+    const [row] = await o`select ends_on::text as ends_on, (select count(*)::int from public.audit_log a where a.entity_id = ${id}) as audits from public.seasons where id = ${id}`;
+    await o.end();
+    return row as { ends_on: string; audits: number };
+  };
+
   it("G-10 regression: ends_on cannot move before existing entries; extending is allowed (BR-S6)", async () => {
-    const shrink = await admin.from("seasons").update({ ends_on: addDays(today(), -1) }).eq("id", ACTIVE_SEASON);
-    expect(shrink.error?.message).toMatch(/ends_on cannot be before existing entries/);
-    const { data: before } = await admin.from("seasons").select("ends_on").eq("id", ACTIVE_SEASON).single();
-    const extended = addDays(before!.ends_on, 1);
-    expect((await admin.from("seasons").update({ ends_on: extended }).eq("id", ACTIVE_SEASON)).error).toBeNull();
-    expect((await admin.from("seasons").update({ ends_on: before!.ends_on }).eq("id", ACTIVE_SEASON)).error).toBeNull();
+    const f = await g10Fixture();
+    expect(f.lastEntry).toBe(G10.entryOn); // never attempt the shrink without its prerequisite
+    expect(f.g10.ends_on).toBe(G10.end);
+    const shared = await seasonState(ACTIVE_SEASON);
+    const before = await seasonState(f.g10.id);
+
+    const shrink = await admin.from("seasons").update({ ends_on: "1653-01-19" }).eq("id", f.g10.id);
+    expect(shrink.error?.message).toMatch(/ends_on cannot be before existing entries \(1653-01-20\)/);
+    expect(await seasonState(f.g10.id)).toEqual(before); // unchanged, and nothing audited
+
+    // extending is allowed and audited; the restore is an extension back (never a shrink below entries)
+    expect((await admin.from("seasons").update({ ends_on: "1653-01-29" }).eq("id", f.g10.id)).error).toBeNull();
+    expect((await admin.from("seasons").update({ ends_on: G10.end }).eq("id", f.g10.id)).error).toBeNull();
+    expect(await seasonState(f.g10.id)).toEqual({ ends_on: G10.end, audits: before.audits + 2 });
+
+    // the shared seed season was never touched
+    expect(await seasonState(ACTIVE_SEASON)).toEqual(shared);
+  });
+
+  it("G-10 prerequisite matters: without entries the same shrink is allowed — so the test owns its entry", async () => {
+    const f = await g10Fixture();
+    expect(f.emptyEntries).toBe(0);
+    const shared = await seasonState(ACTIVE_SEASON);
+    try {
+      const shrink = await admin.from("seasons").update({ ends_on: "1653-03-19" }).eq("id", f.empty.id);
+      expect(shrink.error).toBeNull(); // the rule is about entries, not about shrinking as such
+      expect((await seasonState(f.empty.id)).ends_on).toBe("1653-03-19");
+    } finally {
+      // guaranteed restore of the dedicated season, through the same audited admin update
+      expect((await admin.from("seasons").update({ ends_on: G10_EMPTY.end }).eq("id", f.empty.id)).error).toBeNull();
+    }
+    expect((await seasonState(f.empty.id)).ends_on).toBe(G10_EMPTY.end);
+    expect(await seasonState(ACTIVE_SEASON)).toEqual(shared);
   });
 });
 
@@ -233,10 +300,13 @@ describe("inactive participants at close (D29, BR-P5, AC-51, AC-52)", () => {
       .select("total, improvement_points, rank, rookie_rank, member_active").eq("season_id", s.id).eq("member_id", inactiveId).single();
     expect(row).toMatchObject({ rank: null, rookie_rank: null, member_active: false });
     expect(Number(row!.total)).toBe(321);
-    const { data: ranked } = await admin.from("season_results")
-      .select("rank, member_active").eq("season_id", s.id).not("rank", "is", null).order("rank");
-    expect(ranked!.map((r) => r.rank)).toEqual(active.map((_, i) => i + 1));
-    expect(ranked!.every((r) => r.member_active)).toBe(true);
+    // every page: a season of a gym with more than 1000 active members has more than 1000
+    // results, and one request is capped at max_rows (1000)
+    const ranked = await fetchAll<{ rank: number; member_active: boolean }>((from, to) =>
+      admin.from("season_results").select("rank, member_active").eq("season_id", s.id).not("rank", "is", null)
+        .order("rank").order("member_id").range(from, to) as never);
+    expect(ranked.map((r) => r.rank)).toEqual(active.map((_, i) => i + 1));
+    expect(ranked.every((r) => r.member_active)).toBe(true);
     // history is preserved even though the member is inactive, and cannot be altered
     const o = owner();
     await expect(o`update public.season_results set rank = 1 where season_id = ${s.id} and member_id = ${inactiveId}`).rejects.toThrow(/IMMUTABLE/);

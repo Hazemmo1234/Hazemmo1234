@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { ErrorCode } from "@/lib/api";
 import { errorCodeFromDb } from "@/lib/errors";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { CreateCoachInput } from "@/lib/validation/coaches";
 
@@ -56,13 +57,14 @@ async function authUsersById(): Promise<Map<string, User>> {
 export async function listCoaches(admin: SupabaseClient): Promise<CoachListItem[]> {
   const [profiles, members, users] = await Promise.all([
     admin.from("profiles").select("id, full_name, is_active, created_at").eq("role", "coach").order("full_name"),
-    admin.from("members").select("coach_id").eq("status", "active"),
+    // every active member, page by page (one request is capped at max_rows = 1000)
+    fetchAll<{ coach_id: string }>((from, to) =>
+      admin.from("members").select("coach_id").eq("status", "active").order("id").range(from, to) as never),
     authUsersById(),
   ]);
   if (profiles.error) throw new Error(profiles.error.message);
-  if (members.error) throw new Error(members.error.message);
   const clients = new Map<string, number>();
-  for (const m of members.data ?? []) clients.set(m.coach_id, (clients.get(m.coach_id) ?? 0) + 1);
+  for (const m of members) clients.set(m.coach_id, (clients.get(m.coach_id) ?? 0) + 1);
   return (profiles.data ?? []).map((p) => ({
     id: p.id,
     full_name: p.full_name,

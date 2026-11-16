@@ -125,3 +125,26 @@ export function fakeResults(memberIds: string[]) {
     treadmill: 40, consistency: 50, improvement_points: 90, total: 180, rank: i + 1, rookie_rank: null,
   }));
 }
+
+/**
+ * An inactive coach account (tests/FIXTURES.md), created once per stack and reused: proves an
+ * inactive coach reads nothing. Signed-in client returned.
+ */
+export async function inactiveProbeCoach(): Promise<SupabaseClient> {
+  const email = "policy-inactive@gym-arena.local";
+  const password = "Probe-password-1!";
+  const o = owner();
+  let [u] = await o`select id from auth.users where email = ${email}`;
+  await o.end();
+  if (!u) {
+    const created = await service.auth.admin.createUser({ email, password, email_confirm: true });
+    if (created.error) throw created.error;
+    u = { id: created.data.user!.id };
+    const admin = await signIn("admin@gym-arena.local");
+    const ins = await admin.from("profiles").insert({ id: u.id, full_name: "Policy Inactive Coach", role: "coach" });
+    if (ins.error) throw ins.error;
+    const off = await admin.from("profiles").update({ is_active: false }).eq("id", u.id);
+    if (off.error) throw off.error;
+  }
+  return signIn(email, password);
+}

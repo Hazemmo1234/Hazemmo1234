@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { today as cairoToday, type IsoDate } from "@/lib/time";
 import {
   activeSeason, isNextMonthCovered, nextScheduledSeason, seasonDaysLeft, seasonStatus,
@@ -32,11 +33,15 @@ export interface AdminOverview {
 
 export async function getAdminOverview(supabase: SupabaseClient, now: Date = new Date()): Promise<AdminOverview> {
   const today = cairoToday(now);
-  const [seasonsRes, membersRes, entriesRes, coachesRes] = await Promise.all([
+  const [seasonsRes, membersRes, entriesRes, coachesRes, todayLoggers] = await Promise.all([
     supabase.from("seasons").select("id, name, type, starts_on, ends_on, closed_at").order("starts_on"),
     supabase.from("members").select("id", { count: "exact", head: true }).eq("status", "active"),
-    supabase.from("entries").select("logged_by").eq("performed_on", today).is("voided_at", null),
+    // exact counts / every page: a plain select is capped at max_rows (1000), which made a busy
+    // day show "1000" results and could miss coaches who logged after the first 1000 rows
+    supabase.from("entries").select("id", { count: "exact", head: true }).eq("performed_on", today).is("voided_at", null),
     supabase.from("profiles").select("id").eq("role", "coach").eq("is_active", true),
+    fetchAll<{ logged_by: string }>((from, to) =>
+      supabase.from("entries").select("logged_by").eq("performed_on", today).is("voided_at", null).order("id").range(from, to) as never),
   ]);
   for (const res of [seasonsRes, membersRes, entriesRes, coachesRes]) if (res.error) throw new Error(res.error.message);
 
@@ -57,7 +62,7 @@ export async function getAdminOverview(supabase: SupabaseClient, now: Date = new
   }
 
   const coachIds = new Set((coachesRes.data ?? []).map((c) => c.id as string));
-  const loggers = new Set((entriesRes.data ?? []).map((e) => e.logged_by as string));
+  const loggers = new Set(todayLoggers.map((e) => e.logged_by));
   return {
     today,
     current: active ? { ...active, status: "active", daysLeft: seasonDaysLeft(active, today), participants } : null,
@@ -65,7 +70,7 @@ export async function getAdminOverview(supabase: SupabaseClient, now: Date = new
     awaitingClose,
     nextMonthCovered: isNextMonthCovered(seasons, today),
     activeMembers: membersRes.count ?? 0,
-    entriesToday: entriesRes.data?.length ?? 0,
+    entriesToday: entriesRes.count ?? 0,
     activeCoaches: coachIds.size,
     coachesLoggedToday: [...loggers].filter((id) => coachIds.has(id)).length,
   };

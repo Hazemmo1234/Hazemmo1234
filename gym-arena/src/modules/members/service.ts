@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import type { ErrorCode } from "@/lib/api";
 import { errorCodeFromDb } from "@/lib/errors";
 import type { Profile } from "@/lib/supabase/types";
+import { chunk, fetchAll } from "@/lib/supabase/fetch-all";
 import { createServiceClient } from "@/lib/supabase/service";
 import { cleanupMemberAvatars, isAttachable, type AvatarCleanupDeps, type StoredAvatar } from "./avatar-cleanup";
 import type { IsoDate } from "@/lib/time";
@@ -86,28 +87,33 @@ async function seasonsList(client: SupabaseClient) {
   return (data ?? []) as Array<{ id: string; name: string; type: "preseason" | "championship"; starts_on: string; ends_on: string; closed_at: string | null }>;
 }
 
-async function decorate(client: SupabaseClient, rows: MemberRow[], today: IsoDate): Promise<MemberListItem[]> {
+async function decorate(client: SupabaseClient, rows: MemberRow[], today: IsoDate, withRookies = true): Promise<MemberListItem[]> {
   const ids = rows.map((r) => r.id);
   const coachIds = [...new Set(rows.map((r) => r.coach_id))];
   const [coaches, todayEntries, seasons, urls] = await Promise.all([
     coachIds.length ? client.from("profiles").select("id, full_name").in("id", coachIds) : Promise.resolve({ data: [] }),
-    client.from("entries").select("member_id, category").eq("performed_on", today).is("voided_at", null),
+    fetchAll<{ member_id: string; category: CategoryCode }>((from, to) =>
+      client.from("entries").select("member_id, category").eq("performed_on", today).is("voided_at", null).order("id").range(from, to) as never),
     seasonsList(client),
     signedPhotoUrls(client, rows.map((r) => r.photo_path).filter((p): p is string => !!p)),
   ]);
   const coachName = new Map((coaches.data ?? []).map((c) => [c.id as string, c.full_name as string]));
   const logged = new Map<string, CategoryCode[]>();
-  for (const e of todayEntries.data ?? []) logged.set(e.member_id, [...(logged.get(e.member_id) ?? []), e.category]);
+  for (const e of todayEntries) logged.set(e.member_id, [...(logged.get(e.member_id) ?? []), e.category]);
 
   // Rookie: exactly the scoring module's definition, relative to the active season.
   const active = activeSeason(seasons, today);
   let rookies: Map<string, boolean> | null = null;
-  if (active) {
-    const { data: before } = await client
-      .from("entries")
-      .select("member_id, category, performed_on, weight_kg, reps, km, voided_at")
-      .lt("performed_on", active.starts_on);
-    rookies = rookieFlags({ type: active.type, startsOn: active.starts_on, endsOn: active.ends_on }, ids, (before ?? []) as EntryRowForRookie[]);
+  if (active && withRookies) {
+    // Every pre-season entry, read in full: one capped request (max_rows) silently dropped
+    // rows and flagged members with a baseline as rookies on a busy database.
+    const before: EntryRowForRookie[] = [];
+    for (const memberIds of chunk(ids)) {
+      before.push(...(await fetchAll<EntryRowForRookie>((from, to) =>
+        client.from("entries").select("id, member_id, category, performed_on, weight_kg::text, reps, km::text, voided_at")
+          .in("member_id", memberIds).lt("performed_on", active.starts_on).order("id").range(from, to) as never)));
+    }
+    rookies = rookieFlags({ type: active.type, startsOn: active.starts_on, endsOn: active.ends_on }, ids, before);
   }
 
   return rows.map(({ photo_path, ...row }) => ({
@@ -123,20 +129,25 @@ export async function listMembers(
   client: SupabaseClient,
   filters: { q?: string; coach_id?: string; status?: "active" | "inactive" },
   today: IsoDate,
+  /** callers that compute rookies from a full history themselves (coach Today) skip this read */
+  options: { rookies?: boolean } = {},
 ): Promise<MemberListItem[]> {
-  let query = client.from("members").select(MEMBER_COLUMNS).order("full_name");
-  if (filters.status) query = query.eq("status", filters.status);
-  if (filters.coach_id) query = query.eq("coach_id", filters.coach_id);
   const q = filters.q ? sanitizeSearch(filters.q) : "";
-  if (q) {
-    const digits = q.replace(/\D/g, "").replace(/^0+/, "");
-    const parts = [`full_name.ilike.*${q}*`, `member_code.ilike.*${q}*`];
-    if (digits.length >= 3) parts.push(`phone.ilike.*${digits}*`);
-    query = query.or(parts.join(","));
-  }
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  return decorate(client, (data ?? []) as MemberRow[], today);
+  const digits = q.replace(/\D/g, "").replace(/^0+/, "");
+  // every member, page by page: one request is capped at max_rows (1000) and silently
+  // dropped the rest once a gym had more members than that
+  const rows = await fetchAll<MemberRow>((from, to) => {
+    let query = client.from("members").select(MEMBER_COLUMNS);
+    if (filters.status) query = query.eq("status", filters.status);
+    if (filters.coach_id) query = query.eq("coach_id", filters.coach_id);
+    if (q) {
+      const parts = [`full_name.ilike.*${q}*`, `member_code.ilike.*${q}*`];
+      if (digits.length >= 3) parts.push(`phone.ilike.*${digits}*`);
+      query = query.or(parts.join(","));
+    }
+    return query.order("full_name").order("id").range(from, to) as never;
+  });
+  return decorate(client, rows, today, options.rookies ?? true);
 }
 
 export async function getMember(client: SupabaseClient, id: string, today: IsoDate): Promise<MemberDetail | null> {

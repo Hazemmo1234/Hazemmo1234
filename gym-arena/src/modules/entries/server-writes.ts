@@ -17,21 +17,26 @@ import type { CategoryCode, EntryRow } from "@/lib/supabase/types";
  * - BR-E6 (photo rule) needs the scoring module and is checked by the API route
  *   immediately before `logEntry` (M3).
  */
-export type WriteResult<T> = { ok: true; data: T } | { ok: false; code: ErrorCode | "UNKNOWN" };
+export type WriteResult<T> = { ok: true; data: T } | { ok: false; code: ErrorCode | "UNKNOWN"; reason?: string };
 
 export interface LogEntryInput {
   memberId: string;
   category: CategoryCode;
-  weightKg?: number;
+  /** decimal strings keep the exact value the coach typed ("72.5") */
+  weightKg?: number | string;
   reps?: number;
-  km?: number;
+  km?: number | string;
   photoPath?: string;
   /** Honoured for admins only; the database ignores it for coaches (BR-E3). */
   performedOn?: string;
 }
 
 function result<T>(data: T | null, error: { message: string } | null): WriteResult<T> {
-  if (error || data === null) return { ok: false, code: errorCodeFromDb(error?.message) };
+  if (error || data === null) {
+    // the evidence-once index (migration 20261116000001) closes the same-photo race atomically
+    const reason = error?.message.includes("PHOTO_USED") ? "photo_used" : undefined;
+    return { ok: false, code: errorCodeFromDb(error?.message), ...(reason ? { reason } : {}) };
+  }
   return { ok: true, data };
 }
 

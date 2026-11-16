@@ -10,8 +10,15 @@ export function AppHeader({ title, subtitle }: { title: string; subtitle?: strin
         <p className="truncate font-bold">{title}</p>
         {subtitle && <p className="truncate text-xs text-text-muted">{subtitle}</p>}
       </div>
-      <LanguageSwitcher />
-      <SignOutButton />
+      {/* phones: compact controls so the coach's name stays readable; full controls from sm up */}
+      <span className="flex items-center gap-1 sm:hidden">
+        <LanguageSwitcher variant="compact" />
+        <SignOutButton variant="icon" />
+      </span>
+      <span className="hidden items-center gap-3 sm:flex">
+        <LanguageSwitcher />
+        <SignOutButton />
+      </span>
     </header>
   );
 }

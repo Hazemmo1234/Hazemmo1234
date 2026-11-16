@@ -3,7 +3,25 @@ import { expect, test, type Page } from "@playwright/test";
 import { LOCAL_ONLY, expectLanguage, signIn } from "./helpers";
 
 // UX A3 Members (M2): list, filters, detail panel, and the admin workflows in both languages.
-const VIEWPORTS = { phone: { width: 360, height: 780 }, ipad: { width: 820, height: 1180 }, desktop: { width: 1440, height: 900 } };
+const VIEWPORTS = { phone: { width: 360, height: 780 }, phone390: { width: 390, height: 844 }, ipad: { width: 820, height: 1180 }, desktop: { width: 1440, height: 900 } };
+
+/**
+ * Tap targets (AC-32: ≥ 44 px) for EVERY visible button in the main area, measured in one
+ * pass inside the page — one round trip for any number of rows. Returns the offenders.
+ */
+async function smallTapTargets(page: Page, selector = "main button") {
+  return page.evaluate((sel) => {
+    const out: string[] = [];
+    let measured = 0;
+    for (const el of Array.from(document.querySelectorAll<HTMLElement>(sel))) {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.height === 0 || getComputedStyle(el).visibility === "hidden") continue;
+      measured++;
+      if (r.height < 44) out.push(`${(el.getAttribute("aria-label") ?? el.textContent ?? "").trim().slice(0, 40)}: ${Math.round(r.height)}px`);
+    }
+    return { measured, offenders: out };
+  }, selector);
+}
 const COACH1 = "00000000-0000-4000-a000-000000000011";
 const COACH2 = "00000000-0000-4000-a000-000000000012";
 const tinyWebp = () => Buffer.from("UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=", "base64");
@@ -113,24 +131,57 @@ test.describe("members", () => {
     await expect(page).toHaveURL(/\/today$/);
   });
 
+  // Layout and tap targets on a deterministic list: ?q=GA-00000 is always exactly the seed's
+  // GA-000001 … GA-000009, whatever else a busy test stack holds. Every button is checked.
   for (const [name, vp] of Object.entries(VIEWPORTS)) {
     for (const locale of ["ar", "en"] as const) {
       test(`layout fits ${name} (${locale})`, async ({ page }) => {
         await page.setViewportSize(vp);
-        await openMembers(page, locale);
-        for (const button of await page.getByRole("main").getByRole("button").all()) {
-          if (!(await button.isVisible())) continue;
-          expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-        }
+        await openMembers(page, locale, "?q=GA-00000");
+        await expect(page.getByRole("main").getByRole("listitem")).toHaveCount(9);
+        const taps = await smallTapTargets(page);
+        expect(taps.measured).toBeGreaterThanOrEqual(9 + 3); // every row + the filter controls
+        expect(taps.offenders).toEqual([]);
         // the table header is desktop-only; phone/iPad use stacked rows
         await expect(page.getByRole("main").getByText(locale === "ar" ? "الكود" : "Code", { exact: true })).toBeVisible({ visible: vp.width >= 1024 });
         await row(page, "GA-000001").getByRole("button").click();
-        const box = (await page.getByRole("dialog").boundingBox())!;
+        const dialog = page.getByRole("dialog");
+        const box = (await dialog.boundingBox())!;
         expect(box.x).toBeGreaterThanOrEqual(0);
         expect(box.x + box.width).toBeLessThanOrEqual(vp.width + 0.5);
+        expect((await smallTapTargets(page, "dialog button")).offenders).toEqual([]);
         await expectLanguage(page, locale);
       });
     }
+  }
+
+  // Large list: the Members list has no pagination (M2 behaviour), so EVERY member must be
+  // rendered — nothing silently cut — and stay usable. On the busy test stack this is ~1000
+  // rows; on CI's fresh stack it is the seed. The invariant (rendered = API) holds at any size.
+  for (const [name, vp] of [["phone", VIEWPORTS.phone], ["desktop", VIEWPORTS.desktop]] as const) {
+    test(`full list renders every member and stays usable (${name})`, async ({ page }) => {
+      test.setTimeout(90_000);
+      await page.setViewportSize(vp);
+      await openMembers(page, "ar");
+      // ground truth from the database itself, NOT from the API under test (an API cut at the
+      // 1000-row limit would otherwise "agree" with a list cut the same way)
+      const truth = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", process.env.SUPABASE_SERVICE_ROLE_KEY ?? "", { auth: { persistSession: false } });
+      const { count, error } = await truth.from("members").select("id", { count: "exact", head: true });
+      expect(error).toBeNull();
+      const { members } = await (await page.request.get("/api/members")).json();
+      expect(members.length).toBe(count); // the API returns every member
+      const rows = page.getByRole("main").getByRole("listitem");
+      await expect(rows).toHaveCount(count!);
+      const taps = await smallTapTargets(page, "main li button");
+      expect(taps.measured).toBe(count);
+      expect(taps.offenders).toEqual([]);
+      await expectLanguage(page, "ar"); // includes: no horizontal overflow
+      // the last row is reachable and opens its detail like the first
+      const last = rows.last();
+      await last.scrollIntoViewIfNeeded();
+      await last.getByRole("button").click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+    });
   }
 
   test.describe("member lifecycle @writes", () => {
