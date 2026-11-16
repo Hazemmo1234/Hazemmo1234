@@ -111,6 +111,10 @@ export function TodayScreen({ data }: { data: TodayOverview }) {
                   <span className="shrink-0 text-end">
                     <span className="block text-xl font-extrabold tabular">{m.card.total_display}</span>
                     <span className="block text-[11px] text-text-muted">{t("points")}</span>
+                    {/* UX C2: total + rank, or the Rookie badge (rookies rank on their own list) */}
+                    {m.card.rank !== null && !m.card.is_rookie && (
+                      <span data-testid="row-rank" className="block text-xs font-bold text-brand-text">{t("rank", { rank: m.card.rank })}</span>
+                    )}
                   </span>
                 )}
                 <ChevronIcon size={18} className="shrink-0 text-text-muted" />

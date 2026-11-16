@@ -14,6 +14,8 @@ import { Toast, useToast } from "@/components/ui/toast";
 import type { Locale } from "@/i18n/config";
 import { initials } from "@/lib/initials";
 import { formatEgyptianMobile } from "@/lib/phone";
+import { formatNumber } from "@/lib/i18n/format";
+import type { Standing } from "@/modules/leaderboard/board";
 import type { MemberDetail, MemberListItem } from "@/modules/members/service";
 import { MemberDetailDialog, MemberStatusDialog, ReassignDialog } from "./member-dialogs";
 import { MemberFormDialog } from "./member-form";
@@ -47,15 +49,23 @@ export function MembersManager({
   coaches,
   filters,
   hasActiveSeason,
+  standings = {},
+  standingsFailed = false,
   locale,
 }: {
   members: MemberListItem[];
   coaches: Coach[];
   filters: MemberFilters;
   hasActiveSeason: boolean;
+  /** rank / total per member id for the active season (UX A3) */
+  standings?: Record<string, Standing>;
+  standingsFailed?: boolean;
   locale: Locale;
 }) {
   const t = useTranslations("members");
+  const n = (x: number) => formatNumber(x, locale, 0);
+  // rookies rank on their own list (BR-R2) — say so instead of a bare number
+  const rankText = (st: Standing) => (st.list === "rookies" ? t("rookieRank", { rank: n(st.rank) }) : n(st.rank));
   const te = useTranslations("errors");
   const router = useRouter();
   const pathname = usePathname();
@@ -115,6 +125,7 @@ export function MembersManager({
   return (
     <>
       <PageHeader title={t("title")} description={t("description", { count: members.length })} actions={addButton} />
+      {standingsFailed && <p role="status" className="mb-4 rounded-2xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm font-semibold">{t("rankUnavailable")}</p>}
 
       <Card className="mb-4 grid gap-3 p-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] lg:items-end">
         <label className="relative block">
@@ -168,12 +179,14 @@ export function MembersManager({
           </Card>
         ) : (
           <Card className="overflow-hidden">
-            <div className="hidden grid-cols-[7rem_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_7rem_3rem] gap-4 border-b border-border px-5 py-3 text-xs font-semibold text-text-muted lg:grid">
+            <div className="hidden grid-cols-[7rem_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_7rem_6rem_4rem_3rem] gap-4 border-b border-border px-5 py-3 text-xs font-semibold text-text-muted lg:grid">
               <span>{t("code")}</span>
               <span>{t("member")}</span>
               <span>{t("phone")}</span>
               <span>{t("coach")}</span>
               <span>{t("statusLabel")}</span>
+              <span>{t("rank")}</span>
+              <span className="text-end">{t("total")}</span>
               <span />
             </div>
             <ul className="divide-y divide-border">
@@ -184,7 +197,7 @@ export function MembersManager({
                     onClick={() => openMember(m.id)}
                     aria-label={t("openNamed", { name: m.full_name })}
                     disabled={opening === m.id}
-                    className="grid w-full items-center gap-x-4 gap-y-2 px-5 py-4 text-start transition-colors hover:bg-surface-2/60 disabled:opacity-60 grid-cols-[auto_minmax(0,1fr)_auto] lg:grid-cols-[7rem_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_7rem_3rem]"
+                    className="grid w-full items-center gap-x-4 gap-y-2 px-5 py-4 text-start transition-colors hover:bg-surface-2/60 disabled:opacity-60 grid-cols-[auto_minmax(0,1fr)_auto] lg:grid-cols-[7rem_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_7rem_6rem_4rem_3rem]"
                   >
                     <span dir="ltr" className="hidden text-sm tabular text-text-muted lg:block">{m.member_code}</span>
                     <span className="col-span-2 flex min-w-0 items-center gap-3 lg:col-span-1">
@@ -196,6 +209,7 @@ export function MembersManager({
                         </span>
                         <span className="block truncate text-xs text-text-muted lg:hidden">
                           <span dir="ltr">{m.member_code}</span>{" · "}<bdi>{m.coach_name ?? "—"}</bdi>
+                          {standings[m.id] && <>{" · "}{rankText(standings[m.id])}{" · "}{t("points", { total: n(standings[m.id].total_display) })}</>}
                         </span>
                       </span>
                     </span>
@@ -204,6 +218,8 @@ export function MembersManager({
                     <span className="justify-self-end lg:justify-self-start">
                       <Badge tone={m.status === "active" ? "success" : "neutral"}>{m.status === "active" ? t("status.active") : t("status.inactive")}</Badge>
                     </span>
+                    <span data-testid="member-rank" className="hidden text-sm tabular lg:block">{standings[m.id] ? rankText(standings[m.id]) : "—"}</span>
+                    <span data-testid="member-total" className="hidden text-end text-sm font-bold tabular lg:block">{standings[m.id] ? n(standings[m.id].total_display) : "—"}</span>
                     <ChevronIcon className="hidden text-text-muted lg:block" size={18} />
                   </button>
                 </li>

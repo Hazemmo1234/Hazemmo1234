@@ -87,6 +87,40 @@ deleted. 2400 entries in the fixture season.
 - Also one probe account **`policy-inactive@gym-arena.local`** (an inactive coach), created once
   and reused, to prove an inactive coach reads no participant rows.
 
+### 5. Leaderboard tie fixture — `tests/db/leaderboard.test.ts` (`tieFixture()`)
+
+- Reserved year **1654**. Five members `M4 tie A`–`M4 tie E` (coach 3; phones `+20154650000{0-4}`),
+  created once by name **before** the seasons, so both seasons enrol them.
+- Season **`M4 tie baseline`** (1654-01-01 → 1654-01-28): one pull-ups entry (5 reps) each on
+  1654-01-10, which makes them non-rookies in the next season.
+- Season **`M4 tie season`** (1654-03-01 → 1654-03-28): treadmill A 2.5 km, B 2.5 km (an exact
+  tie), C 2.4 km, E 2.6 km (same displayed total 27 as A/B but a higher exact total); D nothing.
+- Every insert is guarded by `where not exists`, so re-runs add nothing. Other members with older
+  history also sit on that season's main board at 0 points; the test allows for them.
+
+### 6. Leaderboard equivalence fixture — `tests/db/leaderboard.test.ts` (`equivFixture()`)
+
+- Reserved year **1655**. Members `M4 equiv A`–`M4 equiv D` (coach 3; phones `+20154655000{0-3}`),
+  created before three seasons: **`M4 equiv baseline`** (1655-01), **`M4 equiv season`**
+  (1655-03) and **`M4 equiv after`** (1655-04).
+- Entries (each guarded by `where not exists`): A — bench 100×3, 95×5 and a voided 120×5 plus
+  pull-ups 5 and a voided 20 in January, bench 100×5 and pull-ups 8 in March, bench 200×5 in
+  April; B — treadmill 3 km in January, push-ups 20 in March; C — treadmill 2 km in March;
+  D — a voided pull-ups 9 in January, pull-ups 4 in March. The voids are done once, as the owner,
+  with the reason "M4 equivalence fixture".
+
+### 7. Closed-season (K1) fixture — `tests/db/leaderboard.test.ts` (`frozenFixture()`)
+
+- Reserved year **1656**. Members `M4 frozen A`–`M4 frozen D` (coach 3; phones
+  `+20154656000{0-3}`), created before seasons **`M4 frozen baseline`** (1656-01) and
+  **`M4 frozen season`** (1656-03), so both enrol them (and every other member active then).
+- A–C: pull-ups 5 on 1656-01-10; in March treadmill A 3 km, B 2 km, C 2 km; D (rookie) 1 km.
+- "M4 frozen season" is **closed once**, through the real close contract (closer role,
+  `begin_season_close` → `finish_season_close`), with results for every participant computed by
+  the scoring module. Its `season_results` rows are immutable (no update, no delete).
+- After the close, **B is deactivated once** (a deliberate post-closure status change). B stays
+  inactive; the test proves the final board still ranks B as stored at close.
+
 ### Per-run data (not fixtures)
 
 Tests that exercise the product create ordinary rows (clients, entries, seasons with random

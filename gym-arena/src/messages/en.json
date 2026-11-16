@@ -29,7 +29,8 @@
     "nav": {
       "label": "Coach navigation",
       "today": "Today",
-      "activity": "Activity"
+      "activity": "Activity",
+      "leaderboard": "Leaderboard"
     },
     "season": {
       "daysLeft": "{count, plural, =0 {Last day} one {# day left} other {# days left}}",
@@ -55,7 +56,8 @@
       "statClients": "Clients",
       "statActive": "Active today",
       "statEntries": "Results",
-      "statAttended": "Attended"
+      "statAttended": "Attended",
+      "rank": "#{rank}"
     },
     "card": {
       "title": "Client",
@@ -89,7 +91,9 @@
       "undoBody": "The entry stays in the history marked as undone, and the points are recalculated.",
       "keep": "Keep",
       "undoConfirm": "Undo entry",
-      "planSaved": "Plan saved"
+      "planSaved": "Plan saved",
+      "rankOf": "#{rank} of {of}",
+      "rookieRankOf": "Rookie #{rank} of {of}"
     },
     "entry": {
       "baseline": "Baseline",
@@ -161,6 +165,24 @@
       "km_STEP": "Distance must be in steps of 0.1 km.",
       "km_NOT_ALLOWED": "This category has no distance.",
       "photo_used": "This photo is already the evidence for another result. Take a new one."
+    },
+    "leaderboard": {
+      "title": "Leaderboard",
+      "tabs": "Board",
+      "main": "Main",
+      "rookies": "Rookies",
+      "rookiesNote": "New this season — ranked on their own list.",
+      "yourClient": "Your client",
+      "points": "pts",
+      "rank": "Rank {rank}",
+      "count": "{count, plural, =0 {No one ranked} one {# ranked} other {# ranked}}",
+      "emptyTitle": "No one on this board yet",
+      "emptyBody": "Rankings appear once results are logged.",
+      "noSeasonTitle": "No championship is running",
+      "noSeasonBody": "The board opens when the next season starts.",
+      "preseasonTitle": "Preseason — no ranking yet",
+      "preseasonBody": "Results now set each client's baselines. The board opens when the championship starts.",
+      "final": "Final results"
     }
   },
   "admin": {
@@ -216,7 +238,18 @@
     "coachesLoggedTodayHint": "of all active coaches",
     "alertAwaitingClose": "“<n>{name}</n>” has ended — waiting to be closed",
     "alertNoNextSeason": "No season is scheduled for next month",
-    "openSeasons": "Seasons"
+    "openSeasons": "Seasons",
+    "top5": "Top 5 now",
+    "top5Empty": "No one is ranked yet.",
+    "moreTied": "{count, plural, one {+# more tied} other {+# more tied}}",
+    "newBests": "New bests this season",
+    "newBestsHint": "Results above a member's previous best",
+    "entriesPerCategory": "Results per category this season",
+    "boardError": "Leaderboard figures could not be loaded. Refresh to try again.",
+    "preseasonBoard": "Preseason: no ranking yet — baselines are being recorded.",
+    "pts": "pts",
+    "activeLast7Days": "Logged in the last 7 days",
+    "activeLast7DaysHint": "{active} of {total} active participants · last 7 days, today included"
   },
   "seasons": {
     "title": "Seasons",
@@ -416,6 +449,11 @@
       "photo_missing": "The photo upload didn't finish. Please try again.",
       "invalid_photo": "That photo isn't valid.",
       "nothing_to_update": "There's nothing to save."
-    }
+    },
+    "rank": "Rank",
+    "total": "Total",
+    "rookieRank": "Rookie #{rank}",
+    "points": "{total} pts",
+    "rankUnavailable": "Rank and total could not be loaded. Refresh to try again."
   }
 }

@@ -97,3 +97,6 @@ export const SwapIcon = (p: IconProps) => (
 export const SearchIcon = (p: IconProps) => (
   <Svg {...p}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.2-4.2" /></Svg>
 );
+export const TrophyIcon = (p: IconProps) => (
+  <Svg {...p}><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" /><path d="M7 6H4.5v1.5A3.5 3.5 0 0 0 8 11M17 6h2.5v1.5A3.5 3.5 0 0 1 16 11M12 14v3.5M8.5 21h7M9.5 21v-1.5a2.5 2.5 0 0 1 5 0V21" /></Svg>
+);

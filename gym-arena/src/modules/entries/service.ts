@@ -8,6 +8,8 @@ import { chunk, fetchAll } from "@/lib/supabase/fetch-all";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { EntryRow } from "@/lib/supabase/types";
 import type { CreateEntryBody, PreviewBody } from "@/lib/validation/entries";
+import { seasonStandings } from "@/modules/leaderboard/service";
+import type { Standing } from "@/modules/leaderboard/board";
 import { listMembers, type MemberListItem } from "@/modules/members/service";
 import { entryValue, type EntryInput, type IsoDate } from "@/modules/scoring";
 import { activeSeason, nextScheduledSeason, seasonDaysLeft, seasonStatus } from "@/modules/seasons/status";
@@ -127,19 +129,27 @@ export async function loadHistories(client: SupabaseClient, season: CardSeason |
   return out;
 }
 
-function cardFrom(h: Histories, memberId: string, season: CardSeason | null, today: IsoDate, viewerId: string): MemberCard {
+function cardFrom(h: Histories, memberId: string, season: CardSeason | null, today: IsoDate, viewerId: string, standings: ReadonlyMap<string, Standing>): MemberCard {
   const entries = h.entries.get(memberId) ?? [];
   const history = participantHistory(memberId, h.planned.get(memberId) ?? 12, entries, h.attendance.get(memberId) ?? []);
-  return buildMemberCard({ season, history, entries, today, viewerId });
+  const card = buildMemberCard({ season, history, entries, today, viewerId });
+  // rank from the one season-wide ranking (modules/leaderboard), never re-ranked per member;
+  // only this member's own rank and list size leave it
+  const s = standings.get(memberId);
+  return s ? { ...card, rank: s.rank, rank_of: s.of } : card;
 }
+
+/** One ranking of the whole season per request (no N+1): empty between seasons and in a preseason. */
+const standingsFor = (season: CardSeason | null): Promise<ReadonlyMap<string, Standing>> =>
+  season ? seasonStandings(season) : Promise.resolve(new Map());
 
 /** GET /api/members/:id card (API_SPECIFICATION "Member season card"). Null = not visible. */
 export async function memberCard(client: SupabaseClient, viewerId: string, memberId: string, today: IsoDate): Promise<MemberCard | null> {
   const { data: member } = await client.from("members").select("id").eq("id", memberId).maybeSingle();
   if (!member) return null;
   const ctx = await seasonContext(client, today);
-  const h = await loadHistories(client, ctx.current, [memberId], today);
-  return cardFrom(h, memberId, ctx.current, today, viewerId);
+  const [h, standings] = await Promise.all([loadHistories(client, ctx.current, [memberId], today), standingsFor(ctx.current)]);
+  return cardFrom(h, memberId, ctx.current, today, viewerId, standings);
 }
 
 // ───────────────────────────── Today (UX C2) ─────────────────────────────
@@ -158,9 +168,9 @@ export interface TodayOverview {
 
 export async function todayOverview(client: SupabaseClient, viewerId: string, today: IsoDate): Promise<TodayOverview> {
   const [context, members] = await Promise.all([seasonContext(client, today), listMembers(client, { status: "active" }, today, { rookies: false })]);
-  const h = await loadHistories(client, context.current, members.map((m) => m.id), today);
+  const [h, standings] = await Promise.all([loadHistories(client, context.current, members.map((m) => m.id), today), standingsFor(context.current)]);
   const rows: TodayMember[] = members.map((m) => {
-    const card = cardFrom(h, m.id, context.current, today, viewerId);
+    const card = cardFrom(h, m.id, context.current, today, viewerId, standings);
     const todayTimes = [
       ...(h.entries.get(m.id) ?? []).filter((e) => e.performed_on === today && !e.voided_at).map((e) => e.created_at),
       ...(h.attendance.get(m.id) ?? []).filter((a) => a.attended_on === today && !a.voided_at).map((a) => a.created_at ?? ""),

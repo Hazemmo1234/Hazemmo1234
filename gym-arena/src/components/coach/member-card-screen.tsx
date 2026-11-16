@@ -122,6 +122,11 @@ export function MemberCardScreen({
             <div className="shrink-0 text-end">
               <p className="text-4xl font-extrabold tabular leading-none">{card.total_display}</p>
               <p className="mt-1 text-xs text-text-muted">{t("totalPoints")}</p>
+              {card.rank !== null && card.rank_of !== null && (
+                <p data-testid="card-rank" className="mt-2 text-sm font-bold text-brand-text">
+                  {t(card.is_rookie ? "rookieRankOf" : "rankOf", { rank: card.rank, of: card.rank_of })}
+                </p>
+              )}
             </div>
           )}
         </div>

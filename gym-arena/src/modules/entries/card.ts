@@ -76,8 +76,13 @@ export interface MemberCard {
   total: number;
   /** total rounded half-up — what the UI shows */
   total_display: number;
-  /** live rank comes with the leaderboard (M4) */
+  /**
+   * Live rank in the member's list (main board, or rookies when is_rookie) and the size of
+   * that list — the same numbers as the leaderboard (AC-20). Null in a preseason, between
+   * seasons, or for a member not ranked (inactive).
+   */
   rank: number | null;
+  rank_of: number | null;
   planned_sessions: number;
   attended: number;
   attended_today: boolean;
@@ -172,7 +177,7 @@ export function buildMemberCard(params: {
 
   if (!season) {
     return {
-      season: null, is_rookie: false, total: 0, total_display: 0, rank: null,
+      season: null, is_rookie: false, total: 0, total_display: 0, rank: null, rank_of: null,
       planned_sessions: history.plannedSessions, attended: 0, attended_today: attendedToday,
       consistency: { points: 0, points_display: 0, max: CATEGORY_MAX.consistency },
       categories: CATEGORY_CODES.map((code) => ({
@@ -227,6 +232,7 @@ export function buildMemberCard(params: {
     total: num(total),
     total_display: total.roundHalfUp(),
     rank: null,
+    rank_of: null,
     planned_sessions: values.plannedSessions,
     attended: values.attendedDays,
     attended_today: attendedToday,
