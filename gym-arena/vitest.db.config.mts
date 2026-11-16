@@ -7,6 +7,10 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/db/**/*.test.ts"],
+    // central write guard (tests/support): verify the ACTUAL stack once before anything loads,
+    // then re-check the environment in every worker before every test file
+    globalSetup: ["tests/db/global-setup.ts"],
+    setupFiles: ["tests/db/setup-guard.ts"],
     fileParallelism: false,
     testTimeout: 30_000,
   },

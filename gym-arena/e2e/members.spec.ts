@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { expect, test, type Page } from "@playwright/test";
-import { LOCAL_ONLY, expectLanguage, signIn } from "./helpers";
+import { LOCAL_ONLY, expectLanguage, requireWriteTarget, signIn } from "./helpers";
 
 // UX A3 Members (M2): list, filters, detail panel, and the admin workflows in both languages.
 const VIEWPORTS = { phone: { width: 360, height: 780 }, phone390: { width: 390, height: 844 }, ipad: { width: 820, height: 1180 }, desktop: { width: 1440, height: 900 } };
@@ -201,7 +201,7 @@ test.describe("members", () => {
     for (const locale of ["en", "ar"] as const) {
       test(`register with photo → edit → coach blocked → Members link → reassign → deactivate → coach deactivated → reactivate needs a coach (${locale})`, async ({ page }) => {
         test.setTimeout(150_000);
-        expect(url).toMatch(/:56321$/); // only ever the isolated test stack
+        requireWriteTarget(); // only ever a verified test stack (fail closed)
         const c = C[locale];
         const stamp = `${Date.now()}`.slice(-7);
         const coachName = `E2E Owner ${locale} ${stamp}`;

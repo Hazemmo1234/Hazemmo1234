@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { LOCAL_ONLY, TV_KEY, expectLanguage, signIn } from "./helpers";
+import { LOCAL_ONLY, TV_KEY, expectLanguage, requireWriteTarget, signIn } from "./helpers";
 
 // AC-33 … AC-37: Arabic + English, RTL/LTR, persistence, independent TV language.
 
@@ -67,6 +67,9 @@ test.describe("staff language preference (AC-35)", () => {
 });
 
 test.describe("TV language is independent of staff language (AC-36, BR-L4) @writes", () => {
+  test.beforeEach(() => {
+    requireWriteTarget(); // per-test check on top of the central global setup
+  });
   test.skip(LOCAL_ONLY, "seed accounts exist only locally");
   test.describe.configure({ mode: "serial" });
 

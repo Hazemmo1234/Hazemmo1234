@@ -1,7 +1,6 @@
-import { execFileSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { LOCAL_ONLY, signIn } from "./helpers";
+import { LOCAL_ONLY, ownerSql, requireWriteTarget, signIn } from "./helpers";
 
 /**
  * Entries, attendance, evidence and undo (M3) through the real HTTP API on the isolated
@@ -46,22 +45,22 @@ async function evidence(req: APIRequestContext, memberId: string) {
  * so the fixture writes them as the database owner into a far-past open season, directly
  * in the isolated test database. The entry triggers still validate shape and compute values.
  */
-function baselines(memberId: string, rows: Array<{ category: string; weight_kg?: number; reps?: number; km?: number }>) {
-  expect(url).toMatch(/:56321$/);
+async function baselines(memberId: string, rows: Array<{ category: string; weight_kg?: number; reps?: number; km?: number }>) {
+  requireWriteTarget();
   expect(memberId).toMatch(/^[0-9a-f-]{36}$/);
   const values = rows.map((r) => `('${memberId}', '00000000-0000-0000-0000-000000000000', '${r.category}', '1652-01-10', ${r.weight_kg ?? "null"}, ${r.reps ?? "null"}, ${r.km ?? "null"}, 0, '${COACH1}')`).join(",");
   const sql = [
     "insert into public.seasons (name, type, starts_on, ends_on) select 'M3 baseline fixture', 'championship', '1652-01-01', '1652-01-28' where not exists (select 1 from public.seasons where name = 'M3 baseline fixture');",
     `insert into public.entries (member_id, season_id, category, performed_on, weight_kg, reps, km, value, logged_by) values ${values};`,
   ].join(" ");
-  execFileSync("docker", ["exec", "supabase_db_gym-arena-test", "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-qc", sql]);
+  await ownerSql(sql);
 }
 
 test.describe("entries API @writes", () => {
   test.skip(LOCAL_ONLY, "seed accounts exist only locally");
   test.beforeEach(async ({}, testInfo) => {
     test.skip(testInfo.project.name !== "coach-mobile", "API tests run once");
-    expect(url).toMatch(/:56321$/); // only ever the isolated test stack
+    requireWriteTarget(); // only ever a verified test stack (fail closed)
   });
 
   test("preview → save agree; photo rule enforced by the server; duplicate refused", async ({ page }) => {
@@ -249,7 +248,7 @@ test.describe("entries API @writes", () => {
   test("scoring integrity: every category — preview equals the persisted result; caps, decimals, new best", async ({ page }) => {
     const coach = await as(page, "coach1@gym-arena.local");
     const id = await newClient(coach, "Integrity");
-    baselines(id, [
+    await baselines(id, [
       { category: "deadlift", weight_kg: 100, reps: 5 }, // e1RM 116.667
       { category: "bench", weight_kg: 60, reps: 5 }, // e1RM 70
       { category: "squat", weight_kg: 80, reps: 5 }, // e1RM 93.333

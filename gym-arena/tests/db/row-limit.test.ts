@@ -76,17 +76,25 @@ describe("admin dashboard on a day with more than 1000 results", () => {
   it("counts every result today and every coach who logged one", async () => {
     const o = owner();
     try {
-      // idempotent per day: tops today's results up past the limit with coach 3's fixture
-      // fixture clients (pull-ups, push-ups, deadlift; logged by coach 3) only when below it (tests/FIXTURES.md)
+      // A DEDICATED pool of coach 3 clients ("Today fixture NNNN") large enough to exceed the
+      // limit with three results each — counted on its own, so it never depends on how many
+      // other members exist or which test files ran first (tests/FIXTURES.md).
+      const POOL = Math.ceil((LIMIT + 1) / 3) + 1;
+      const [{ top, have }] = await o`select coalesce(max(substring(full_name from 15)::int), 0) as top, count(*)::int as have
+                                      from public.members where full_name like 'Today fixture %'`;
+      if (have < POOL) {
+        await o`insert into public.members (full_name, phone, coach_id)
+                select 'Today fixture ' || lpad(g::text, 4, '0'), '+20154659' || lpad(g::text, 4, '0'), ${COACH3}::uuid
+                from generate_series(${top + 1}::int, ${top + POOL - have}::int) g`;
+      }
+      // idempotent per day: tops today's results up past the limit with that pool (pull-ups,
+      // push-ups, deadlift; logged by coach 3) only when today is at or below it
       const [{ n }] = await o`select count(*)::int as n from public.entries where performed_on = public.app_today() and voided_at is null`;
       if (n <= LIMIT) {
         await o`insert into public.entries (member_id, season_id, category, performed_on, weight_kg, reps, value, logged_by)
                 select m.id, '00000000-0000-0000-0000-000000000000', c.cat::public.category_code, public.app_today(), c.w, c.r, 0, ${COACH3}::uuid
                 from (select id, member_code from public.members
-                      where coach_id = ${COACH3}::uuid and status = 'active'
-                        -- enough on any stack, in any order: a fresh stack gets ~960 "Scale fixture" clients from this
-                        -- file's beforeAll (× 3 categories); a busy stack has the 400 "Rookie fixture" clients
-                        and (full_name like 'Scale fixture %' or full_name like 'Rookie fixture %')) m
+                      where coach_id = ${COACH3}::uuid and status = 'active' and full_name like 'Today fixture %') m
                 cross join (values ('pullups', null::numeric, 5), ('pushups', null::numeric, 20), ('deadlift', 60::numeric, 5)) as c(cat, w, r)
                 where not exists (select 1 from public.entries e where e.member_id = m.id and e.category = c.cat::public.category_code
                                   and e.performed_on = public.app_today() and e.voided_at is null)

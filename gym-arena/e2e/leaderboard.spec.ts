@@ -36,7 +36,10 @@ test.describe("leaderboards", () => {
     await as(page, "coach1@gym-arena.local", "en");
     const board = await boardOf(page);
     expect(board.season?.type).toBe("championship");
-    expect(board.main.length + board.rookies.length).toBeGreaterThan(1000);
+    // global, not the coach's own slice: other coaches' members are on it (checked directly —
+    // the old "> 1000 rows" proxy only held on one long-lived database; scale is proven in the
+    // DB suite's scale test, which builds its own 1,100 participants)
+    expect([...board.main, ...board.rookies].filter((r) => !r.own).length).toBeGreaterThan(0);
     const own = [...board.main, ...board.rookies].filter((r) => r.own);
     const { members } = await (await page.request.get("/api/members?status=active")).json();
     const mine = new Set((members as Array<{ id: string }>).map((m) => m.id));
@@ -71,6 +74,16 @@ test.describe("leaderboards", () => {
 
     expect((await page.request.get("/api/leaderboard?season_id=not-a-uuid")).status()).toBe(404);
     expect((await page.request.get("/api/leaderboard?season_id=11111111-1111-4111-8111-111111111111")).status()).toBe(404);
+
+    // global: the coach's board is the admin's board, row for row (same ranks, same points,
+    // both lists) — only identities are masked
+    await page.context().clearCookies();
+    await as(page, "admin@gym-arena.local", "en");
+    const adminBoard = await boardOf(page);
+    const shape = (rows: Row[]) => rows.map((r) => [r.rank, r.total, r.is_rookie]);
+    expect(shape(board.main)).toEqual(shape(adminBoard.main));
+    expect(shape(board.rookies)).toEqual(shape(adminBoard.rookies));
+    expect(adminBoard.main.length + adminBoard.rookies.length).toBeGreaterThan(own.length);
   });
 
   for (const locale of ["ar", "en"] as const) {

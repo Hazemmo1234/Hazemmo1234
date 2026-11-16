@@ -1,7 +1,6 @@
-import { execFileSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { LOCAL_ONLY, signIn } from "./helpers";
+import { LOCAL_ONLY, ownerSql, requireWriteTarget, signIn } from "./helpers";
 
 /**
  * Members API (M2) — security, integrity and the photo pipeline, through the real HTTP
@@ -10,7 +9,6 @@ import { LOCAL_ONLY, signIn } from "./helpers";
 const COACH1 = "00000000-0000-4000-a000-000000000011";
 const COACH2 = "00000000-0000-4000-a000-000000000012";
 const ADMIN = "00000000-0000-4000-a000-000000000001";
-const TEST_DB_CONTAINER = "supabase_db_gym-arena-test"; // scripts/test-stack.sh
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const opts = { auth: { persistSession: false, autoRefreshToken: false } };
 const service = () => createClient(url, process.env.SUPABASE_SERVICE_ROLE_KEY ?? "", opts);
@@ -44,8 +42,8 @@ async function upload(req: APIRequestContext, memberId: string) {
  * in the isolated test database — the only way to test a 10-minute grace period quickly.
  * session_replication_role=replica skips the trigger that would reset updated_at.
  */
-function age(memberId: string, minutes: number, onlyPath?: string) {
-  expect(url).toMatch(/:56321$/);
+async function age(memberId: string, minutes: number, onlyPath?: string) {
+  requireWriteTarget();
   expect(memberId).toMatch(/^[0-9a-f-]{36}$/);
   if (onlyPath) expect(onlyPath).toMatch(/^members\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(webp|jpg)$/);
   const files = onlyPath ? `name = '${onlyPath}'` : `name like 'members/${memberId}/%'`;
@@ -54,7 +52,7 @@ function age(memberId: string, minutes: number, onlyPath?: string) {
     `update storage.objects set created_at = now() - interval '${minutes} minutes' where bucket_id = 'avatars' and ${files};`,
     onlyPath ? "" : `update public.members set updated_at = now() - interval '${minutes} minutes' where id = '${memberId}';`,
   ].join(" ");
-  execFileSync("docker", ["exec", TEST_DB_CONTAINER, "psql", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-qc", sql]);
+  await ownerSql(sql);
 }
 /** Runs one opportunistic cleanup pass (requesting an upload URL tidies the member's folder). */
 async function tidy(req: APIRequestContext, memberId: string) {
@@ -71,7 +69,7 @@ test.describe("members API @writes", () => {
   test.skip(LOCAL_ONLY, "seed accounts exist only locally");
   test.beforeEach(async ({}, testInfo) => {
     test.skip(testInfo.project.name !== "coach-mobile", "API tests run once");
-    expect(url).toMatch(/:56321$/); // only ever the isolated test stack
+    requireWriteTarget(); // only ever a verified test stack (fail closed)
   });
 
   test("AC-4/AC-5: codes are sequential; a coach's member is always theirs; phone normalized", async ({ page }) => {
@@ -243,12 +241,12 @@ test.describe("members API @writes", () => {
     expect((await admin.patch(`/api/members/${id}`, { data: { photo_path: second } })).status()).toBe(200);
 
     // 9 minutes later: still inside the grace period → a cleanup pass removes nothing
-    age(id, 9);
+    await age(id, 9);
     await tidy(admin, id);
     expect(await folder(id)).toEqual([first, orphan, second].sort());
 
     // 11 minutes later: old photo and orphan go; the photo in use (just as old) is protected
-    age(id, 11);
+    await age(id, 11);
     await tidy(admin, id);
     expect(await folder(id)).toEqual([second]);
     const { member } = await (await admin.get(`/api/members/${id}`)).json();
@@ -257,13 +255,13 @@ test.describe("members API @writes", () => {
 
     // a stale upload can no longer be attached (attachable and deletable files never overlap)
     const late = await upload(admin, id);
-    age(id, 6, late);
+    await age(id, 6, late);
     const r = await admin.patch(`/api/members/${id}`, { data: { photo_path: late } });
     expect((await r.json()).error.reason).toBe("photo_missing");
     expect(await folder(id)).toContain(second);
 
     // repeated cleanups are harmless
-    age(id, 11);
+    await age(id, 11);
     await Promise.all([tidy(admin, id), tidy(admin, id), tidy(admin, id)]);
     expect(await folder(id)).toEqual([second]);
   });
@@ -273,7 +271,7 @@ test.describe("members API @writes", () => {
     const id = (await create(admin, { full_name: "Race", phone: phone(), coach_id: COACH1 })).json.member.id;
     const start = await upload(admin, id);
     expect((await admin.patch(`/api/members/${id}`, { data: { photo_path: start } })).status()).toBe(200);
-    age(id, 11); // the current photo is old: the race must still not delete anything in use
+    await age(id, 11); // the current photo is old: the race must still not delete anything in use
 
     const [a, b] = [await upload(admin, id), await upload(admin, id)];
     const results = await Promise.all([
@@ -290,7 +288,7 @@ test.describe("members API @writes", () => {
     expect((await fetch(member.photo_url)).status).toBe(200);
 
     // after the grace period only the winner remains
-    age(id, 11);
+    await age(id, 11);
     await tidy(admin, id);
     expect(await folder(id)).toEqual([row!.photo_path]);
   });

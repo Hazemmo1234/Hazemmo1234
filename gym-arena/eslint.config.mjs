@@ -31,6 +31,9 @@ const eslintConfig = [
       "playwright-report/**",
       ".next-test/**",
       ".test-stack/**",
+      ".next-fresh/**",
+      ".fresh-stack/**",
+      ".ci-stack/**",
     ],
   },
 ];

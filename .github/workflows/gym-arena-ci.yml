@@ -77,16 +77,21 @@ jobs:
           test ! -f supabase/.temp/project-ref
           test -z "${SUPABASE_ACCESS_TOKEN:-}"
           test -z "${SUPABASE_DB_PASSWORD:-}"
-      - name: Start a disposable local stack (clean migrations + seed)
-        run: npx supabase start > /dev/null
-      - name: Export local stack settings (values are never printed)
-        run: bash scripts/ci-local-env.sh
+      # The job's OWN stack: project gym-arena-ci, API 58321, DB 58322 — never the identity or the
+      # ports of a developer's stack (gym-arena, 54321/54322). `start` refuses an existing stack.
+      - name: Start this job's disposable stack (clean migrations + seed, project gym-arena-ci)
+        run: bash scripts/disposable-stack.sh gym-arena-ci start
+      - name: Export its settings (keys masked, never printed)
+        run: bash scripts/disposable-stack.sh gym-arena-ci env-github
+      # The test runner's global setup verifies the ACTUAL stack (containers, project label, ports,
+      # volume, and that TEST_DATABASE_URL reaches the database in that container) before any test.
       - run: npm run test:db
         env:
-          TEST_DB_ISOLATED: "1" # this runner's stack is created fresh and thrown away
+          TEST_DB_ISOLATED: "1"
+          GYM_ARENA_CI_DISPOSABLE: "1" # explicit opt-in for the gym-arena-ci profile, test steps only
       - name: Stop the stack and discard its data
         if: always()
-        run: npx supabase stop --no-backup > /dev/null 2>&1 || true
+        run: bash scripts/disposable-stack.sh gym-arena-ci destroy > /dev/null 2>&1 || true
 
   e2e:
     name: End-to-end (phone + TV, Arabic + English)
@@ -106,14 +111,23 @@ jobs:
           test -z "${SUPABASE_ACCESS_TOKEN:-}"
           test -z "${SUPABASE_DB_PASSWORD:-}"
       - run: npx playwright install --with-deps chromium
-      - name: Start a disposable local stack (clean migrations + seed)
-        run: npx supabase start > /dev/null
-      - name: Export local stack settings (values are never printed)
-        run: bash scripts/ci-local-env.sh
+      - name: Start this job's disposable stack (clean migrations + seed, project gym-arena-ci)
+        run: bash scripts/disposable-stack.sh gym-arena-ci start
+      - name: Export its settings (keys masked, never printed)
+        run: bash scripts/disposable-stack.sh gym-arena-ci env-github
       - run: npm run build
+      # Playwright's global setup verifies the ACTUAL stack before any test (as in the DB job).
       - run: npm run test:e2e
         env:
-          E2E_ALLOW_WRITES: "1" # this runner's stack is created fresh and thrown away
+          E2E_ALLOW_WRITES: "1" # opt-in for @writes tests
+          GYM_ARENA_CI_DISPOSABLE: "1" # explicit opt-in for the gym-arena-ci profile, test steps only
+      - name: Keep the browser test report when the job fails (diagnostics; local test data only)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: gym-arena/test-results/
+          retention-days: 7
       - name: Stop the stack and discard its data
         if: always()
-        run: npx supabase stop --no-backup > /dev/null 2>&1 || true
+        run: bash scripts/disposable-stack.sh gym-arena-ci destroy > /dev/null 2>&1 || true

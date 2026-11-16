@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { LOCAL_ONLY, PASSWORD, expectLanguage, signIn } from "./helpers";
+import { LOCAL_ONLY, PASSWORD, expectLanguage, requireWriteTarget, signIn } from "./helpers";
 
 // UX A4 Coaches (M2), BR-P7, D28, AC-1, AC-48 … AC-50.
 const VIEWPORTS = { phone: { width: 360, height: 780 }, ipad: { width: 820, height: 1180 }, desktop: { width: 1440, height: 900 } };
@@ -144,7 +144,7 @@ test.describe("coaches", () => {
     for (const locale of ["en", "ar"] as const) {
       test(`create → sign in → blocked while clients → deactivate → sessions rejected → history kept → reactivate (${locale})`, async ({ page, browser }) => {
         test.setTimeout(120_000);
-        expect(url).toMatch(/:56321$/); // only ever against the isolated test stack
+        requireWriteTarget(); // only ever a verified test stack (fail closed)
         const c = COPY[locale];
         const stamp = `${Date.now()}`.slice(-7);
         const email = `coach.${locale}.${stamp}@gym-arena.local`;

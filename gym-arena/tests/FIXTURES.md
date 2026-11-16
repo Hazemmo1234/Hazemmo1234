@@ -7,13 +7,54 @@ database owner, on disposable stacks only.
 
 ## Where fixtures may exist
 
-- The isolated local test stack `gym-arena-test` (API 56321, DB 56322, `scripts/test-stack.sh`).
-- CI's disposable stack (fresh migrations + seed, thrown away after the run).
+Only on a stack positively identified as a test stack. The profile is declared with
+`GYM_ARENA_TEST_STACK` (its name is the stack's Supabase project id) and then **proved from the
+actual running resources** before any test runs:
 
-Never the development stack (54321/54322), the experimental stack, or any cloud project.
-`tests/db/helpers.ts` refuses to run without `TEST_DB_ISOLATED=1` and refuses the development
-ports; the browser fixtures check that the API URL is `:56321` and target only the container
-`supabase_db_gym-arena-test`. `supabase/seed.sql` contains **no** fixtures.
+| Profile | Stack | API / DB | Extra requirement |
+|---|---|---|---|
+| `gym-arena-test` | long-lived isolated local stack (`scripts/test-stack.sh`) | 56321 / 56322 | — |
+| `gym-arena-fresh` | fresh disposable local stack (`scripts/disposable-stack.sh gym-arena-fresh`) | 57321 / 57322 | — |
+| `gym-arena-ci` | the disposable stack each CI job creates (`scripts/disposable-stack.sh gym-arena-ci`) | 58321 / 58322 | explicit opt-in `GYM_ARENA_CI_DISPOSABLE=1` (set by the CI workflow on its test steps) |
+
+The development stack (project `gym-arena`, 54321/54322) is never a write target, and no
+profile shares its ports. Cloud hosts and `https` URLs are refused. Generic flags (`CI`,
+`GITHUB_ACTIONS`) authorize nothing.
+
+### How the guard works (central — no test can opt out)
+
+1. **Declared profile** (`tests/support/write-target.ts`): known profile, both URLs on
+   localhost with exactly the profile's ports, the CI opt-in only with the CI profile.
+2. **Actual stack** (`tests/support/stack-identity.ts`): the profile's containers
+   `supabase_db_<project>` and `supabase_kong_<project>` exist, run, carry the CLI label
+   `com.supabase.cli.project=<project>` and the expected images, publish exactly the profile's
+   ports, keep the data in the volume `supabase_db_<project>`; the database reached through
+   `TEST_DATABASE_URL` is the same cluster as the one in that container (Postgres
+   `system_identifier`, read both ways) and uses the local development JWT secret; no cloud
+   credentials are present. Anything that cannot be established (Docker unavailable, container
+   missing, …) refuses the run.
+3. **Where it runs:**
+   - DB suite (`vitest.db.config.mts`): `globalSetup` → `tests/db/global-setup.ts` runs steps
+     1–2 once before any test file loads; `setupFiles` → `tests/db/setup-guard.ts` re-checks
+     step 1 in every worker before every file. `TEST_DB_ISOLATED=1` is required as well.
+   - Browser suite (`playwright.config.ts`): `globalSetup` → `e2e/global-setup.ts` runs steps
+     1–2 before any test of any project. Every local run needs it, because every run signs in
+     with seed accounts and stores their language (`POST /api/locale`, `PATCH /api/me`).
+     Tests tagged `@writes` (permanent rows) also need the opt-in `E2E_ALLOW_WRITES=1` —
+     without it the config excludes them. Remote mode (`E2E_BASE_URL`) never writes and
+     refuses that opt-in.
+   - Defence in depth: `tests/db/helpers.ts` and every `@writes` describe also call the
+     step-1 check; owner SQL in browser fixtures goes through `ownerSql()`, which uses only the
+     verified `TEST_DATABASE_URL` (no container names).
+4. **A new test is protected automatically**: a new DB test file is covered by the global setup
+   and the setup file; a new browser test is covered by the global setup, and tagging it
+   `@writes` adds the opt-in. `tests/unit/write-guard-config.test.ts` fails if any test file
+   sets or deletes the guard's environment variables or re-selects tests.
+
+`supabase/seed.sql` contains **no** fixtures.
+
+Every test builds the data it needs. No test may rely on rows that other tests or earlier
+runs left behind: on CI's fresh stack those rows do not exist.
 
 ## Why they are permanent
 
@@ -26,7 +67,7 @@ re-running a test reuses what exists and creates nothing. A full stack reset
 
 | Marker | Value |
 |---|---|
-| Dates | far in the past (1651, 1652, 1653, 1660+): no overlap with seed seasons or any other test's seasons |
+| Dates | far in the past (1651–1657, 1660+): no overlap with seed seasons or any other test's seasons |
 | Coach | the rookie-flag fixture belongs to **coach 3**, whom only the language test uses (coaches 1 and 2 keep their lists) |
 | Names | always start with `Rookie fixture` or belong to the season named below |
 | Phones | `+2015…` (rookie and G-10 fixtures), `+2012…` (scale fixture, only when it has to create members) |
@@ -81,9 +122,11 @@ deleted. 2400 entries in the fixture season.
   than 1000 **active** members on the stack, creating only the missing ones (none here: 1,011
   active), so the Members and Coaches lists are always tested past the API row limit.
 - The dashboard test in `tests/db/row-limit.test.ts` keeps **more than 1000 non-voided entries
-  dated today**: it tops today up (pull-ups, push-ups and deadlift for coach 3's `Rookie fixture`
-  clients, logged by coach 3) only when today has 1000 or fewer, so it adds rows at most once
-  per Cairo day. These are ordinary entries (with their automatic attendance) in the active season.
+  dated today**, from its own dedicated pool: at least 335 coach 3 clients `Today fixture NNNN`
+  (phones `+20154659NNNN`), counted on their own so the pool never depends on other members or on
+  test order. It tops today up (pull-ups, push-ups and deadlift for that pool, logged by coach 3)
+  only when today has 1000 or fewer, so it adds rows at most once per Cairo day. These are
+  ordinary entries (with their automatic attendance) in the active season.
 - Also one probe account **`policy-inactive@gym-arena.local`** (an inactive coach), created once
   and reused, to prove an inactive coach reads no participant rows.
 
@@ -120,6 +163,31 @@ deleted. 2400 entries in the fixture season.
   the scoring module. Its `season_results` rows are immutable (no update, no delete).
 - After the close, **B is deactivated once** (a deliberate post-closure status change). B stays
   inactive; the test proves the final board still ranks B as stored at close.
+
+### 8. Leaderboard scale fixture — `tests/db/leaderboard.test.ts` (`scaleFixture()`)
+
+- Reserved year **1657**. Always at least **1,100 dedicated members** `M4 scale fixture NNNN`
+  (coaches 1–3 in turn; phones `+20154657NNNN`) — counted on their own, never together with other
+  members, so the result does not depend on the seed, other fixtures or test order. Missing ones
+  are created after the highest existing fixture number.
+- Seasons **`M4 scale baseline`** (1657-01) and **`M4 scale season`** (1657-03). Every fixture
+  member is enrolled in the scale season explicitly (`on conflict do nothing`), even if created
+  after the season.
+- Results are a pure function of the member number `n`: pull-ups baselines for `n % 3 ≠ 0`, bench
+  baselines for `n % 5 = 1` (the rest are rookies); in season pull-ups for everyone, bench progress
+  for `n % 5 = 1`, treadmill for even `n`. Guarded by member + category + day.
+- The scale test asserts: ≥ 1,100 fixture members; all of them enrolled; exactly the expected
+  number of results; each one on the main board or — exactly when it has no pre-season result —
+  the rookie list; most of them with points; and the optimized read ranking exactly like the
+  full history at > 1,000 participants. The coach performance test uses the same season.
+
+### 9. Consented-photo fixture — `tests/db/leaderboard.test.ts` (`photoFixture()`)
+
+- Member **`M4 photo fixture`** of **coach 2** (phone `+201546580000`), created during the active
+  season (so enrolled in it, BR-P4), with `photo_consent = true` and a tiny synthetic WebP avatar at
+  `members/<member_id>/<uuid>.webp`, uploaded once with the service role. Reused when present.
+- The test checks the object exists, the member row points at it, coach 2 can read it and coach 1
+  cannot — then proves that coach 1's leaderboard never carries that member's id (D31).
 
 ### Per-run data (not fixtures)
 

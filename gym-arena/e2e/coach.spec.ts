@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LOCAL_ONLY, expectLanguage, signIn } from "./helpers";
+import { LOCAL_ONLY, expectLanguage, requireWriteTarget, signIn } from "./helpers";
 
 // M3 coach workflow (UX C2–C5): Today, member card, entry sheet, photo rule, undo,
 // attendance and the activity log — real UI, real API, real database (no mocks).
@@ -108,6 +108,9 @@ test.describe("coach workflow", () => {
   }
 
   test.describe("daily journey @writes", () => {
+    test.beforeEach(() => {
+      requireWriteTarget(); // per-test check on top of the central global setup
+    });
     for (const [locale, vpName] of [["en", "phone"], ["ar", "ipad"]] as const) {
       test(`add client → photo-required result → save → log → undo → activity (${locale}, ${vpName})`, async ({ page }) => {
         test.setTimeout(120_000);

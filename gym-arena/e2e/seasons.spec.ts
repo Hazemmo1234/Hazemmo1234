@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LOCAL_ONLY, expectLanguage, signIn } from "./helpers";
+import { LOCAL_ONLY, expectLanguage, requireWriteTarget, signIn } from "./helpers";
 
 // UX A2 Seasons (M2). Read-only and rejected-write tests run anywhere; tests that create
 // or change rows are tagged @writes and run only on a disposable database.
@@ -156,6 +156,9 @@ test.describe("seasons", () => {
   }
 
   test.describe("creating and changing seasons @writes", () => {
+    test.beforeEach(() => {
+      requireWriteTarget(); // per-test check on top of the central global setup
+    });
     const COPY = {
       en: { new: "New season", name: "Season name", start: "Start date", end: "End date", create: "Create season", save: "Save",
             created: "Season created", saved: "Changes saved", scheduled: "Scheduled", edit: "Edit" },

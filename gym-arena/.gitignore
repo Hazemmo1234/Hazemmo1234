@@ -49,4 +49,8 @@ supabase/.temp
 
 # isolated test stack (scripts/test-stack.sh)
 /.test-stack/
+# disposable stacks (scripts/disposable-stack.sh)
+/.fresh-stack/
+/.ci-stack/
+/.next-fresh/
 /.next-test/

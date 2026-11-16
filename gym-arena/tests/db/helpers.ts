@@ -4,11 +4,13 @@
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import postgres from "postgres";
+import { resolveWriteTarget } from "../support/write-target";
 
-export const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
+// no defaults: resolveWriteTarget (below) refuses to run unless both are set and verified
+export const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-export const DB_URL = process.env.TEST_DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+export const DB_URL = process.env.TEST_DATABASE_URL ?? "";
 
 // The database suite creates rows (members, seasons, entries, audit rows) on every run and
 // rows can never be deleted (BR-E8). It therefore runs only on a database explicitly marked
@@ -20,18 +22,10 @@ if (process.env.TEST_DB_ISOLATED !== "1") {
   );
 }
 
-// Hard stop: never run destructive-looking tests against anything but localhost, and never
-// against the development stack's ports (54321/54322) — except in CI, whose stack on those
-// ports is created fresh for the run and thrown away.
-for (const u of [URL, DB_URL]) {
-  const { hostname, port } = new globalThis.URL(u);
-  if (hostname !== "127.0.0.1" && hostname !== "localhost") {
-    throw new Error(`Database tests refuse to run against a non-local host: ${hostname}`);
-  }
-  if ((port === "54321" || port === "54322") && process.env.CI !== "true") {
-    throw new Error("Database tests refuse the development stack (54321/54322). Use npm run test:db:isolated.");
-  }
-}
+// Hard stop: the database must be positively identified as a test stack (fail closed —
+// tests/support/write-target.ts). This replaced a port check that let any process with a
+// generic CI=true write to 54321/54322; now only the CI workflow's explicit flag does.
+resolveWriteTarget(process.env);
 
 export const PASSWORD = "Password123!";
 export const ADMIN = "00000000-0000-4000-a000-000000000001";
