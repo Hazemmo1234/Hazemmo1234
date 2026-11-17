@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+/* DFN GYM brand tokens — docs/UX_SCREEN_SPECIFICATION.md "Brand". Dark theme only (MVP). */
+:root {
+  --brand: #c42a1e;
+  --brand-hover: #a82217;
+  --brand-text: #ff5a4a;
+  --bg: #0b0b0d;
+  --surface: #17171a;
+  --surface-2: #222226;
+  --border: #2e2e33;
+  --text: #ffffff;
+  --text-muted: #a1a1aa;
+  --gold: #e3b341;
+  --silver: #c9ced6;
+  --bronze: #d08a4e;
+  --up: #22c55e;
+  --down: #ff5a4a;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-text: var(--brand-text);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-gold: var(--gold);
+  --color-silver: var(--silver);
+  --color-bronze: var(--bronze);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --font-sans: var(--font-cairo), system-ui, sans-serif;
+  --font-display: var(--font-barlow), var(--font-cairo), system-ui, sans-serif;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  font-family: var(--font-cairo), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular numerals for all scores */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Condensed italic sports face for numbers/headings (echoes the logo) */
+.display {
+  font-family: var(--font-barlow), var(--font-cairo), system-ui, sans-serif;
+  font-style: italic;
+  font-weight: 800;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
