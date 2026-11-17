@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { LOCAL_ONLY, expectLanguage, requireWriteTarget, signIn } from "./helpers";
 
 // M3 coach workflow (UX C2–C5): Today, member card, entry sheet, photo rule, undo,

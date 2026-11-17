@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { LOCAL_ONLY, expectLanguage, requireWriteTarget, signIn } from "./helpers";
 
 // UX A2 Seasons (M2). Read-only and rejected-write tests run anywhere; tests that create

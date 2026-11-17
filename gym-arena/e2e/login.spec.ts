@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { LOCAL_ONLY, expectLanguage, signIn } from "./helpers";
 
 test("login page defaults to Arabic RTL with the logo (BR-L1)", async ({ page }) => {

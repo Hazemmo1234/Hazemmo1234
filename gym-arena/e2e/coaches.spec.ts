@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import type { Browser, Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { LOCAL_ONLY, PASSWORD, expectLanguage, requireWriteTarget, signIn } from "./helpers";
 
 // UX A4 Coaches (M2), BR-P7, D28, AC-1, AC-48 … AC-50.

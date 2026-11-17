@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { LOCAL_ONLY, TV_KEY, expectLanguage, requireWriteTarget, signIn } from "./helpers";
 
 // AC-33 … AC-37: Arabic + English, RTL/LTR, persistence, independent TV language.

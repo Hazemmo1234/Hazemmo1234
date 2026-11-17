@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { LOCAL_ONLY, expectLanguage, signIn } from "./helpers";
 
 // M2 step 1 — admin layout & navigation across phone, iPad and desktop, AR + EN.

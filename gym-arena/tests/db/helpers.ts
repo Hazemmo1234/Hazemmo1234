@@ -1,20 +1,22 @@
 /**
- * Shared helpers for database tests. These tests run ONLY against a local,
- * disposable Supabase stack (`npx supabase start`, seeded by supabase/seed.sql).
+ * Shared helpers for database tests. These tests run ONLY against a local, disposable Supabase
+ * stack that has been positively verified (never the protected gym-arena-test stack).
+ *
+ * This module is the ONLY place in tests/db that creates database or Supabase clients
+ * (enforced by tests/unit/e2e-import-graph.test.ts). Every client below is created only AFTER
+ * the three checks at the top of this module have passed, so a test file — whose own code
+ * runs only after its imports have finished evaluating — can never reach a database before
+ * the identity check completes, whatever runner configuration was used.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import postgres from "postgres";
+import { verifyWriteTarget } from "../support/stack-identity";
 import { resolveWriteTarget } from "../support/write-target";
-
-// no defaults: resolveWriteTarget (below) refuses to run unless both are set and verified
-export const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
-const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-export const DB_URL = process.env.TEST_DATABASE_URL ?? "";
 
 // The database suite creates rows (members, seasons, entries, audit rows) on every run and
 // rows can never be deleted (BR-E8). It therefore runs only on a database explicitly marked
-// as disposable: CI's fresh stack or an isolated local test stack (TEST_DB_ISOLATED=1).
+// as disposable (TEST_DB_ISOLATED=1).
+// 1. explicit opt-in
 if (process.env.TEST_DB_ISOLATED !== "1") {
   throw new Error(
     "Database tests refuse to run without TEST_DB_ISOLATED=1. They create permanent rows; " +
@@ -22,10 +24,22 @@ if (process.env.TEST_DB_ISOLATED !== "1") {
   );
 }
 
-// Hard stop: the database must be positively identified as a test stack (fail closed —
-// tests/support/write-target.ts). This replaced a port check that let any process with a
-// generic CI=true write to 54321/54322; now only the CI workflow's explicit flag does.
+// 2. declared profile + URLs (fail closed — tests/support/write-target.ts): refuses the
+//    protected stack by name and by port, unknown profiles, non-local hosts.
 resolveWriteTarget(process.env);
+
+// 3. the ACTUAL stack (tests/support/stack-identity.ts): containers, project label, ports,
+//    volume, and the database reached through TEST_DATABASE_URL is the one in that container.
+//    Awaited here, at module level, so it runs even if a different runner configuration
+//    skipped the global setup. Any failure (missing identity, mismatch, connection error,
+//    timeout) rejects this module and no client below is ever created.
+await verifyWriteTarget(process.env);
+
+// Read only after the checks above have passed.
+export const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+export const DB_URL = process.env.TEST_DATABASE_URL ?? "";
 
 export const PASSWORD = "Password123!";
 export const ADMIN = "00000000-0000-4000-a000-000000000001";

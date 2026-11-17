@@ -1,14 +1,22 @@
 #!/usr/bin/env bash
 # DISPOSABLE local Supabase stacks with their own identity — never the development stack
-# (project gym-arena, 54321/54322) and never the long-lived test stack (gym-arena-test, 5632x):
+# (project gym-arena, 54321/54322) and never the protected long-lived test stack
+# (gym-arena-test, 5632x):
 #
-#   gym-arena-fresh   API 57321, DB 57322   local verification on a database holding only migrations + seed
 #   gym-arena-ci      API 58321, DB 58322   what the CI workflow creates and throws away in every job
+#   gym-arena-fresh   API 57321, DB 57322   DISABLED: no local disposable-stack lifecycle (no local
+#                                           creation or cleanup); refused for every command
+#
+# Policy: this script runs only for gym-arena-ci and only when GITHUB_ACTIONS=true. That check is
+# ACCIDENT PREVENTION, NOT AUTHENTICATION: GitHub sets the variable on its runners, and anyone
+# can set it by hand. It stops an ordinary local invocation from starting or destroying a stack;
+# it does not prove a GitHub runner, and the protected stack never depends on it (this script
+# cannot address gym-arena-test at all).
 #
 # Built from the app's own supabase/ folder (same migrations, same seed) into a git-ignored
-# work directory (.fresh-stack/ or .ci-stack/), with project_id and every port rewritten.
+# work directory (.ci-stack/), with project_id and every port rewritten.
 #
-# Usage: scripts/disposable-stack.sh <gym-arena-fresh|gym-arena-ci> <command>
+# Usage: scripts/disposable-stack.sh gym-arena-ci <command>          (CI only)
 #   start        create a NEW stack. Refuses if any container or volume of this project already
 #                exists — a stack that already holds data is not fresh. Nothing is deleted.
 #   reuse        start the EXISTING stack of this project, data kept (explicit, with a warning)
@@ -32,10 +40,12 @@ die() { echo "disposable-stack: $*" >&2; exit 1; }
 PROJECT_ID="${1:-}"
 CMD="${2:-}"
 case "$PROJECT_ID" in
-  gym-arena-fresh) P=57; WORKDIR="$APP_DIR/.fresh-stack"; INSPECTOR=8383 ;;
+  gym-arena-fresh) die "gym-arena-fresh is disabled: there is no local disposable-stack lifecycle (no local creation or cleanup). Write-capable tests run in CI." ;;
   gym-arena-ci)    P=58; WORKDIR="$APP_DIR/.ci-stack";    INSPECTOR=8483 ;;
-  *) die "usage: scripts/disposable-stack.sh <gym-arena-fresh|gym-arena-ci> <start|reuse|verify|env|env-github|stop|destroy>" ;;
+  *) die "usage: scripts/disposable-stack.sh gym-arena-ci <start|reuse|verify|env|env-github|stop|destroy> (CI only)" ;;
 esac
+# accident prevention, not authentication (see the header)
+[ "${GITHUB_ACTIONS:-}" = "true" ] || die "refusing: $PROJECT_ID is managed only inside CI (GITHUB_ACTIONS=true) — no local disposable-stack lifecycle"
 API_PORT="${P}321"
 DB_PORT="${P}322"
 DB_CONTAINER="supabase_db_${PROJECT_ID}"

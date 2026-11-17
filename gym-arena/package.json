@@ -15,8 +15,8 @@
     "db:reset": "supabase db reset",
     "create-admin": "node --env-file-if-exists=.env.local --import tsx scripts/create-admin.ts",
     "test:stack": "bash scripts/test-stack.sh",
-    "test:db:isolated": "bash scripts/test-stack.sh reset && bash scripts/test-stack.sh env > .test-stack/.env.test && node --env-file=.test-stack/.env.test node_modules/vitest/vitest.mjs run --config vitest.db.config.mts",
-    "test:e2e:isolated": "bash scripts/e2e-isolated.sh"
+    "test:db:isolated": "node -e \"console.error('test:db:isolated is disabled: it used to reset the protected gym-arena-test stack. Write-capable DB tests run in CI on a disposable gym-arena-ci stack (see tests/FIXTURES.md).');process.exit(1)\"",
+    "test:e2e:isolated": "node -e \"console.error('test:e2e:isolated is disabled: local browser runs write, and the protected gym-arena-test stack is never a target. Browser tests run in CI only (see tests/FIXTURES.md).');process.exit(1)\""
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

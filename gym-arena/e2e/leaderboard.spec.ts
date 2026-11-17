@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
 import { LOCAL_ONLY, expectLanguage, signIn } from "./helpers";
 
 // M4 leaderboards (UX C6, A1, A3, C2): real UI, real API, real database (no mocks).

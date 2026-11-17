@@ -141,6 +141,15 @@ describe("stack identity: refusals (fail closed)", () => {
     // the test stack's own containers under the CI profile
     await refused(CI_ENV, world([TEST_STACK]), /cannot verify container supabase_db_gym-arena-ci/);
   });
+  it("the protected gym-arena-test stack is refused under its own name, even with its real containers running", async () => {
+    const PROTECTED_ENV = {
+      GYM_ARENA_TEST_STACK: "gym-arena-test",
+      NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:56321",
+      TEST_DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:56322/postgres",
+    };
+    await refused(PROTECTED_ENV, world([TEST_STACK]), /"gym-arena-test" is a protected stack/);
+    await refused({ ...PROTECTED_ENV, TEST_DB_ISOLATED: "1", E2E_ALLOW_WRITES: "1" }, world([TEST_STACK, CI_STACK]), /protected stack/);
+  });
   it("a database that is not a local stack (hosted JWT secret)", async () => {
     await refused(CI_ENV, world([{ ...CI_STACK, jwtSecret: "a-real-project-secret" }]), /local development JWT secret/);
   });

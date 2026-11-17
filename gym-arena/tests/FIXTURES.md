@@ -1,4 +1,4 @@
-# Test fixtures on the isolated test stack
+# Test fixtures on disposable test stacks
 
 Some tests need database states the product itself can never create — above all **entries
 dated before the active season** (baselines), and **more rows than the API returns in one
@@ -7,24 +7,41 @@ database owner, on disposable stacks only.
 
 ## Where fixtures may exist
 
-Only on a stack positively identified as a test stack. The profile is declared with
-`GYM_ARENA_TEST_STACK` (its name is the stack's Supabase project id) and then **proved from the
-actual running resources** before any test runs:
+Only on a **disposable** stack positively identified as a test stack. The profile is declared
+with `GYM_ARENA_TEST_STACK` (its name is the stack's Supabase project id) and then **proved from
+the actual running resources** before any test can write:
 
 | Profile | Stack | API / DB | Extra requirement |
 |---|---|---|---|
-| `gym-arena-test` | long-lived isolated local stack (`scripts/test-stack.sh`) | 56321 / 56322 | — |
-| `gym-arena-fresh` | fresh disposable local stack (`scripts/disposable-stack.sh gym-arena-fresh`) | 57321 / 57322 | — |
-| `gym-arena-ci` | the disposable stack each CI job creates (`scripts/disposable-stack.sh gym-arena-ci`) | 58321 / 58322 | explicit opt-in `GYM_ARENA_CI_DISPOSABLE=1` (set by the CI workflow on its test steps) |
+| `gym-arena-ci` | the disposable stack each CI job creates (`scripts/disposable-stack.sh gym-arena-ci`, CI only) | 58321 / 58322 | explicit opt-in `GYM_ARENA_CI_DISPOSABLE=1` (set by the CI workflow on its test steps) |
+| `gym-arena-fresh` | a fresh disposable local stack (no script creates it any more — see below) | 57321 / 57322 | — |
 
-The development stack (project `gym-arena`, 54321/54322) is never a write target, and no
-profile shares its ports. Cloud hosts and `https` URLs are refused. Generic flags (`CI`,
-`GITHUB_ACTIONS`) authorize nothing.
+**Protected — never a write target:** the long-lived local stack `gym-arena-test` (56321 / 56322,
+`scripts/test-stack.sh`) holds data that must survive. It has no profile, its name is refused
+explicitly, its ports belong to no profile, and its containers do not match any profile's
+identity. `scripts/test-stack.sh` has no reset command and its `env` output contains no test
+write opt-in. The development stack (project `gym-arena`, 54321/54322) is never a write target
+either. Cloud hosts and `https` URLs are refused. Generic flags (`CI`, `GITHUB_ACTIONS`)
+authorize nothing in the target check.
+
+### Where write-capable tests run
+
+- **Write-capable tests run in CI.** `npm run test:db:isolated` and `npm run test:e2e:isolated`
+  are disabled (they used to reset the protected stack) and only print why.
+- **No local disposable-stack lifecycle:** `scripts/disposable-stack.sh` refuses
+  `gym-arena-fresh` for every command, and manages `gym-arena-ci` only when
+  `GITHUB_ACTIONS=true`.
+- **Browser tests are CI-only:** they require `GITHUB_ACTIONS=true` and the `gym-arena-ci`
+  profile. **`GITHUB_ACTIONS=true` is accident prevention, not authentication** — anyone can set
+  it. It keeps an ordinary local run from writing; the protection of `gym-arena-test` does not
+  depend on it (name, port and container identity refuse that stack in every case).
+- **Remote browser mode (`E2E_BASE_URL`) is disabled.**
 
 ### How the guard works (central — no test can opt out)
 
-1. **Declared profile** (`tests/support/write-target.ts`): known profile, both URLs on
-   localhost with exactly the profile's ports, the CI opt-in only with the CI profile.
+1. **Declared profile** (`tests/support/write-target.ts`): known disposable profile, protected
+   names refused, both URLs on localhost with exactly the profile's ports, the CI opt-in only
+   with the CI profile.
 2. **Actual stack** (`tests/support/stack-identity.ts`): the profile's containers
    `supabase_db_<project>` and `supabase_kong_<project>` exist, run, carry the CLI label
    `com.supabase.cli.project=<project>` and the expected images, publish exactly the profile's
@@ -32,24 +49,33 @@ profile shares its ports. Cloud hosts and `https` URLs are refused. Generic flag
    `TEST_DATABASE_URL` is the same cluster as the one in that container (Postgres
    `system_identifier`, read both ways) and uses the local development JWT secret; no cloud
    credentials are present. Anything that cannot be established (Docker unavailable, container
-   missing, …) refuses the run.
-3. **Where it runs:**
-   - DB suite (`vitest.db.config.mts`): `globalSetup` → `tests/db/global-setup.ts` runs steps
-     1–2 once before any test file loads; `setupFiles` → `tests/db/setup-guard.ts` re-checks
-     step 1 in every worker before every file. `TEST_DB_ISOLATED=1` is required as well.
-   - Browser suite (`playwright.config.ts`): `globalSetup` → `e2e/global-setup.ts` runs steps
-     1–2 before any test of any project. Every local run needs it, because every run signs in
-     with seed accounts and stores their language (`POST /api/locale`, `PATCH /api/me`).
-     Tests tagged `@writes` (permanent rows) also need the opt-in `E2E_ALLOW_WRITES=1` —
-     without it the config excludes them. Remote mode (`E2E_BASE_URL`) never writes and
-     refuses that opt-in.
-   - Defence in depth: `tests/db/helpers.ts` and every `@writes` describe also call the
-     step-1 check; owner SQL in browser fixtures goes through `ownerSql()`, which uses only the
-     verified `TEST_DATABASE_URL` (no container names).
-4. **A new test is protected automatically**: a new DB test file is covered by the global setup
-   and the setup file; a new browser test is covered by the global setup, and tagging it
-   `@writes` adds the opt-in. `tests/unit/write-guard-config.test.ts` fails if any test file
-   sets or deletes the guard's environment variables or re-selects tests.
+   missing, timeout, …) refuses the run.
+3. **Built app** (`tests/support/build-attestation.ts`, browser suite): the Supabase address
+   compiled into the build `next start` serves (`NEXT_DIST_DIR || .next`) is the verified one —
+   in client and server code, with no other backend address anywhere — and the RUNNING server
+   serves exactly that build (its `/_next/static/<BUILD_ID>/_buildManifest.js` and every client
+   file carrying the address are fetched and compared byte for byte). Playwright starts the web
+   server before global setup, so the check runs against the live server.
+4. **Where it runs:**
+   - DB suite: `tests/db/global-setup.ts` (steps 1–2 once), `tests/db/setup-guard.ts` (step 1 in
+     every worker) and — independently of the runner configuration — `tests/db/helpers.ts`,
+     which runs steps 1–2 with an **awaited** identity check before it creates any client. It is
+     the only module in `tests/db` that creates database clients, and every DB test statically
+     imports it, so a test's own code (including its dynamic imports of app modules) runs only
+     after the check. `TEST_DB_ISOLATED=1` is required as well.
+   - Browser suite: `e2e/global-setup.ts` and the worker-scoped automatic fixture in
+     `e2e/fixtures.ts` (steps 1–3 plus the CI-only policy) run before any test; every spec must
+     use `test` from `./fixtures`. `e2e/helpers.ts` refuses remote mode and runs step 1 when it
+     is loaded. Tests tagged `@writes` (permanent rows) also need `E2E_ALLOW_WRITES=1` and call
+     `requireWriteTarget()`; owner SQL goes through `ownerSql()`, which uses only the verified
+     `TEST_DATABASE_URL`.
+5. **A new test is protected automatically, and checked statically:**
+   `tests/unit/e2e-import-graph.test.ts` (TypeScript parser, whole repository) fails if a file
+   loads Playwright other than through `e2e/fixtures.ts`, a spec does not use `./fixtures`, a
+   spec creates a client or signs in at load time, a DB test loads a client library directly or
+   does not statically import `./helpers`. `tests/unit/write-guard-config.test.ts` fails if a
+   test file sets or deletes the guard's environment variables or re-selects tests. These are
+   CI-time checks (the unit job), not a runtime boundary.
 
 `supabase/seed.sql` contains **no** fixtures.
 
@@ -60,8 +86,8 @@ runs left behind: on CI's fresh stack those rows do not exist.
 
 Rows can never be deleted (BR-E8: entries, members, seasons and the audit log have no-delete
 triggers), so fixtures are created **once per stack and reused**. Every fixture is idempotent:
-re-running a test reuses what exists and creates nothing. A full stack reset
-(`npm run test:stack -- reset`) is the only way to remove them.
+re-running a test reuses what exists and creates nothing. On CI they live only as long as the
+job's own disposable stack. There is no script that resets a stack locally.
 
 ## Isolation from seed and from other tests
 
@@ -83,7 +109,7 @@ re-running a test reuses what exists and creates nothing. A full stack reset
 - The fixture set is deterministic: the first 200 qualifying members by member code. Only
   missing members are created; a second `ensureFixture` call creates nothing (tested).
 
-**State of the current test stack (16 Nov 2026):** 400 qualifying members and 4 "fresh"
+**State of the gym-arena-test stack on 16 Nov 2026 (historical record; that stack is now protected and no test writes to it):** 400 qualifying members and 4 "fresh"
 members — the extra 200 + 3 were created by runs **before** the fixture became idempotent.
 They are harmless (the test always uses the same first 200) and are kept: nothing is ever
 deleted. 2400 entries in the fixture season.
@@ -116,7 +142,7 @@ deleted. 2400 entries in the fixture season.
   (`Scale fixture <n>`, coaches 2 and 3, phones `+2012…`) up to 600 active, then far-past
   seasons `Scale fixture YYYY-MM` (one per month from 1660; every new season enrols all active
   members). Each is created only if its name does not exist yet.
-- On the current test stack (136 seasons, 74,442 rows) it created **nothing**; on CI's fresh
+- On the gym-arena-test stack (16 Nov 2026, before it became protected: 136 seasons, 74,442 rows) it created **nothing**; on CI's fresh
   stack it builds the scale once per (disposable) run.
 - `tests/db/row-limit.test.ts` uses the same `Scale fixture` members (coach 3) to keep more
   than 1000 **active** members on the stack, creating only the missing ones (none here: 1,011

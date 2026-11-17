@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
-# Dedicated, disposable LOCAL Supabase stack for tests: project "gym-arena-test",
-# API 56321, DB 56322. It is generated from the app's own supabase/ folder (same
-# migrations, same seed) into the git-ignored .test-stack/ directory, so there is
-# exactly one source of truth for the schema.
+# The PROTECTED long-lived LOCAL Supabase stack "gym-arena-test" (API 56321, DB 56322).
+# Its data must survive: no test may write to it (tests/support/write-target.ts refuses it by
+# name, port and container identity) and this script can no longer reset or reseed it.
+# It is generated from the app's own supabase/ folder into the git-ignored .test-stack/
+# directory, so there is exactly one source of truth for the schema.
 #
-# Usage: scripts/test-stack.sh start | reset | verify | stop | env
+# Usage: scripts/test-stack.sh start | verify | stop | env
+#   start   start the stack (creates it only if it does not exist; existing data is kept)
+#   verify  identity report (project, container, port, local JWT secret)
+#   stop    stop the containers, keep the data
+#   env     print connection settings for running the APP against it by hand. It prints NO
+#           test write opt-in (TEST_DB_ISOLATED / E2E_ALLOW_WRITES): sourcing it cannot arm a
+#           test, and the test guards refuse this stack regardless.
 #
-# Safety: every reset first verifies the project identity, ports, container names and
-# that the Supabase CLI is not linked to any cloud project. It never touches the
-# development stack (gym-arena, 54321/54322) or any other stack.
+# There is deliberately no reset command. It never touches the development stack (gym-arena,
+# 54321/54322) or any other stack.
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -66,12 +72,6 @@ case "${1:-}" in
     (cd "$WORKDIR" && "$CLI" start --workdir "$WORKDIR" > /dev/null)
     verify_running
     ;;
-  reset)
-    generate
-    verify_running # identity, ports and link state are checked BEFORE any reset
-    (cd "$WORKDIR" && "$CLI" db reset --workdir "$WORKDIR" 2>&1 | grep -E "Applying|Seeding|Finished|ERROR" || true)
-    verify_running
-    ;;
   verify)
     verify_running
     ;;
@@ -80,7 +80,8 @@ case "${1:-}" in
     (cd "$WORKDIR" && "$CLI" stop --workdir "$WORKDIR")
     ;;
   env)
-    # Settings for pointing tests and the test app build at this stack (local demo keys only).
+    # Settings for running the app by hand against this stack (local demo keys only). No test
+    # write opt-in is printed: tests never write to this protected stack.
     verify_config
     status="$(cd "$WORKDIR" && "$CLI" status --workdir "$WORKDIR" -o env 2>/dev/null)"
     value() { printf '%s\n' "$status" | sed -nE "s/^$1=\"?([^\"]*)\"?$/\1/p" | head -n1; }
@@ -93,12 +94,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=$(value ANON_KEY)
 SUPABASE_SERVICE_ROLE_KEY=$(value SERVICE_ROLE_KEY)
 TEST_DATABASE_URL=$db
 GYM_ARENA_TEST_STACK=$PROJECT_ID
-TEST_DB_ISOLATED=1
-E2E_ALLOW_WRITES=1
 APP_TIMEZONE=Africa/Cairo
 ENV
     ;;
   *)
-    die "usage: scripts/test-stack.sh start|reset|verify|stop|env"
+    die "usage: scripts/test-stack.sh start|verify|stop|env (there is no reset: gym-arena-test is protected)"
     ;;
 esac

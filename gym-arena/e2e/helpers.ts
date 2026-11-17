@@ -2,9 +2,15 @@ import { expect, type Page } from "@playwright/test";
 import postgres from "postgres";
 import { resolveWriteTarget } from "../tests/support/write-target";
 
+// Fail-closed at import, before any spec code runs (defence in depth; the full check is the
+// worker fixture in e2e/fixtures.ts): remote mode is disabled, and the declared target must be
+// a known disposable profile — the protected gym-arena-test stack is refused by name and port.
+if (process.env.E2E_BASE_URL) throw new Error("Refusing to run browser tests: remote mode (E2E_BASE_URL) is disabled");
+resolveWriteTarget(process.env);
+
 export const PASSWORD = "Password123!";
 export const TV_KEY = "dev-tv-key-0123456789abcdef0123456789abcdef";
-/** Seed accounts exist only on the local stack (supabase/seed.sql). */
+/** Seed accounts exist only on the local stack (supabase/seed.sql). Remote mode is disabled, so this is always false. */
 export const LOCAL_ONLY = !!process.env.E2E_BASE_URL;
 
 export async function signIn(page: Page, email: string, password = PASSWORD) {
@@ -24,9 +30,8 @@ export async function expectLanguage(page: Page, locale: "ar" | "en") {
 
 /**
  * Fail-closed gate for every test that writes (@writes): throws unless the configured stack is
- * positively a test stack — the long-lived local test stack, the fresh disposable stack, or
- * the CI job's own disposable stack (tests/support/write-target.ts). Replaces a hard-coded
- * port check that could only ever pass on one machine.
+ * positively a disposable test stack (tests/support/write-target.ts) — never the protected
+ * gym-arena-test stack.
  */
 export function requireWriteTarget() {
   return resolveWriteTarget(process.env);

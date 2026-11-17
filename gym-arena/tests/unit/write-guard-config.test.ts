@@ -1,12 +1,14 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { checkE2eTarget } from "../../e2e/global-setup";
+import { checkE2eRun, checkE2eTarget } from "../../e2e/global-setup";
 import { LOCAL_JWT_SECRET, PROJECT_LABEL, type ContainerInfo, type IdentityProbe } from "../support/stack-identity";
 
-// Fix 1 (central write guard): the runners — not individual tests — enforce the gate.
-//  - Playwright: globalSetup verifies the actual stack before ANY test; @writes tests also need
-//    the opt-in E2E_ALLOW_WRITES=1 (config grepInvert).
+// Central write guard: the runners — not individual tests — enforce the gate.
+//  - Playwright: globalSetup (and, independently of the configuration, the worker fixture in
+//    e2e/fixtures.ts) refuses remote mode, allows browser runs only in CI, verifies the actual
+//    stack and attests the served build before ANY test; @writes tests also need the opt-in
+//    E2E_ALLOW_WRITES=1 (config grepInvert).
 //  - Vitest DB: globalSetup verifies the actual stack once; setupFiles re-checks in every worker
 //    before every test file, whether or not the file imports the helpers.
 
@@ -17,6 +19,8 @@ const VALID = {
   NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:58321",
   TEST_DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:58322/postgres",
 };
+/** the same, inside a CI job (GITHUB_ACTIONS=true: accident prevention, not authentication) */
+const CI_RUN = { ...VALID, GITHUB_ACTIONS: "true" };
 /** a probe that sees exactly the verified CI stack */
 const ciProbe: IdentityProbe = {
   async inspect(name): Promise<ContainerInfo> {
@@ -67,17 +71,45 @@ describe("Playwright: central guard and opt-in", () => {
     expect((await config({ E2E_ALLOW_WRITES: "1" })).grepInvert).toBeUndefined();
   });
 
-  it("missing verified target refuses the run — with or without the opt-in", async () => {
-    await expect(checkE2eTarget({ E2E_ALLOW_WRITES: "1" }, ciProbe)).rejects.toThrow(/GYM_ARENA_TEST_STACK is not set/);
-    await expect(checkE2eTarget({}, ciProbe)).rejects.toThrow(/GYM_ARENA_TEST_STACK is not set/);
-    await expect(checkE2eTarget({ ...VALID, E2E_ALLOW_WRITES: "1" }, noStack)).rejects.toThrow(/cannot verify container/);
+  it("browser runs are CI-only: without GITHUB_ACTIONS=true and the CI profile, nothing runs (accident prevention)", async () => {
+    await expect(checkE2eTarget({ E2E_ALLOW_WRITES: "1" }, ciProbe)).rejects.toThrow(/local browser runs are disabled/);
+    await expect(checkE2eTarget({}, ciProbe)).rejects.toThrow(/local browser runs are disabled/);
+    await expect(checkE2eTarget(VALID, ciProbe)).rejects.toThrow(/local browser runs are disabled/);
+    await expect(checkE2eTarget({ ...CI_RUN, GYM_ARENA_TEST_STACK: "gym-arena-fresh" }, ciProbe)).rejects.toThrow(/local browser runs are disabled/);
   });
-  it("a valid verified target plus the opt-in permits the run", async () => {
-    await expect(checkE2eTarget({ ...VALID, E2E_ALLOW_WRITES: "1" }, ciProbe)).resolves.toMatchObject({ project: "gym-arena-ci" });
+  it("the CI flag authorizes nothing by itself: the target must still be the verified CI stack", async () => {
+    await expect(checkE2eTarget({ ...CI_RUN, E2E_ALLOW_WRITES: "1" }, noStack)).rejects.toThrow(/cannot verify container/);
+    await expect(checkE2eTarget({ ...CI_RUN, GYM_ARENA_CI_DISPOSABLE: undefined }, ciProbe)).rejects.toThrow(/explicit opt-in/);
   });
-  it("read-only remote mode stays usable, and refuses the write opt-in", async () => {
-    await expect(checkE2eTarget({ E2E_BASE_URL: "https://example.test" }, noStack)).resolves.toBe("remote-read-only");
-    await expect(checkE2eTarget({ E2E_BASE_URL: "https://example.test", E2E_ALLOW_WRITES: "1" }, ciProbe)).rejects.toThrow(/not allowed against a remote/);
+  it("the protected gym-arena-test stack is refused even with the CI flag set", async () => {
+    const protectedEnv = {
+      GITHUB_ACTIONS: "true",
+      GYM_ARENA_TEST_STACK: "gym-arena-test",
+      NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:56321",
+      TEST_DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:56322/postgres",
+    };
+    await expect(checkE2eTarget(protectedEnv, ciProbe)).rejects.toThrow(/local browser runs are disabled/);
+    await expect(checkE2eTarget({ ...CI_RUN, NEXT_PUBLIC_SUPABASE_URL: protectedEnv.NEXT_PUBLIC_SUPABASE_URL }, ciProbe)).rejects.toThrow(/API port 56321/);
+  });
+  it("a verified CI stack in CI permits the run", async () => {
+    await expect(checkE2eTarget({ ...CI_RUN, E2E_ALLOW_WRITES: "1" }, ciProbe)).resolves.toMatchObject({ project: "gym-arena-ci" });
+  });
+  it("remote mode (E2E_BASE_URL) is disabled, with or without the write opt-in", async () => {
+    await expect(checkE2eTarget({ ...CI_RUN, E2E_BASE_URL: "https://example.test" }, ciProbe)).rejects.toThrow(/remote mode \(E2E_BASE_URL\) is disabled/);
+    await expect(checkE2eTarget({ E2E_BASE_URL: "https://example.test", E2E_ALLOW_WRITES: "1" }, noStack)).rejects.toThrow(/remote mode/);
+  });
+  it("the full run check refuses before attesting when the target is wrong, and without a baseURL", async () => {
+    await expect(checkE2eRun(VALID, ROOT, "http://localhost:3000", { probe: ciProbe })).rejects.toThrow(/local browser runs are disabled/);
+    await expect(checkE2eRun(CI_RUN, ROOT, undefined, { probe: ciProbe })).rejects.toThrow(/no baseURL/);
+  });
+});
+
+describe("Playwright: the guarded fixture", () => {
+  it("every spec's test object carries the worker-scoped automatic guard", () => {
+    const src = readFileSync(join(ROOT, "e2e", "fixtures.ts"), "utf8");
+    expect(src).toMatch(/e2eWriteGuard/);
+    expect(src).toMatch(/scope:\s*"worker",\s*auto:\s*true/);
+    expect(src).toMatch(/checkE2eRun\(process\.env/);
   });
 });
 
