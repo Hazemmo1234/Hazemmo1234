@@ -61,6 +61,50 @@ body {
   font-weight: 800;
 }
 
+/* ── TV motion (UX "Motion"). Nothing flashes faster than 3 Hz. ── */
+/* New best: red glow pulse, 2 × 600 ms */
+@keyframes tv-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(255 90 74 / 0); }
+  50% { box-shadow: 0 0 0 6px rgb(255 90 74 / 0.85), 0 0 48px 8px rgb(196 42 30 / 0.6); }
+}
+.tv-glow { animation: tv-glow 600ms ease-in-out 2; }
+
+/* Rank 1: subtle gold shimmer every 10 s */
+@keyframes tv-shimmer {
+  0%, 88% { background-position: -150% 0; }
+  100% { background-position: 250% 0; }
+}
+.tv-shimmer {
+  background-image: linear-gradient(110deg, transparent 35%, rgb(227 179 65 / 0.22) 50%, transparent 65%);
+  background-size: 60% 100%;
+  background-repeat: no-repeat;
+  animation: tv-shimmer 10s linear infinite;
+}
+
+/* Ticker: two identical copies, scrolled by half the track */
+@keyframes tv-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.tv-ticker { animation: tv-ticker 30s linear infinite; }
+
+/* Leaderboard page change */
+@keyframes tv-page-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+.tv-page-in { animation: tv-page-in 600ms ease-out both; }
+
+/* Reveal: red curtain wipe, rising winners, drumroll, gold burst */
+@keyframes tv-curtain { from { transform: scaleY(1); } to { transform: scaleY(0); } }
+.tv-curtain { transform-origin: top; animation: tv-curtain 1200ms cubic-bezier(0.7, 0, 0.3, 1) 200ms both; }
+@keyframes tv-rise { from { opacity: 0; transform: translateY(60px) scale(0.96); } to { opacity: 1; transform: none; } }
+.tv-rise { animation: tv-rise 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes tv-drumroll { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.04); opacity: 1; } }
+.tv-drumroll { animation: tv-drumroll 1s ease-in-out infinite; }
+@keyframes tv-burst {
+  from { opacity: 0.95; transform: scale(0.2); }
+  to { opacity: 0; transform: scale(2.2); }
+}
+.tv-burst {
+  background: radial-gradient(circle at 50% 55%, rgb(227 179 65 / 0.7) 0%, rgb(227 179 65 / 0.25) 30%, transparent 60%);
+  animation: tv-burst 1600ms ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

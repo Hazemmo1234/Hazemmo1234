@@ -5,7 +5,7 @@ import { useState } from "react";
 import { LOCALES, type Locale } from "@/i18n/config";
 
 // Each language is always written in its own script, whatever the current language.
-const NATIVE_NAME: Record<Locale, string> = { ar: "العربية", en: "English" };
+export const NATIVE_NAME: Record<Locale, string> = { ar: "العربية", en: "English" };
 const SHORT_NAME: Record<Locale, string> = { ar: "عربي", en: "EN" };
 
 /**

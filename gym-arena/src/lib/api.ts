@@ -11,6 +11,8 @@ export const ERROR_STATUS = {
   PHOTO_REQUIRED: 422,
   SEASON_CLOSED: 409,
   VOID_WINDOW_PASSED: 403,
+  /** the request is valid but not allowed in the current state (e.g. close before the season ended) */
+  CONFLICT: 409,
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_STATUS;

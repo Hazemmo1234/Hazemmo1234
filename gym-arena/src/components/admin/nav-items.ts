@@ -1,12 +1,11 @@
 import type { ComponentType, SVGProps } from "react";
-import { CalendarIcon, CoachIcon, DashboardIcon, MembersIcon, SettingsIcon } from "@/components/ui/icons";
+import { AuditIcon, CalendarIcon, CoachIcon, DashboardIcon, EntriesIcon, MembersIcon, SettingsIcon } from "@/components/ui/icons";
 
 /**
  * Admin navigation (UX section B). `ready` flips to true as each M2 screen lands, so the
  * menu never links to a page that does not exist yet; unready items show as "Soon".
- * Entries (A5, M3) and Audit log (A6, M6) are added when their milestones ship.
  */
-export type AdminNavKey = "dashboard" | "seasons" | "members" | "coaches" | "settings";
+export type AdminNavKey = "dashboard" | "seasons" | "members" | "coaches" | "entries" | "audit" | "settings";
 
 export interface AdminNavItem {
   key: AdminNavKey;
@@ -20,7 +19,9 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { key: "seasons", href: "/admin/seasons", icon: CalendarIcon, ready: true },
   { key: "members", href: "/admin/members", icon: MembersIcon, ready: true },
   { key: "coaches", href: "/admin/coaches", icon: CoachIcon, ready: true },
-  { key: "settings", href: "/admin/settings", icon: SettingsIcon, ready: false },
+  { key: "entries", href: "/admin/entries", icon: EntriesIcon, ready: true },
+  { key: "audit", href: "/admin/audit", icon: AuditIcon, ready: true },
+  { key: "settings", href: "/admin/settings", icon: SettingsIcon, ready: true },
 ];
 
 export function isNavReady(key: AdminNavKey): boolean {

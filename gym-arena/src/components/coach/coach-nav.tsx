@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { ActivityIcon, MembersIcon, TrophyIcon } from "@/components/ui/icons";
+import { ActivityIcon, CalendarIcon, MembersIcon, TrophyIcon } from "@/components/ui/icons";
 
 const ITEMS = [
   { href: "/today", key: "today", icon: MembersIcon, match: (p: string) => p === "/today" || p.startsWith("/members") },
   { href: "/leaderboard", key: "leaderboard", icon: TrophyIcon, match: (p: string) => p.startsWith("/leaderboard") },
   { href: "/today/activity", key: "activity", icon: ActivityIcon, match: (p: string) => p.startsWith("/today/activity") },
+  { href: "/history", key: "history", icon: CalendarIcon, match: (p: string) => p.startsWith("/history") },
 ] as const;
 
 /** Coach tab bar: bottom of the screen on phones (one-handed use), start side on iPad+. */

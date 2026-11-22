@@ -1,0 +1,156 @@
+import type { Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import { LOCAL_ONLY, TV_KEY, ownerSql, requireWriteTarget, signIn } from "./helpers";
+
+// M5/M6 admin + coach screens (UX A2, A5, A6, A7, C7): real UI, real API, real database.
+// @writes: creates a member and an entry, corrects and voids it, starts a reveal, rotates the
+// TV key (and restores the seed key on the disposable stack).
+const PAST_SEASON = "00000000-0000-4000-b000-000000000001";
+const ACTIVE_SEASON = "00000000-0000-4000-b000-000000000002";
+const COACH1 = "00000000-0000-4000-a000-000000000011";
+
+async function english(page: Page) {
+  expect((await page.request.patch("/api/me", { data: { locale: "en" } })).status()).toBe(200);
+}
+
+test.describe("M5/M6 admin and coach screens @writes", () => {
+  test.skip(LOCAL_ONLY, "seed accounts exist only locally");
+  test.describe.configure({ mode: "serial" });
+  test.beforeEach(({}, testInfo) => {
+    test.skip(testInfo.project.name !== "coach-mobile", "API and admin flows run once");
+    requireWriteTarget();
+  });
+  test.afterEach(async ({ page }) => {
+    await page.request.patch("/api/me", { data: { locale: "ar" } }).catch(() => {});
+  });
+
+  test("role boundaries on the new APIs (401 signed out, 403 for coaches)", async ({ page }) => {
+    for (const url of ["/api/entries", "/api/audit", "/api/settings", `/api/seasons/${PAST_SEASON}/close`]) {
+      expect((await page.request.get(url)).status(), url).toBe(401);
+    }
+    await signIn(page, "coach1@gym-arena.local");
+    await expect(page).toHaveURL(/\/today$/);
+    for (const url of ["/api/entries", "/api/audit", "/api/settings", `/api/seasons/${PAST_SEASON}/close`]) {
+      expect((await page.request.get(url)).status(), url).toBe(403);
+    }
+    expect((await page.request.post("/api/settings/tv-key")).status()).toBe(403);
+    expect((await page.request.post(`/api/seasons/${PAST_SEASON}/reveal`)).status()).toBe(403);
+    expect((await page.request.post(`/api/seasons/${ACTIVE_SEASON}/close`)).status()).toBe(403);
+    // the coach may read final results (own clients highlighted) and the history screen
+    expect((await page.request.get(`/api/seasons/${PAST_SEASON}/results`)).status()).toBe(200);
+    await english(page);
+    await page.goto("/history");
+    await expect(page.getByRole("heading", { name: "History", level: 1 })).toBeVisible();
+    await page.getByRole("link", { name: /Arena — Past \(seed\)/ }).click();
+    await expect(page.getByRole("heading", { name: "Arena — Past (seed)", level: 1 })).toBeVisible();
+  });
+
+  test("entries: correct and void with a mandatory reason; both audited (BR-E9, BR-E11, AC-47)", async ({ page }) => {
+    await signIn(page, "admin@gym-arena.local");
+    await expect(page).toHaveURL(/\/admin\/dashboard$/);
+    await english(page);
+    const name = `E2E Entries ${Date.now() % 1_000_000}`;
+    const phone = `+2012${String(Date.now() % 100_000_000).padStart(8, "0")}`;
+    const created = await page.request.post("/api/members", { data: { full_name: name, phone, photo_consent: false, coach_id: COACH1 } });
+    expect(created.status()).toBe(201);
+    const memberId = (await created.json()).member.id as string;
+    // a rookie's pull-ups never change the total, so no photo is required (SCORING §6)
+    const logged = await page.request.post("/api/entries", { data: { member_id: memberId, category: "pullups", reps: 10 } });
+    expect(logged.status()).toBe(201);
+    const entryId = (await logged.json()).entry.id as string;
+
+    // API: reason required, category rules re-checked, coaches forbidden
+    expect((await page.request.patch(`/api/entries/${entryId}`, { data: { reps: 12 } })).status()).toBe(422);
+    expect((await page.request.patch(`/api/entries/${entryId}`, { data: { reps: 999, reason: "x" } })).status()).toBe(422);
+    expect((await page.request.patch(`/api/entries/${entryId}`, { data: { weight_kg: "50", reason: "x" } })).status()).toBe(422);
+
+    // UI: filter by member, correct with a reason
+    await page.goto(`/admin/entries?q=${encodeURIComponent(name)}`);
+    await expect(page.getByText(name)).toBeVisible();
+    await page.getByRole("button", { name: `Correct ${name}'s entry` }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Reps").fill("12");
+    await expect(dialog.getByRole("button", { name: "Save correction" })).toBeDisabled(); // no reason yet
+    await dialog.getByLabel("Reason (required)").fill("E2E: counted 12, typed 10");
+    await dialog.getByRole("button", { name: "Save correction" }).click();
+    await expect(page.getByRole("status")).toContainText("Entry corrected");
+    await expect(page.getByText("12 reps")).toBeVisible();
+
+    // UI: void with a reason → undone, still listed when "Show undone entries" is on
+    await page.getByRole("button", { name: `Void ${name}'s entry` }).click();
+    await page.getByRole("dialog").getByLabel("Reason (required)").fill("E2E: wrong client");
+    await page.getByRole("dialog").getByRole("button", { name: "Void entry" }).click();
+    await expect(page.getByRole("status")).toContainText("Entry voided");
+    await page.getByLabel("Show undone entries").check();
+    await expect(page.getByText("E2E: wrong client")).toBeVisible();
+    const row = await (await page.request.get(`/api/entries/${entryId}`)).json();
+    expect(row).toMatchObject({ reps: 12, void_reason: "E2E: wrong client" });
+    expect(row.voided_at).toBeTruthy();
+    expect((await page.request.patch(`/api/entries/${entryId}`, { data: { reps: 11, reason: "after void" } })).status()).toBe(403);
+
+    // audit: both corrections with actor, target and reason, newest first; filter by action
+    const audit = await (await page.request.get("/api/audit?action=entry.edit")).json();
+    expect(audit.rows[0]).toMatchObject({ action: "entry.edit", target: name, reason: "E2E: counted 12, typed 10" });
+    expect(audit.rows[0].changes).toEqual(expect.arrayContaining([{ field: "reps", before: "10", after: "12" }]));
+    expect(JSON.stringify(audit)).not.toMatch(/photo_path|\+20\d{9}/);
+    await page.goto("/admin/audit?action=entry.void");
+    await expect(page.getByText("E2E: wrong client")).toBeVisible();
+    await expect(page.getByText("Entry voided").first()).toBeVisible();
+  });
+
+  test("seasons: close and reveal refuse the wrong moment; reveal of a closed championship; results page", async ({ page }) => {
+    await signIn(page, "admin@gym-arena.local");
+    await english(page);
+    const preview = await (await page.request.get(`/api/seasons/${ACTIVE_SEASON}/close`)).json();
+    expect(preview).toMatchObject({ can_close: false, blocked: "not_ended" });
+    const early = await page.request.post(`/api/seasons/${ACTIVE_SEASON}/close`);
+    expect(early.status()).toBe(409);
+    expect((await early.json()).error).toMatchObject({ code: "CONFLICT", reason: "not_ended" });
+    const again = await page.request.post(`/api/seasons/${PAST_SEASON}/close`);
+    expect(again.status()).toBe(409);
+    expect((await again.json()).error.code).toBe("SEASON_CLOSED");
+    const openReveal = await page.request.post(`/api/seasons/${ACTIVE_SEASON}/reveal`);
+    expect(openReveal.status()).toBe(409);
+    expect((await openReveal.json()).error.reason).toBe("not_closed");
+
+    await page.goto("/admin/seasons");
+    await page.getByRole("button", { name: "Start the winner reveal of Arena — Past (seed)" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /Start reveal|Reveal again/ }).click();
+    await expect(page.getByRole("status")).toContainText("Reveal started");
+    const audit = await (await page.request.get("/api/audit?action=season.reveal")).json();
+    expect(audit.rows[0]).toMatchObject({ action: "season.reveal", target: "Arena — Past (seed)" });
+
+    await page.getByRole("link", { name: "Final results of Arena — Past (seed)" }).click();
+    await expect(page).toHaveURL(new RegExp(`/admin/seasons/${PAST_SEASON}$`));
+    await expect(page.getByText("Final — frozen at close", { exact: false })).toBeVisible();
+  });
+
+  test("settings: TV link masked; key rotation invalidates the old key at once (seed key restored)", async ({ page }) => {
+    await signIn(page, "admin@gym-arena.local");
+    await english(page);
+    await page.goto("/admin/settings");
+    const url = page.getByTestId("tv-url");
+    await expect(url).toContainText("•");
+    await expect(url).not.toContainText(TV_KEY);
+    await page.getByRole("button", { name: "Show the TV key" }).click();
+    await expect(url).toContainText(TV_KEY);
+    await expect(page.getByRole("button", { name: "Save" })).toBeDisabled(); // nothing changed
+
+    try {
+      await page.getByRole("button", { name: "Generate new key" }).click();
+      await page.getByRole("dialog").getByRole("button", { name: "Generate new key" }).click();
+      await expect(page.getByRole("status")).toContainText("New TV key generated");
+      const settings = await (await page.request.get("/api/settings")).json();
+      const newKey = new URL(settings.tv_url).searchParams.get("key")!;
+      expect(newKey).not.toBe(TV_KEY);
+      expect(newKey.length).toBeGreaterThanOrEqual(32);
+      expect((await page.request.get(`/api/tv/state?key=${TV_KEY}`)).status()).toBe(401);
+      expect((await page.request.get(`/api/tv/state?key=${encodeURIComponent(newKey)}`)).status()).toBe(200);
+      const audit = await (await page.request.get("/api/audit?action=tv_key.regenerate")).json();
+      expect(JSON.stringify(audit)).not.toContain(newKey);
+    } finally {
+      await ownerSql(`update public.app_settings set tv_key = '${TV_KEY}' where id = 1`);
+    }
+    expect((await page.request.get(`/api/tv/state?key=${TV_KEY}`)).status()).toBe(200);
+  });
+});

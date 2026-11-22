@@ -57,6 +57,7 @@ These are final. The original product model (7 categories, 1000 weighted points,
 | D32 | Dashboard activity window | **Owner decision (M4 review, K3).** "Members with ≥1 entry this week" (UX A1) is computed over the **last 7 Cairo calendar days, today included** (today − 6 … today), and is labelled "last 7 days" / «آخر 7 أيام» in both languages. Denominator: the season's active participants. |
 
 ## Still open (decide before launch, none block M0–M5)
+- **TV between seasons — show standings before the reveal?** UX C lists "last standings frozen display" for the Between mode. Implemented default (M5): the TV shows "Results coming soon" (and a countdown when a next season is scheduled) but **no standings** of an ended championship until the Admin starts the reveal — the provisional ranking of an ended, unclosed season is not final, and showing the frozen podium before "Start reveal" would give the reveal away. If the owner prefers the standings, it is a small change in `modules/tv/payload.ts` (`resolveTvMode`) and `modules/tv/state.ts`.
 - Exact prize announcement text and who hands prizes (outside system).
 - SVG / transparent PNG of the DFN GYM wordmark (current brand assets derived from a JPEG — usable, but a vector is sharper on the TV).
 - Domain name.

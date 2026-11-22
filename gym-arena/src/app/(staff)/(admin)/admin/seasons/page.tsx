@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // UX A2 Seasons — list, create (suggests next calendar month), edit / extend.
-// Close and Start reveal arrive with M6.
+// Close (ended seasons, with a confirmation summary), Start reveal and results (closed championships).
 export default async function SeasonsPage() {
   const day = today();
   const [locale, seasons] = await Promise.all([getLocale(), listSeasons(await createClient(), day)]);

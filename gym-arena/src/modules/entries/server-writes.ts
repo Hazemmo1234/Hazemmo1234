@@ -65,9 +65,10 @@ export async function voidEntry(staff: VerifiedStaff, entryId: string, reason?: 
 }
 
 export interface EditEntryInput {
-  weightKg?: number;
+  /** decimal strings keep the exact value the admin typed ("72.5") */
+  weightKg?: number | string;
   reps?: number;
-  km?: number;
+  km?: number | string;
   performedOn?: string;
   reason: string;
 }

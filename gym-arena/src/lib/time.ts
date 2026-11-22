@@ -66,3 +66,21 @@ export function monthBounds(date: IsoDate): { startsOn: IsoDate; endsOn: IsoDate
   const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
   return { startsOn, endsOn: `${date.slice(0, 7)}-${String(last).padStart(2, "0")}` };
 }
+
+const offsetFormatter = new Intl.DateTimeFormat("en-US", { timeZone: APP_TIMEZONE, timeZoneName: "shortOffset" });
+
+/** Cairo's UTC offset in minutes at an instant (e.g. 120 in winter, 180 with DST). */
+function cairoOffsetMinutes(instant: number): number {
+  const name = offsetFormatter.formatToParts(new Date(instant)).find((p) => p.type === "timeZoneName")?.value ?? "GMT";
+  const m = /GMT([+-])(\d{1,2})(?::(\d{2}))?/.exec(name);
+  if (!m) return 0;
+  return (m[1] === "-" ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3] ?? 0));
+}
+
+/** The instant 00:00 of a Cairo calendar day (DST-aware) — for filtering timestamps by Cairo day. */
+export function cairoMidnight(date: IsoDate): Date {
+  const utcMidnight = toUtcMidnight(date);
+  // the offset at the guess can differ from the offset at the real instant only around a DST switch
+  const first = utcMidnight - cairoOffsetMinutes(utcMidnight) * 60_000;
+  return new Date(utcMidnight - cairoOffsetMinutes(first) * 60_000);
+}

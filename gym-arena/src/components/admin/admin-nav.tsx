@@ -51,17 +51,20 @@ export function AdminSideNav() {
   );
 }
 
-/** Bottom tab bar for phones (< 768 px). Thumb-reachable, safe-area aware. */
+/**
+ * Bottom tab bar for phones (< 768 px). Thumb-reachable, safe-area aware. With seven sections
+ * the bar scrolls sideways inside itself (the page never overflows); each tab stays ≥ 44 px.
+ */
 export function AdminBottomNav() {
   const pathname = usePathname();
   const t = useTranslations("nav");
   return (
-    <ul className="grid grid-cols-5">
+    <ul className="flex overflow-x-auto [scrollbar-width:none]">
       {ADMIN_NAV.map(({ key, href, icon: Icon, ready }) => {
         const active = isActive(pathname, href);
-        const cls = "flex min-h-16 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold";
+        const cls = "flex min-h-16 min-w-[4.75rem] flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold";
         return (
-          <li key={key}>
+          <li key={key} className="flex-1">
             {ready ? (
               <Link href={href} aria-current={active ? "page" : undefined} className={`${cls} ${active ? "text-brand-text" : "text-text-muted"}`}>
                 <Icon size={22} />

@@ -46,3 +46,35 @@ export const voidEntrySchema = z.object({ reason: z.string().trim().max(300).opt
 export const attendanceSchema = z.object({ member_id: guid }).strict();
 /** POST /api/uploads/evidence — API_SPECIFICATION: `{ member_id }`; the optional content_type picks .webp (default) or .jpg. */
 export const evidenceUploadSchema = z.object({ member_id: guid, content_type: z.enum(["image/webp", "image/jpeg"]).default("image/webp") }).strict();
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/**
+ * PATCH /api/entries/:id (admin, until close) — API_SPECIFICATION. The written reason is
+ * mandatory (BR-E9, AC-47); at least one value or the date must change. The category rules
+ * (BR-E4) are applied to the merged values by modules/scoring `validateEntry` on the server.
+ */
+export const editEntrySchema = z
+  .object({
+    weight_kg: decimal.optional(),
+    reps: reps.optional(),
+    km: decimal.optional(),
+    performed_on: isoDate.optional(),
+    reason: z.string().trim().min(1, { message: "reason_required" }).max(300),
+  })
+  .strict()
+  .refine((v) => v.weight_kg !== undefined || v.reps !== undefined || v.km !== undefined || v.performed_on !== undefined, { message: "nothing_to_change" });
+export type EditEntryBody = z.infer<typeof editEntrySchema>;
+
+/** GET /api/entries (admin) — the A5 log filters. */
+export const entriesQuerySchema = z.object({
+  season_id: guid.optional(),
+  member_id: guid.optional(),
+  coach_id: guid.optional(),
+  category: z.enum(["deadlift", "bench", "squat", "pullups", "pushups", "treadmill"]).optional(),
+  date: isoDate.optional(),
+  q: z.string().trim().max(80).optional(),
+  include_voided: z.enum(["true", "false"]).optional(),
+  page: z.coerce.number().int().min(1).max(10_000).optional(),
+});
+export type EntriesQuery = z.infer<typeof entriesQuerySchema>;

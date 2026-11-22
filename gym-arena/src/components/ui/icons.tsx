@@ -100,3 +100,18 @@ export const SearchIcon = (p: IconProps) => (
 export const TrophyIcon = (p: IconProps) => (
   <Svg {...p}><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z" /><path d="M7 6H4.5v1.5A3.5 3.5 0 0 0 8 11M17 6h2.5v1.5A3.5 3.5 0 0 1 16 11M12 14v3.5M8.5 21h7M9.5 21v-1.5a2.5 2.5 0 0 1 5 0V21" /></Svg>
 );
+export const CopyIcon = (p: IconProps) => (
+  <Svg {...p}><rect x="8.5" y="8.5" width="12" height="12" rx="2" /><path d="M15.5 8.5V5.5a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3" /></Svg>
+);
+export const RefreshIcon = (p: IconProps) => (
+  <Svg {...p}><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8" /><path d="M4 3.5V8h4.5" /><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16" /><path d="M20 20.5V16h-4.5" /></Svg>
+);
+export const ExternalIcon = (p: IconProps) => (
+  <Svg {...p} className={`rtl:-scale-x-100 ${p.className ?? ""}`}><path d="M14 4h6v6M20 4l-9 9" /><path d="M18 14v5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 4 19V7.5A1.5 1.5 0 0 1 5.5 6H10" /></Svg>
+);
+export const PhotoIcon = (p: IconProps) => (
+  <Svg {...p}><rect x="3" y="4.5" width="18" height="15" rx="2" /><circle cx="8.5" cy="9.5" r="1.5" /><path d="m21 16-5-5-9 8.5" /></Svg>
+);
+export const BanIcon = (p: IconProps) => (
+  <Svg {...p}><circle cx="12" cy="12" r="8.5" /><path d="m6 6 12 12" /></Svg>
+);

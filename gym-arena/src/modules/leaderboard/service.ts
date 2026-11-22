@@ -52,6 +52,12 @@ interface SeasonRow extends BoardSeason {
 export interface SeasonInputs {
   season: BoardSeason;
   participants: ParticipantHistory[];
+  /**
+   * The raw records behind `participants`, per member: the best pre-season entry per category
+   * (id "" — enough for baselines) and every non-voided in-season entry. For event views that
+   * need entry times (the TV's recent new bests); never sent to a client as-is.
+   */
+  records: Map<string, EntryRecord[]>;
   members: Map<string, BoardMember & { photo_path: string | null; photo_consent: boolean }>;
 }
 
@@ -101,7 +107,7 @@ export async function loadSeasonInputs(season: BoardSeason): Promise<SeasonInput
       isActive: r.members.status === "active",
     });
   }
-  return { season, participants, members };
+  return { season, participants, members, records: byMember };
 }
 
 /** Photos for the rows being returned: consented members only (BR-P8), short-lived URLs. */

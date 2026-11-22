@@ -4,10 +4,10 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { CalendarIcon, LockIcon, PencilIcon, PlusIcon } from "@/components/ui/icons";
+import { CalendarIcon, LockIcon, PencilIcon, PlusIcon, TrophyIcon, TvIcon } from "@/components/ui/icons";
 import { PageHeader } from "@/components/ui/page-header";
 import { Toast, useToast } from "@/components/ui/toast";
 import type { Locale } from "@/i18n/config";
@@ -15,6 +15,7 @@ import { formatDateRange, formatNumber } from "@/lib/i18n/format";
 import type { IsoDate } from "@/lib/time";
 import type { SeasonListItem } from "@/modules/seasons/service";
 import type { SeasonStatus } from "@/modules/seasons/status";
+import { CloseSeasonDialog, RevealDialog } from "./lifecycle-dialogs";
 import { SeasonDialog, type EditableSeason } from "./season-dialog";
 
 const STATUS_TONE: Record<SeasonStatus, BadgeTone> = { active: "success", scheduled: "brand", ended: "warning", closed: "neutral" };
@@ -35,9 +36,11 @@ export function SeasonsManager({
   const router = useRouter();
   const toast = useToast();
   const [dialog, setDialog] = useState<{ kind: "create" } | { kind: "edit"; season: EditableSeason } | null>(null);
+  const [lifecycle, setLifecycle] = useState<{ kind: "close" | "reveal"; season: SeasonListItem } | null>(null);
 
   const saved = (message: string) => {
     setDialog(null);
+    setLifecycle(null);
     toast.show(message);
     router.refresh(); // reload the list from the server
   };
@@ -94,15 +97,37 @@ export function SeasonsManager({
                     {s.status === "closed" && t("closedHint")}
                   </p>
                   {s.status === "closed" ? (
-                    <span className="inline-flex min-h-11 items-center gap-2 px-2 text-sm text-text-muted">
-                      <LockIcon size={18} />
-                      {t("readOnly")}
-                    </span>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <span className="inline-flex min-h-11 items-center gap-2 px-2 text-sm text-text-muted">
+                        <LockIcon size={18} />
+                        {t("readOnly")}
+                      </span>
+                      {s.type === "championship" && (
+                        <>
+                          <ButtonLink variant="secondary" href={`/admin/seasons/${s.id}`} aria-label={t("resultsNamed", { name: s.name })}>
+                            <TrophyIcon size={18} />
+                            {t("results")}
+                          </ButtonLink>
+                          <Button onClick={() => setLifecycle({ kind: "reveal", season: s })} aria-label={t("revealNamed", { name: s.name })}>
+                            <TvIcon size={18} />
+                            {s.reveal_started_at ? t("revealAgain") : t("reveal")}
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   ) : (
-                    <Button variant="secondary" onClick={() => setDialog({ kind: "edit", season: s })} aria-label={t("editNamed", { name: s.name })}>
-                      <PencilIcon size={18} />
-                      {t("edit")}
-                    </Button>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {s.status === "ended" && (
+                        <Button variant="danger" onClick={() => setLifecycle({ kind: "close", season: s })} aria-label={t("closeNamed", { name: s.name })}>
+                          <LockIcon size={18} />
+                          {t("close")}
+                        </Button>
+                      )}
+                      <Button variant="secondary" onClick={() => setDialog({ kind: "edit", season: s })} aria-label={t("editNamed", { name: s.name })}>
+                        <PencilIcon size={18} />
+                        {t("edit")}
+                      </Button>
+                    </div>
                   )}
                 </div>
               </li>
@@ -120,6 +145,8 @@ export function SeasonsManager({
           onSaved={saved}
         />
       )}
+      {lifecycle?.kind === "close" && <CloseSeasonDialog season={lifecycle.season} onClose={() => setLifecycle(null)} onDone={saved} />}
+      {lifecycle?.kind === "reveal" && <RevealDialog season={lifecycle.season} onClose={() => setLifecycle(null)} onDone={saved} />}
       <Toast message={toast.message} />
     </>
   );
