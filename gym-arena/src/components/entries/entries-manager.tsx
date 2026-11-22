@@ -245,6 +245,9 @@ export function EntriesManager({
   const text = useEntryText();
   const [dialog, setDialog] = useState<DialogState>(null);
   const [q, setQ] = useState(filters.q);
+  // optimistic: the box reflects the click at once; the server list follows the URL
+  const [showVoided, setShowVoided] = useState(filters.include_voided);
+  useEffect(() => setShowVoided(filters.include_voided), [filters.include_voided]);
   const editable = season !== null && season.status !== "closed";
 
   const go = (next: Partial<EntryFilters>) => {
@@ -300,7 +303,15 @@ export function EntriesManager({
             }
           />
           <label className="flex min-h-11 items-center gap-3 self-end rounded-xl border border-border bg-surface-2 px-4 py-3 text-sm">
-            <input type="checkbox" checked={filters.include_voided} onChange={(e) => go({ include_voided: e.target.checked })} className="size-5 accent-brand" />
+            <input
+              type="checkbox"
+              checked={showVoided}
+              onChange={(e) => {
+                setShowVoided(e.target.checked);
+                go({ include_voided: e.target.checked });
+              }}
+              className="size-5 accent-brand"
+            />
             {t("includeVoided")}
           </label>
         </form>

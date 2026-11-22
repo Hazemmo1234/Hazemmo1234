@@ -35,7 +35,10 @@ test.describe("seasons", () => {
     const past = page.getByRole("listitem").filter({ hasText: "Arena — Past (seed)" });
     await expect(past.getByText("Closed", { exact: true })).toBeVisible();
     await expect(past.getByText("Read-only")).toBeVisible();
-    await expect(past.getByRole("button")).toHaveCount(0);
+    // closed: no Edit / Close; only the M6 actions — final results and the winner reveal (UX A2)
+    await expect(past.getByRole("button", { name: /^Edit|^Close/ })).toHaveCount(0);
+    await expect(past.getByRole("link", { name: "Final results of Arena — Past (seed)" })).toBeVisible();
+    await expect(past.getByRole("button", { name: "Start the winner reveal of Arena — Past (seed)" })).toBeVisible();
   });
 
   test("navigation: Seasons is live in the sidebar and opens the page", async ({ page }) => {

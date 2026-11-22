@@ -46,7 +46,10 @@ test.describe("TV state API and screen @writes", () => {
     await expect(page.getByText(/مباشر|Live/).first()).toBeVisible();
     if (state.board.length > 0) await expect(page.getByText(state.board[0].name).first()).toBeVisible();
     await signIn(page, "admin@gym-arena.local");
-    const staff = await (await page.request.get("/api/leaderboard")).json();
+    await expect(page).toHaveURL(/\/admin\/dashboard$/);
+    const res = await page.request.get("/api/leaderboard");
+    expect(res.status()).toBe(200);
+    const staff = await res.json();
     expect(state.board.map((r: { rank: number; total: number }) => [r.rank, r.total])).toEqual(
       staff.main.map((r: { rank: number; total_display: number }) => [r.rank, r.total_display]),
     );
@@ -55,6 +58,7 @@ test.describe("TV state API and screen @writes", () => {
   // The screen itself, driven by deterministic TV states (the poll response is replaced; the
   // server-rendered first state is real). State-based assertions — no sleeps beyond one poll.
   test("reveal sequence resumes at the right step after a refresh (AC-24) and holds the final podium", async ({ page }) => {
+    test.setTimeout(60_000); // two page loads, each waiting for one 10 s poll
     const now = Date.now();
     const state = (startedSecondsAgo: number) => ({
       version: `reveal-${startedSecondsAgo}`,
@@ -93,6 +97,7 @@ test.describe("TV state API and screen @writes", () => {
   });
 
   test("between seasons: results coming soon, no standings; network loss keeps the last state (AC-29)", async ({ page }) => {
+    test.setTimeout(75_000); // three 10 s polls: first state, the lost one, the recovered one
     const between = {
       version: "between-1",
       server_time: new Date().toISOString(),
@@ -121,6 +126,7 @@ test.describe("TV state API and screen @writes", () => {
   });
 
   test("a rotated key turns a running screen into 'Display not authorized'", async ({ page }) => {
+    test.setTimeout(45_000);
     let revoked = false;
     await page.route("**/api/tv/state*", (route) =>
       revoked ? route.fulfill({ status: 401, json: { error: { code: "UNAUTHENTICATED", message: "Display not authorized" } } }) : route.fallback(),

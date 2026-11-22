@@ -79,12 +79,16 @@ test.describe("admin shell", () => {
     });
   }
 
-  test("unfinished sections are not links (no dead pages)", async ({ page }) => {
+  test("every section is a working link (no dead pages, none left unfinished)", async ({ page }) => {
     await page.setViewportSize(VIEWPORTS.desktop);
     const aside = page.locator("aside");
     const links = await aside.getByRole("link").allTextContents();
     expect(links.some((l) => l.includes("الرئيسية"))).toBe(true);
-    await expect(aside.locator('[aria-disabled="true"]').first()).toBeVisible();
+    // M6 shipped the last sections (Entries, Audit log, Settings): nothing is disabled any more
+    await expect(aside.locator('[aria-disabled="true"]')).toHaveCount(0);
+    for (const href of await aside.getByRole("link").evaluateAll((els) => els.map((e) => e.getAttribute("href")))) {
+      expect((await page.request.get(href!)).status(), href!).toBe(200);
+    }
   });
 
   test("language switch from the sidebar flips direction without a manual reload", async ({ page }) => {
