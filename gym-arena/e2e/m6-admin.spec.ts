@@ -9,6 +9,12 @@ const PAST_SEASON = "00000000-0000-4000-b000-000000000001";
 const ACTIVE_SEASON = "00000000-0000-4000-b000-000000000002";
 const COACH1 = "00000000-0000-4000-a000-000000000011";
 
+/** Sign in as the admin and wait until the session is established (the redirect to the dashboard). */
+async function asAdmin(page: Page) {
+  await signIn(page, "admin@gym-arena.local");
+  await expect(page).toHaveURL(/\/admin\/dashboard$/);
+}
+
 async function english(page: Page) {
   expect((await page.request.patch("/api/me", { data: { locale: "en" } })).status()).toBe(200);
 }
@@ -46,8 +52,7 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
   });
 
   test("entries: correct and void with a mandatory reason; both audited (BR-E9, BR-E11, AC-47)", async ({ page }) => {
-    await signIn(page, "admin@gym-arena.local");
-    await expect(page).toHaveURL(/\/admin\/dashboard$/);
+    await asAdmin(page);
     await english(page);
     const name = `E2E Entries ${Date.now() % 1_000_000}`;
     const voidReason = `E2E: wrong client (${name})`; // unique per run: retries create new rows
@@ -102,7 +107,7 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
   });
 
   test("seasons: close and reveal refuse the wrong moment; reveal of a closed championship; results page", async ({ page }) => {
-    await signIn(page, "admin@gym-arena.local");
+    await asAdmin(page);
     await english(page);
     const preview = await (await page.request.get(`/api/seasons/${ACTIVE_SEASON}/close`)).json();
     expect(preview).toMatchObject({ can_close: false, blocked: "not_ended" });
@@ -129,7 +134,7 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
   });
 
   test("settings: TV link masked; key rotation invalidates the old key at once (seed key restored)", async ({ page }) => {
-    await signIn(page, "admin@gym-arena.local");
+    await asAdmin(page);
     await english(page);
     await page.goto("/admin/settings");
     const url = page.getByTestId("tv-url");
@@ -162,7 +167,7 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
       const { scroll, inner } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, inner: window.innerWidth }));
       expect(scroll, `${label}: horizontal overflow`).toBeLessThanOrEqual(inner);
     };
-    await signIn(page, "admin@gym-arena.local");
+    await asAdmin(page);
     for (const locale of ["ar", "en"] as const) {
       expect((await page.request.patch("/api/me", { data: { locale } })).status()).toBe(200);
       for (const width of [360, 820]) {
@@ -178,8 +183,7 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
   });
 
   test("missing deployment secrets fail safely: close → 503 without any change; cron → 401", async ({ page }) => {
-    await signIn(page, "admin@gym-arena.local");
-    await expect(page).toHaveURL(/\/admin\/dashboard$/);
+    await asAdmin(page);
     // an ended, still-open season far in the past (unique month per attempt: no overlap)
     let seasonId = "";
     for (let attempt = 0; attempt < 6 && !seasonId; attempt++) {
