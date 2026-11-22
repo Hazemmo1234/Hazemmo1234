@@ -98,7 +98,7 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
     const record = page.getByRole("listitem").filter({ hasText: voidReason });
     await expect(record).toHaveCount(1);
     await expect(record.getByText("Entry voided")).toBeVisible();
-    await expect(record.getByText(name)).toBeVisible();
+    await expect(record.getByText(name, { exact: true })).toBeVisible();
   });
 
   test("seasons: close and reveal refuse the wrong moment; reveal of a closed championship; results page", async ({ page }) => {
