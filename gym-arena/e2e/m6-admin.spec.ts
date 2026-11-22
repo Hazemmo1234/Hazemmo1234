@@ -50,6 +50,7 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
     await expect(page).toHaveURL(/\/admin\/dashboard$/);
     await english(page);
     const name = `E2E Entries ${Date.now() % 1_000_000}`;
+    const voidReason = `E2E: wrong client (${name})`; // unique per run: retries create new rows
     const phone = `+2012${String(Date.now() % 100_000_000).padStart(8, "0")}`;
     const created = await page.request.post("/api/members", { data: { full_name: name, phone, photo_consent: false, coach_id: COACH1 } });
     expect(created.status()).toBe(201);
@@ -78,13 +79,13 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
 
     // UI: void with a reason → undone, still listed when "Show undone entries" is on
     await page.getByRole("button", { name: `Void ${name}'s entry` }).click();
-    await page.getByRole("dialog").getByLabel("Reason (required)").fill("E2E: wrong client");
+    await page.getByRole("dialog").getByLabel("Reason (required)").fill(voidReason);
     await page.getByRole("dialog").getByRole("button", { name: "Void entry" }).click();
     await expect(page.getByRole("status")).toContainText("Entry voided");
     await page.getByLabel("Show undone entries").check();
-    await expect(page.getByText("E2E: wrong client")).toBeVisible();
+    await expect(page.getByText(voidReason)).toBeVisible();
     const row = await (await page.request.get(`/api/entries/${entryId}`)).json();
-    expect(row).toMatchObject({ reps: 12, void_reason: "E2E: wrong client" });
+    expect(row).toMatchObject({ reps: 12, void_reason: voidReason });
     expect(row.voided_at).toBeTruthy();
     expect((await page.request.patch(`/api/entries/${entryId}`, { data: { reps: 11, reason: "after void" } })).status()).toBe(403);
 
@@ -94,8 +95,10 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
     expect(audit.rows[0].changes).toEqual(expect.arrayContaining([{ field: "reps", before: "10", after: "12" }]));
     expect(JSON.stringify(audit)).not.toMatch(/photo_path|\+20\d{9}/);
     await page.goto("/admin/audit?action=entry.void");
-    await expect(page.getByText("E2E: wrong client")).toBeVisible();
-    await expect(page.getByText("Entry voided").first()).toBeVisible();
+    const record = page.getByRole("listitem").filter({ hasText: voidReason });
+    await expect(record).toHaveCount(1);
+    await expect(record.getByText("Entry voided")).toBeVisible();
+    await expect(record.getByText(name)).toBeVisible();
   });
 
   test("seasons: close and reveal refuse the wrong moment; reveal of a closed championship; results page", async ({ page }) => {
