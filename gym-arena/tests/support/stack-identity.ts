@@ -29,7 +29,8 @@ const run = promisify(execFile);
 export const LOCAL_JWT_SECRET = "super-secret-jwt-token-with-at-least-32-characters-long";
 /** Label the Supabase CLI puts on every container of a local stack. */
 export const PROJECT_LABEL = "com.supabase.cli.project";
-const DB_IMAGE = /^(public\.ecr\.aws\/)?supabase\/postgres:/;
+// the Supabase CLI pulls from its official registries: public.ecr.aws (default), ghcr.io or Docker Hub
+const DB_IMAGE = /^(public\.ecr\.aws\/|ghcr\.io\/)?supabase\/postgres:/;
 const API_IMAGE = /kong:/;
 
 export interface ContainerInfo {

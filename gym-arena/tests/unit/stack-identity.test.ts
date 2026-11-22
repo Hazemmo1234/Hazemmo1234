@@ -86,6 +86,11 @@ describe("stack identity: the real CI stack", () => {
     const t = await verifyWriteTarget(CI_ENV, world([CI_STACK, DEV_STACK, TEST_STACK]));
     expect(t).toMatchObject({ project: "gym-arena-ci", dbContainer: "supabase_db_gym-arena-ci", apiContainer: "supabase_kong_gym-arena-ci", volume: "supabase_db_gym-arena-ci", systemId: CI_STACK.systemId });
   });
+  it("the same stack pulled from Supabase's other official registries (GHCR, Docker Hub) passes", async () => {
+    for (const image of ["ghcr.io/supabase/postgres:17.11.0.018", "supabase/postgres:17.11.0.018"]) {
+      expect((await verifyWriteTarget(CI_ENV, world([{ ...CI_STACK, db: { image } }]))).project).toBe("gym-arena-ci");
+    }
+  });
   it("the fresh local stack passes the same way", async () => {
     const fresh = stack("gym-arena-fresh", "57321", "57322", "7400000000000000004");
     expect((await verifyWriteTarget(FRESH_ENV, world([fresh]))).project).toBe("gym-arena-fresh");
@@ -115,6 +120,8 @@ describe("stack identity: refusals (fail closed)", () => {
     await refused(CI_ENV, world([{ ...CI_STACK, db: { running: false } }]), /is not running/);
     await refused(CI_ENV, world([{ ...CI_STACK, api: { name: "something-else" } }]), /expected names/);
     await refused(CI_ENV, world([{ ...CI_STACK, db: { image: "postgres:17" } }]), /unexpected image/);
+    await refused(CI_ENV, world([{ ...CI_STACK, db: { image: "evil.example/supabase/postgres:17.11.0.018" } }]), /unexpected image/);
+    await refused(CI_ENV, world([{ ...CI_STACK, db: { image: "ghcr.io/someone/postgres:17" } }]), /unexpected image/);
     await refused(CI_ENV, world([{ ...CI_STACK, api: { image: "nginx:latest" } }]), /unexpected image/);
   });
   it("a remote URL (refused before anything is inspected)", async () => {
