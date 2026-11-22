@@ -134,30 +134,42 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
   });
 
   test("settings: TV link masked; key rotation invalidates the old key at once (seed key restored)", async ({ page }) => {
+    test.setTimeout(60_000); // rotation + three full TV-state computations
     await asAdmin(page);
     await english(page);
-    await page.goto("/admin/settings");
     const url = page.getByTestId("tv-url");
-    await expect(url).toContainText("•");
-    await expect(url).not.toContainText(TV_KEY);
-    await page.getByRole("button", { name: "Show the TV key" }).click();
-    await expect(url).toContainText(TV_KEY);
-    await expect(page.getByRole("button", { name: "Save" })).toBeDisabled(); // nothing changed
-
+    await test.step("the TV link is masked until the admin asks to see it", async () => {
+      await page.goto("/admin/settings");
+      await expect(url).toContainText("•");
+      await expect(url).not.toContainText(TV_KEY);
+      await page.getByRole("button", { name: "Show the TV key" }).click();
+      await expect(url).toContainText(TV_KEY);
+      await expect(page.getByRole("button", { name: "Save" })).toBeDisabled(); // nothing changed
+    });
     try {
-      await page.getByRole("button", { name: "Generate new key" }).click();
-      await page.getByRole("dialog").getByRole("button", { name: "Generate new key" }).click();
-      await expect(page.getByRole("status")).toContainText("New TV key generated");
-      const settings = await (await page.request.get("/api/settings")).json();
-      const newKey = new URL(settings.tv_url).searchParams.get("key")!;
-      expect(newKey).not.toBe(TV_KEY);
-      expect(newKey.length).toBeGreaterThanOrEqual(32);
-      expect((await page.request.get(`/api/tv/state?key=${TV_KEY}`)).status()).toBe(401);
-      expect((await page.request.get(`/api/tv/state?key=${encodeURIComponent(newKey)}`)).status()).toBe(200);
-      const audit = await (await page.request.get("/api/audit?action=tv_key.regenerate")).json();
-      expect(JSON.stringify(audit)).not.toContain(newKey);
+      let newKey = "";
+      await test.step("rotate from the Settings screen", async () => {
+        await page.getByRole("button", { name: "Generate new key" }).click();
+        await page.getByRole("dialog").getByRole("button", { name: "Generate new key" }).click();
+        await expect(page.getByRole("status")).toContainText("New TV key generated");
+        const settings = await (await page.request.get("/api/settings")).json();
+        newKey = new URL(settings.tv_url).searchParams.get("key")!;
+        expect(newKey).not.toBe(TV_KEY);
+        expect(newKey.length).toBeGreaterThanOrEqual(32);
+      });
+      await test.step("the old key is refused at once; the new key works", async () => {
+        expect((await page.request.get(`/api/tv/state?key=${TV_KEY}`)).status()).toBe(401);
+        expect((await page.request.get(`/api/tv/state?key=${encodeURIComponent(newKey)}`)).status()).toBe(200);
+      });
+      await test.step("the rotation is audited without the key", async () => {
+        const audit = await (await page.request.get("/api/audit?action=tv_key.regenerate")).json();
+        expect(audit.rows[0]).toMatchObject({ action: "tv_key.regenerate" });
+        expect(JSON.stringify(audit)).not.toContain(newKey);
+      });
     } finally {
-      await ownerSql(`update public.app_settings set tv_key = '${TV_KEY}' where id = 1`);
+      await test.step("restore the seed TV key on the disposable stack", async () => {
+        await ownerSql(`update public.app_settings set tv_key = '${TV_KEY}' where id = 1`);
+      });
     }
     expect((await page.request.get(`/api/tv/state?key=${TV_KEY}`)).status()).toBe(200);
   });
