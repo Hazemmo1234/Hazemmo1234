@@ -153,4 +153,25 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
     }
     expect((await page.request.get(`/api/tv/state?key=${TV_KEY}`)).status()).toBe(200);
   });
+
+  test("new screens fit 360 px and tablet widths in Arabic (RTL) and English (LTR)", async ({ page }) => {
+    const noOverflow = async (label: string) => {
+      const { scroll, inner } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, inner: window.innerWidth }));
+      expect(scroll, `${label}: horizontal overflow`).toBeLessThanOrEqual(inner);
+    };
+    await signIn(page, "admin@gym-arena.local");
+    for (const locale of ["ar", "en"] as const) {
+      expect((await page.request.patch("/api/me", { data: { locale } })).status()).toBe(200);
+      for (const width of [360, 820]) {
+        await page.setViewportSize({ width, height: 800 });
+        for (const path of ["/admin/settings", "/admin/entries", "/admin/audit", "/admin/seasons", `/admin/seasons/${PAST_SEASON}`]) {
+          await page.goto(path);
+          await expect(page.locator("html")).toHaveAttribute("dir", locale === "ar" ? "rtl" : "ltr");
+          await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+          await noOverflow(`${locale} ${width}px ${path}`);
+        }
+      }
+    }
+  });
 });
+
