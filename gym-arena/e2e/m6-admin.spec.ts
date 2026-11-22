@@ -135,6 +135,9 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
 
   test("settings: TV link masked; key rotation invalidates the old key at once (seed key restored)", async ({ page }) => {
     test.setTimeout(60_000); // rotation + three full TV-state computations
+    // desktop width: on the phone layout the fixed tab bar can sit over the last card's buttons
+    // and the click waits for them; the phone layout itself is covered by the responsive test
+    await page.setViewportSize({ width: 1280, height: 900 });
     await asAdmin(page);
     await english(page);
     const url = page.getByTestId("tv-url");
