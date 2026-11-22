@@ -176,5 +176,35 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
       }
     }
   });
+
+  test("missing deployment secrets fail safely: close → 503 without any change; cron → 401", async ({ page }) => {
+    await signIn(page, "admin@gym-arena.local");
+    await expect(page).toHaveURL(/\/admin\/dashboard$/);
+    // an ended, still-open season far in the past (unique month per attempt: no overlap)
+    let seasonId = "";
+    for (let attempt = 0; attempt < 6 && !seasonId; attempt++) {
+      const year = 1950 + Math.floor(Math.random() * 50);
+      const month = String(1 + Math.floor(Math.random() * 12)).padStart(2, "0");
+      const res = await page.request.post("/api/seasons", {
+        data: { name: `E2E ended ${year}-${month}`, type: "championship", starts_on: `${year}-${month}-01`, ends_on: `${year}-${month}-20` },
+      });
+      if (res.status() === 201 || res.status() === 200) seasonId = (await res.json()).season.id;
+    }
+    expect(seasonId).not.toBe("");
+    const preview = await (await page.request.get(`/api/seasons/${seasonId}/close`)).json();
+    expect(preview).toMatchObject({ can_close: true, blocked: null });
+    // the CI stack has no SEASON_CLOSE_DATABASE_URL (a deployment secret, D27)
+    const close = await page.request.post(`/api/seasons/${seasonId}/close`);
+    expect(close.status()).toBe(503);
+    expect((await close.json()).error.reason).toBe("close_not_configured");
+    const after = await (await page.request.get(`/api/seasons/${seasonId}/close`)).json();
+    expect(after).toMatchObject({ can_close: true, blocked: null }); // still open, nothing frozen
+    expect((await page.request.get(`/api/seasons/${seasonId}/results`)).status()).toBe(409);
+
+    for (const auth of [undefined, "Bearer wrong-secret-0123456789"]) {
+      const res = await page.request.get("/api/cron/snapshot", auth ? { headers: { authorization: auth } } : {});
+      expect(res.status()).toBe(401);
+    }
+  });
 });
 
