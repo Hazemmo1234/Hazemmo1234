@@ -62,7 +62,7 @@ export function AuditLog({ filters, page, staff }: { filters: AuditFilterState; 
     <>
       <PageHeader title={t("title")} description={t("description")} />
       <Card className="mb-4 p-4">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <SelectField label={t("filterAction")} value={filters.action} onChange={(e) => go({ action: e.target.value as AuditAction | "" })}>
             <option value="">{t("allActions")}</option>
             {AUDIT_ACTIONS.map((a) => <option key={a} value={a}>{label(a)}</option>)}
@@ -83,7 +83,7 @@ export function AuditLog({ filters, page, staff }: { filters: AuditFilterState; 
           <p className="border-b border-border px-5 py-3 text-sm text-text-muted">{t("count", { count: page.total, n: formatNumber(page.total, locale, 0) })}</p>
           <ol className="divide-y divide-border">
             {page.rows.map((r) => (
-              <li key={r.id} className="grid gap-2 px-5 py-4 lg:grid-cols-[11rem_minmax(0,1fr)_minmax(0,1.4fr)] lg:gap-6">
+              <li key={r.id} className="grid grid-cols-1 gap-2 px-5 py-4 lg:grid-cols-[11rem_minmax(0,1fr)_minmax(0,1.4fr)] lg:gap-6">
                 <div className="text-sm text-text-muted">
                   <time dateTime={r.created_at}>{when(r.created_at, locale)}</time>
                   <p className="font-semibold text-text"><bdi>{r.actor_name ?? t("system")}</bdi></p>

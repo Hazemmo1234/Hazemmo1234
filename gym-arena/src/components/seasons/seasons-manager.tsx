@@ -64,7 +64,7 @@ export function SeasonsManager({
         <Card className="overflow-hidden">
           <ul className="divide-y divide-border">
             {seasons.map((s) => (
-              <li key={s.id} className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto]">
+              <li key={s.id} className="grid grid-cols-1 gap-3 px-5 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto]">
                 <div className="min-w-0">
                   <div className="mb-1.5 flex flex-wrap items-center gap-2">
                     <Badge tone={STATUS_TONE[s.status]}>

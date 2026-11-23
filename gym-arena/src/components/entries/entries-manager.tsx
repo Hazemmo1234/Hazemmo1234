@@ -273,7 +273,7 @@ export function EntriesManager({
       <PageHeader title={t("title")} description={t("description")} />
       <Card className="mb-4 p-4">
         <form
-          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6"
           onSubmit={(e) => {
             e.preventDefault();
             go({ q: q.trim() });
@@ -333,7 +333,7 @@ export function EntriesManager({
           <p className="border-b border-border px-5 py-3 text-sm text-text-muted">{t("count", { count: page.total, n: formatNumber(page.total, locale, 0) })}</p>
           <ul className="divide-y divide-border">
             {page.rows.map((r) => (
-              <li key={r.id} className={`grid gap-3 px-5 py-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-center ${r.voided_at ? "opacity-70" : ""}`}>
+              <li key={r.id} className={`grid grid-cols-1 gap-3 px-5 py-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-center ${r.voided_at ? "opacity-70" : ""}`}>
                 <div className="min-w-0">
                   <p className="truncate font-bold"><bdi>{r.member_name}</bdi> <span className="text-xs font-normal text-text-muted" dir="ltr">{r.member_code}</span></p>
                   <p className="text-sm text-text-muted">{formatDate(r.performed_on, locale)}{r.coach_name && <>{" · "}<bdi>{r.coach_name}</bdi></>}</p>

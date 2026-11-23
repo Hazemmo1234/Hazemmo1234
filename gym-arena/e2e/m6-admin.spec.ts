@@ -212,19 +212,22 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
         bodyScrollWidth: document.body.scrollWidth,
       };
     });
-    // the button is the topmost element at its centre, and the page is not wider than the phone
-    expect(probe.hit, JSON.stringify(probe)).toBe(true);
+    // the page is laid out at the phone's width (a wider page makes the phone zoom everything out),
+    // and the button is the topmost element at its centre
+    expect(probe.viewport, JSON.stringify(probe)).toBe("360x740");
     expect(Math.max(probe.scrollWidth, probe.bodyScrollWidth), JSON.stringify(probe)).toBeLessThanOrEqual(360);
-    // activate it the way a keyboard / switch-access user does (independent of emulated pointer maths)
-    await show.focus();
-    await page.keyboard.press("Enter");
+    expect(probe.hit, JSON.stringify(probe)).toBe(true);
+    await show.click({ timeout: 10_000 }); // a real, unforced click
     await expect(page.getByTestId("tv-url")).toContainText(TV_KEY);
   });
 
   test("new screens fit 360 px and tablet widths in Arabic (RTL) and English (LTR)", async ({ page }) => {
-    const noOverflow = async (label: string) => {
+    // compare with the REQUESTED width: on a phone, content wider than the screen makes the browser
+    // widen its layout viewport (zoom out), so innerWidth grows with the content and hides the overflow
+    const noOverflow = async (label: string, width: number) => {
       const { scroll, inner } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, inner: window.innerWidth }));
-      expect(scroll, `${label}: horizontal overflow`).toBeLessThanOrEqual(inner);
+      expect(inner, `${label}: layout viewport widened (page zoomed out)`).toBe(width);
+      expect(scroll, `${label}: horizontal overflow`).toBeLessThanOrEqual(width);
     };
     await asAdmin(page);
     for (const locale of ["ar", "en"] as const) {
@@ -235,7 +238,7 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
           await page.goto(path);
           await expect(page.locator("html")).toHaveAttribute("dir", locale === "ar" ? "rtl" : "ltr");
           await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-          await noOverflow(`${locale} ${width}px ${path}`);
+          await noOverflow(`${locale} ${width}px ${path}`, width);
         }
       }
     }

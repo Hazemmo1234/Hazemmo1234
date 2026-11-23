@@ -49,7 +49,7 @@ export function ResultsView({ results, highlightOwn = false }: { results: Season
       {winners.length === 0 ? (
         <Card><EmptyState icon={<TrophyIcon />} title={t("noWinnersTitle")} description={t("noWinnersBody")} /></Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {winners.map((w, i) => (
             <Card key={`${w.rank}-${i}`} className={`flex flex-col items-center gap-2 border-2 px-4 py-6 text-center ${RING[w.rank] ?? ""}`}>
               <TrophyIcon size={28} className={PLACE[w.rank]} />
@@ -61,7 +61,7 @@ export function ResultsView({ results, highlightOwn = false }: { results: Season
           ))}
         </div>
       )}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="overflow-hidden">
           <CardHeader title={t("mainBoard")} action={<span className="text-sm text-text-muted">{formatNumber(board.main.length, locale, 0)}</span>} />
           {board.main.length === 0 ? (
