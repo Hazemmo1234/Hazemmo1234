@@ -196,7 +196,24 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
       expect(box.height, `${name} tap target`).toBeGreaterThanOrEqual(44);
     }
     // a real click (no force): the topmost element at the button's centre is the button itself
-    await page.getByRole("button", { name: "Show the TV key" }).click({ timeout: 10_000 });
+    const show = page.getByRole("button", { name: "Show the TV key" });
+    await show.scrollIntoViewIfNeeded();
+    const probe = await show.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      const card = el.closest("section")!.getBoundingClientRect();
+      return {
+        hit: top === el || el.contains(top),
+        topElement: top ? `${top.tagName.toLowerCase()}.${top.className}` : "none",
+        button: [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)].join(","),
+        card: [Math.round(card.left), Math.round(card.top), Math.round(card.width), Math.round(card.height)].join(","),
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
+        scrollWidth: document.documentElement.scrollWidth,
+        bodyScrollWidth: document.body.scrollWidth,
+      };
+    });
+    expect(probe.hit, JSON.stringify(probe)).toBe(true);
+    await show.click({ timeout: 10_000 });
     await expect(page.getByTestId("tv-url")).toContainText(TV_KEY);
   });
 
