@@ -177,6 +177,29 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
     expect((await page.request.get(`/api/tv/state?key=${TV_KEY}`)).status()).toBe(200);
   });
 
+  test("phone (360 px): the last Settings buttons are never under the bottom tab bar and respond to a real tap", async ({ page }) => {
+    await asAdmin(page);
+    await english(page);
+    await page.setViewportSize({ width: 360, height: 740 });
+    await page.goto("/admin/settings");
+    const bar = page.locator("nav.fixed");
+    await expect(bar).toBeVisible();
+    // scrolled to the very end, every TV-card control must sit fully above the fixed bar
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const barTop = (await bar.boundingBox())!.y;
+    for (const name of ["Show the TV key", "Copy link", "Open TV", "Generate new key"]) {
+      const control = page.getByRole(name === "Open TV" ? "link" : "button", { name, exact: true });
+      await control.scrollIntoViewIfNeeded();
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      const box = (await control.boundingBox())!;
+      expect(box.y + box.height, `${name} ends above the tab bar`).toBeLessThanOrEqual(barTop);
+      expect(box.height, `${name} tap target`).toBeGreaterThanOrEqual(44);
+    }
+    // a real click (no force): the topmost element at the button's centre is the button itself
+    await page.getByRole("button", { name: "Show the TV key" }).click({ timeout: 10_000 });
+    await expect(page.getByTestId("tv-url")).toContainText(TV_KEY);
+  });
+
   test("new screens fit 360 px and tablet widths in Arabic (RTL) and English (LTR)", async ({ page }) => {
     const noOverflow = async (label: string) => {
       const { scroll, inner } = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, inner: window.innerWidth }));
