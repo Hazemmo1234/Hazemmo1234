@@ -15,40 +15,56 @@ checked. Never paste a secret into chat, a ticket or this file.
 1. Supabase dashboard → **New project**. Name it `gym-arena-staging`. Pick the same region you plan
    for production. Generate a strong database password and store it in your password manager.
 2. Write down its **project ref**: the `xxxx` in `https://xxxx.supabase.co`. It is not a secret.
-   Also write down the **production** project ref (or create the production project later and
-   come back to this). The preflight check (step 3) needs both.
+   Also write down the **production** project ref; the preflight (step 3) refuses to run without
+   it, because every check compares against it. If no production project exists yet, create it
+   now, empty (no app, no data, nothing connected), only so its ref exists. Copy both refs from
+   the dashboards' address bars. **A wrong production ref blinds every check**, so the preflight
+   prints it back for you to compare.
 3. **Authentication → Sign In / Providers**: turn **off** "Allow new users to sign up" (accounts are
    created by the admin only; SECURITY_SPECIFICATION §1). Set **minimum password length ≥ 10**.
    Email confirmation and redirect URLs are not used by the app.
 
 ### Step 2 — Fill `.env.staging` on your computer
-In `gym-arena/`, copy `.env.staging.example` to `.env.staging`. Git ignores this file. Fill in:
+In `gym-arena/`, copy `.env.staging.example` to `.env.staging`. Git ignores this file. Only the
+first two rows name production; every other value must come from the **staging** project.
 
-| Variable | Where to find it |
-|---|---|
-| `PRODUCTION_SUPABASE_REF` | The production project ref. Not a secret; it is used only to prove separation. |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | **Staging** project → Project Settings → API |
-| `STAGING_MIGRATION_DATABASE_URL` | **Staging** project → Connect → **Session pooler** URI (user `postgres.<ref>`, port 5432), with the database password from step 1. It is used only on your computer, for step 4. |
-| `CRON_SECRET` | New random value, e.g. `openssl rand -hex 24`. Different from production. |
-| `APP_ORIGIN` | Leave empty (see §4). |
-| `SEASON_CLOSE_DATABASE_URL` | Filled in step 5. |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | The staging admin you create in step 6. Use a different password from production. |
+| Variable | Required | Refers to | Purpose / where to find it |
+|---|---|---|---|
+| `PRODUCTION_SUPABASE_REF` | yes | **production** (ref only, not a secret) | What every check compares against. From the production dashboard URL. |
+| `PRODUCTION_APP_ORIGIN` | optional | **production** (public address) | Lets the check refuse `APP_ORIGIN` = production address. |
+| `NEXT_PUBLIC_SUPABASE_URL` | yes | staging | Staging → Project Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | staging | Same page (anon / publishable key) |
+| `SUPABASE_SERVICE_ROLE_KEY` | yes | staging | Same page (service_role / secret key) |
+| `STAGING_MIGRATION_DATABASE_URL` | yes, on your computer only | staging | Staging → Connect → **Session pooler** URI (user `postgres.<ref>`, port 5432) + the database password from step 1. Used by steps 4–5 only. Never in hosting. |
+| `SEASON_CLOSE_DATABASE_URL` | yes | staging | Filled in step 5. |
+| `CRON_SECRET` | yes for staging | staging only | New random value, `openssl rand -hex 24`. Never the production one. |
+| `APP_ORIGIN` | optional | staging | Leave empty (see §4). |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | step 6 only | staging | The staging admin. Not your production password. Delete the password line after step 6. |
+
+Copy every URI exactly as the dashboard shows it. Do not add `?…` parameters: the check refuses any
+except `sslmode`, because drivers let `?host=` / `?user=` override the visible address.
 
 Use only letters and digits in database passwords (`openssl rand -hex 24`), so the URLs need no
 escaping.
 
 ### Step 3 — Run the preflight (no network, prints no values)
+Open a **new terminal** (no Supabase or `PG*` variables exported from earlier work), then:
 ```bash
 cd gym-arena
 npm ci
 npm run staging:preflight
 ```
+Compare the two refs it prints (`PRODUCTION_SUPABASE_REF: production project …` and
+`NEXT_PUBLIC_SUPABASE_URL: staging project …`) with the two dashboards' address bars.
 Every line must be `PASS` (a `WARN` for new-format `sb_…` keys only means "make sure you copied them
 from the staging project"). It **fails** when:
 - any URL, key or connection points at the production ref;
 - any two values point at different projects;
 - the close connection is not the restricted role;
 - the production ref appears anywhere in the configuration;
+- a variable exported in your shell overrides the value written in `.env.staging` (Node gives the
+  shell priority, so the file you copy from would not be the one checked);
+- a database URL carries query parameters (other than `sslmode`) or several hosts;
 - this folder's Supabase CLI link targets production.
 
 Run it again after every change to `.env.staging`.
@@ -72,19 +88,26 @@ The migrations create:
 ### Step 5 — Enable the restricted season-close role
 Connect as the owner and set the password without it appearing in any query history:
 ```bash
-psql "$(grep ^STAGING_MIGRATION_DATABASE_URL= .env.staging | cut -d= -f2-)"
+npm run staging:psql
 ```
+It runs the preflight first and refuses on any FAIL, then opens `psql` on the staging database
+(needs `psql` installed, e.g. `brew install libpq`). In psql:
 ```sql
 alter role arena_season_closer login;
 \password arena_season_closer
 -- type a new password (openssl rand -hex 24), twice. psql hashes it before sending.
 ```
-Without `psql`: run `alter role arena_season_closer login password '<password>';` in a **new** SQL
-Editor snippet, then delete that snippet.
+Without `psql`: Supabase dashboard → **check the project name at the top is `gym-arena-staging`**
+→ SQL Editor → a **new** snippet → `alter role arena_season_closer login password '<password>';`
+→ Run → delete the snippet. Running this in the production project would give production's
+close role a login with your staging password.
 
-Check the role. These checks contain no secrets:
+Still in the same session, check the role. These checks contain no secrets:
 ```sql
 select rolcanlogin from pg_roles where rolname = 'arena_season_closer';                                   -- true
+select rolsuper, rolcreaterole, rolcreatedb, rolbypassrls, rolreplication, rolinherit
+  from pg_roles where rolname = 'arena_season_closer';                                                     -- all false
+select count(*) from pg_auth_members m join pg_roles r on r.oid = m.member where r.rolname = 'arena_season_closer'; -- 0
 select has_function_privilege('arena_season_closer', 'public.begin_season_close(uuid, uuid)', 'execute');  -- true
 select has_function_privilege('arena_season_closer', 'public.finish_season_close(uuid, jsonb)', 'execute'); -- true
 select has_table_privilege('arena_season_closer', 'public.entries', 'select');                            -- true
@@ -92,6 +115,7 @@ select has_table_privilege('arena_season_closer', 'public.entries', 'update');  
 select has_table_privilege('arena_season_closer', 'public.season_results', 'insert');                     -- false
 select has_table_privilege('arena_season_closer', 'public.seasons', 'update');                            -- false
 ```
+Leave psql with `\q`.
 Then set in `.env.staging`, using the staging **Transaction pooler** host from the Connect dialog:
 ```
 SEASON_CLOSE_DATABASE_URL=postgresql://arena_season_closer.<staging-ref>:<password>@<pooler-host>:6543/postgres
@@ -108,27 +132,38 @@ This runs the preflight first, then creates the one admin account. It refuses if
 exists. Afterwards, remove `ADMIN_PASSWORD` from `.env.staging`.
 
 ### Step 7 — Create the staging hosting project (Vercel)
+PR #1 does **not** need to be merged: a Vercel project can track any branch as its production
+branch. The default branch (`arabic-content-system`) has no `gym-arena/` folder, so the root
+directory is set after the import, not during it.
+
 1. Vercel → **Add New → Project** → import `Hazemmo1234/Hazemmo1234` as a **new** project named
-   `gym-arena-staging`. Never add these settings to the production project.
-2. **Root Directory**: `gym-arena`. Framework: Next.js (detected).
-3. **Settings → Git → Production Branch**: `claude/ecstatic-goodall-3p1zte`. The staging project's
-   own "production" deployment is the staging site, and Vercel Cron runs only on that deployment.
-   PR #1 does not need to be merged for staging.
-4. **Settings → Environment Variables**, environment **Production** of this staging project only,
-   all marked **Sensitive**:
+   `gym-arena-staging`. **Never** open or change an existing (production) project for any of this.
+   Vercel immediately builds the default branch; that first deployment fails or shows the content
+   files (the repository is public, so nothing new is exposed). Delete it later.
+2. In **gym-arena-staging** → Settings → **Environments → Production → Branch Tracking**
+   (older dashboards: Settings → Git → Production Branch): `claude/ecstatic-goodall-3p1zte`.
+3. Settings → **Build and Deployment → Root Directory**: `gym-arena`; Framework Preset: Next.js.
+4. Settings → **Environment Variables**, environment **Production** only, each marked **Sensitive**.
+   The app reads exactly six variables (§3.1); staging sets five of them:
 
-   | Variable | Value |
-   |---|---|
-   | `NEXT_PUBLIC_SUPABASE_URL` | from `.env.staging` |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | from `.env.staging` |
-   | `SUPABASE_SERVICE_ROLE_KEY` | from `.env.staging` |
-   | `SEASON_CLOSE_DATABASE_URL` | from `.env.staging` |
-   | `CRON_SECRET` | from `.env.staging` |
-   | `APP_ORIGIN` | leave unset (see §4) |
+   | Variable | Staging value | Required |
+   |---|---|---|
+   | `NEXT_PUBLIC_SUPABASE_URL` | from `.env.staging` | yes; without it every request fails |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | from `.env.staging` | yes |
+   | `SUPABASE_SERVICE_ROLE_KEY` | from `.env.staging` | yes; leaderboards, TV and writes fail without it |
+   | `SEASON_CLOSE_DATABASE_URL` | from `.env.staging` | yes; close answers 503 without it |
+   | `CRON_SECRET` | from `.env.staging` | yes for staging (checklist step 39); the job is refused without it |
+   | `APP_ORIGIN` | **leave unset** | optional (§4) — the sixth variable |
 
-   **Never** add `STAGING_MIGRATION_DATABASE_URL`, `PRODUCTION_SUPABASE_REF` or `ADMIN_*` to hosting.
-5. Deploy, then open **Deployments**: the deployed commit must be `0480c0c` or later on that branch.
-6. Copy the values into Vercel by selecting them in your editor, not by printing them in a terminal.
+   **Never** add `STAGING_MIGRATION_DATABASE_URL`, `PRODUCTION_SUPABASE_REF`, `PRODUCTION_APP_ORIGIN`
+   or `ADMIN_*` to hosting. Copy values from the editor showing `.env.staging` after the preflight
+   passed, never from the production project.
+5. Deployments → **Create Deployment** → branch `claude/ecstatic-goodall-3p1zte` (the `NEXT_PUBLIC_*`
+   values are built into the bundle, so build only after step 4; after any later variable change,
+   **Redeploy**). If the dashboard offers no Create Deployment, ask for the next commit to be pushed
+   to the branch. The deployment must show the branch name, the **latest commit of that branch on GitHub**, and
+   the label **Production** of gym-arena-staging.
+6. Open the staging address: the sign-in page appears. Delete the failed first deployment.
 
 ---
 
@@ -145,7 +180,7 @@ the screen showed. Do not send screenshots that show secrets.
 1. Sign in as the staging admin on a phone. Seasons → **New season**: name `Smoke 2020`,
    type Championship, 2020-01-01 → 2020-01-31. It shows as **Waiting to be closed**.
 2. **Close** → the confirmation shows 0 participants → tick → Close.
-   Expected: a toast saying it was closed with 0 results.
+   Expected toast: "Championship closed — 0 final results frozen".
    "Season close is unavailable" means `SEASON_CLOSE_DATABASE_URL` or the role is wrong (step 5).
 3. The row shows **Read-only**, **Results**. Results page: "no winners", with no rows.
 4. Audit log → filter "Championship closed": exactly **one** record, by the admin.
@@ -223,8 +258,8 @@ the screen showed. Do not send screenshots that show secrets.
     - Main board adds Echo (4).
     - Rookies: Charlie.
     - **Not ranked**: Delta, 12 points, "Inactive at close".
-32. Frozen: reactivate Delta, then try to log an entry or correct one dated D2. Both are refused,
-    and Results still shows the same numbers.
+32. Frozen: Admin → Entries → choose `Staging championship`. A "closed" note is shown and no entry
+    has Correct or Void. Results still show the same numbers after a page reload.
 33. Audit log: exactly one "Championship closed" record for this season. Repeating the step 5
     `fetch` with this season's id → `409`.
 34. Coach One → **History** → the championship shows his clients' final places. Coaches see no
@@ -248,7 +283,7 @@ affect production. Never copy staging data into production.
 
 ## 3. Why staging cannot affect production
 
-1. **The app's only route to data is six variables.** Every `process.env` read in the app is one of
+1. **The app's only route to data is six variables** (`src/**` reads no other `process.env`). Every `process.env` read in the app is one of
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
    `SEASON_CLOSE_DATABASE_URL`, `CRON_SECRET` or `APP_ORIGIN`. No host or project is written in the
    code. The staging deployment can reach only the project those variables name.
@@ -256,9 +291,12 @@ affect production. Never copy staging data into production.
    storage and keys. A staging key is rejected by the production project, and the reverse.
 3. **Separate hosting project.** Staging variables live only in the `gym-arena-staging` Vercel
    project. Its cron job calls only its own deployment.
-4. **The preflight proves the configuration** before every operator step. It runs before migrate
-   and create-admin, and refuses any value that names the production ref or mixes projects
-   (`scripts/staging-check.ts`, unit-tested in `tests/unit/staging-check.test.ts`).
+4. **The preflight proves the configuration** before every operator step. It runs before
+   `staging:migrate`, `staging:psql` and `staging:create-admin`, checks the file's own values (a
+   shell export cannot slip in), and refuses any value that names the production ref, mixes
+   projects or hides a host in the URL (`scripts/staging-check.ts`, `scripts/staging-env.ts`;
+   unit-tested in `tests/unit/staging-check.test.ts`). The migrate and psql commands also drop any
+   inherited `PG*` variable (e.g. `PGHOSTADDR`) before connecting.
 5. **Migrations go to an explicit staging URL**, checked by the preflight, never through a CLI link.
    They are add-only, so the same files will later build production identically.
 6. **The seed cannot run on any cloud database.** Its first statement aborts unless the database is
@@ -266,10 +304,16 @@ affect production. Never copy staging data into production.
 7. **Distinct secrets per environment.** The TV key is generated randomly per database. Use a
    different `CRON_SECRET`, close-role password and admin password for production.
 
-Remaining human risk: pasting a production value into the staging Vercel project. The Vercel
-project is configured by hand, not by the preflight. Copy the values only from `.env.staging`
-after it passes the preflight. If unsure, compare the project ref in
-`NEXT_PUBLIC_SUPABASE_URL` in Vercel with the staging ref.
+### Manual steps where a mistake could reach production — read before each
+| Step | Mistake | Consequence | Guard |
+|---|---|---|---|
+| 1 | Wrong `PRODUCTION_SUPABASE_REF` (typo, or the staging ref) | Every check compares against the wrong project | The preflight prints it; compare with the production dashboard URL |
+| 5 (SQL Editor route) | Running the `alter role` in the **production** project | Production's close role gets a login with your staging password | Use `npm run staging:psql`; on the SQL Editor route, read the project name first |
+| 7 | Changing the **production** Vercel project (variables, branch, root directory) | Production would run the feature branch or point at the staging database | Work only in `gym-arena-staging`; read the project name at the top of every settings page |
+| 7.4 | Pasting a production key/URL into staging hosting | A production secret is copied into another project; staging traffic could hit production | Copy only from `.env.staging` after a passing preflight; new `sb_…` keys cannot be checked automatically (preflight WARN) — compare their source page |
+| any | Running `supabase link`, `supabase db push` or `psql` by hand | Bypasses every check | Use only the `npm run staging:*` commands |
+| any | Reusing a production password or secret | One leak opens both | Generate new ones for staging |
+| after | Copying staging data into production | Invented people in the live championship | Never; production starts empty |
 
 ## 4. `APP_ORIGIN` — what the code actually does
 `src/lib/origin.ts`: when `APP_ORIGIN` is set (trailing `/` removed), the TV link in Settings uses

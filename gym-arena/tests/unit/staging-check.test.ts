@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkStaging, hasFailure, jwtClaims, parseDbUrl, refFromSupabaseUrl } from "../../scripts/staging-check";
+import { checkStaging, dbUrlProblem, hasFailure, jwtClaims, parseDbUrl, refFromSupabaseUrl } from "../../scripts/staging-check";
 
 const PROD = "prodprodprodprodprod";
 const STG = "stagstagstagstagstag";
@@ -139,4 +139,46 @@ describe("staging isolation check", () => {
     env.SEASON_CLOSE_DATABASE_URL = "mysql://x";
     expect(byCheck(env).SEASON_CLOSE_DATABASE_URL!.detail).toContain("postgresql");
   });
+
+  it("refuses database URLs whose query string or host list could redirect the connection", () => {
+    // postgres.js and libpq/pgx honour ?host=, ?user=, ?port= over the visible address
+    const pooler = `postgresql://arena_season_closer.${STG}:x@aws-0-eu-central-1.pooler.supabase.com:6543/postgres`;
+    for (const bad of [`${pooler}?host=10.0.0.1`, `${pooler}?user=postgres`, `${pooler}?port=5433`, `${pooler}?sslmode=require&host=x`]) {
+      const env = good();
+      env.SEASON_CLOSE_DATABASE_URL = bad;
+      env.STAGING_MIGRATION_DATABASE_URL = bad.replace("arena_season_closer", "postgres");
+      const r = byCheck(env);
+      expect(r.SEASON_CLOSE_DATABASE_URL!.detail).toContain("query parameters");
+      expect(r.STAGING_MIGRATION_DATABASE_URL!.detail).toContain("query parameters");
+    }
+    const env = good();
+    env.SEASON_CLOSE_DATABASE_URL = `${pooler}?sslmode=require`;
+    expect(byCheck(env).SEASON_CLOSE_DATABASE_URL!.status).toBe("PASS");
+    env.SEASON_CLOSE_DATABASE_URL = `postgresql://arena_season_closer.${STG}:x@10.0.0.1,aws-0-x.pooler.supabase.com:6543/postgres`;
+    expect(byCheck(env).SEASON_CLOSE_DATABASE_URL!.status).toBe("FAIL");
+    env.SEASON_CLOSE_DATABASE_URL = `postgresql://arena_season_closer.${STG}:x@evil.example.com/x.pooler.supabase.com:6543/postgres`;
+    expect(byCheck(env).SEASON_CLOSE_DATABASE_URL!.status).toBe("FAIL");
+    expect(dbUrlProblem("postgresql://u:p@db.x.supabase.co/postgres")).toBeNull();
+    expect(dbUrlProblem("postgresql://u:p@h1,h2/postgres")).not.toBeNull();
+    env.SEASON_CLOSE_DATABASE_URL = `postgresql://:x@db.${STG}.supabase.co:5432/postgres`;
+    expect(byCheck(env).SEASON_CLOSE_DATABASE_URL!.detail).toContain("user name");
+  });
+
+  it("checks exactly the values written in .env.staging (a shell export must not override them)", () => {
+    const file = good();
+    expect(byCheckFile({ ...file }, file)[".env.staging"]!.status).toBe("PASS");
+    const shell = { ...file, NEXT_PUBLIC_SUPABASE_URL: `https://${OTHER}.supabase.co` };
+    const r = byCheckFile(shell, file);
+    expect(r[".env.staging"]!.status).toBe("FAIL");
+    expect(r[".env.staging"]!.detail).toContain("NEXT_PUBLIC_SUPABASE_URL");
+    expect(r[".env.staging"]!.detail).not.toContain(OTHER);
+    expect(byCheckFile(file, null)[".env.staging"]!.status).toBe("FAIL");
+  });
+
+  it("shows the production ref it compares against", () => {
+    expect(byCheck(good()).PRODUCTION_SUPABASE_REF).toMatchObject({ status: "PASS", detail: expect.stringContaining(PROD) });
+  });
 });
+
+const byCheckFile = (env: Record<string, string>, fileEnv: Record<string, string> | null) =>
+  Object.fromEntries(checkStaging({ env, fileEnv }).map((r) => [r.check, r]));

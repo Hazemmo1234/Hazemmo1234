@@ -20,6 +20,12 @@ export interface StagingInputs {
   env: Record<string, string | undefined>;
   /** Contents of supabase/.temp/project-ref when the CLI is linked in this folder. */
   linkedRef?: string;
+  /**
+   * The values written in .env.staging (parsed with Node's own parser), or null when the file
+   * is missing. Node's --env-file lets an already-exported shell variable win over the file, so
+   * any difference means the checks below would not be checking the file you copy from.
+   */
+  fileEnv?: Record<string, string> | null;
 }
 
 const REF = /^[a-z0-9]{20}$/;
@@ -35,20 +41,35 @@ export function refFromSupabaseUrl(raw: string): string | null {
   }
 }
 
-/** Role and project ref of a Supabase Postgres URL (direct `db.<ref>.supabase.co` or pooler `role.<ref>@…pooler.supabase.com`). */
-export function parseDbUrl(raw: string): { role: string; ref: string | null } | null {
+/**
+ * Why a database URL cannot be checked safely, or null. Drivers honour connection settings in
+ * the query string — postgres.js takes `?host=` over the URL's host (node_modules/postgres
+ * `hosts()`), and libpq/pgx (Supabase CLI) do the same for host/user/port — and accept
+ * comma-separated host lists, so only a single plain host with at most `sslmode` is accepted.
+ */
+export function dbUrlProblem(raw: string): string | null {
   let u: URL;
   try {
     u = new URL(raw);
   } catch {
-    return null;
+    return "not a postgresql:// URL";
   }
-  if (u.protocol !== "postgresql:" && u.protocol !== "postgres:") return null;
+  if (u.protocol !== "postgresql:" && u.protocol !== "postgres:") return "not a postgresql:// URL";
+  const extra = [...u.searchParams.keys()].filter((k) => k !== "sslmode");
+  if (extra.length) return "query parameters other than sslmode are not allowed (they can change the host or user)";
+  if (u.hostname.includes(",")) return "more than one host is not allowed";
+  return null;
+}
+
+/** Role and project ref of a Supabase Postgres URL (direct `db.<ref>.supabase.co` or pooler `role.<ref>@<region>.pooler.supabase.com`). */
+export function parseDbUrl(raw: string): { role: string; ref: string | null } | null {
+  if (dbUrlProblem(raw)) return null;
+  const u = new URL(raw);
   const user = decodeURIComponent(u.username);
   if (!user) return null;
   const direct = /^db\.([a-z0-9]{20})\.supabase\.co$/.exec(u.hostname);
   if (direct) return { role: user, ref: direct[1]! };
-  if (/\.pooler\.supabase\.com$/.test(u.hostname)) {
+  if (/^[a-z0-9-]+\.pooler\.supabase\.com$/.test(u.hostname)) {
     const dot = user.lastIndexOf(".");
     if (dot > 0 && REF.test(user.slice(dot + 1))) return { role: user.slice(0, dot), ref: user.slice(dot + 1) };
     return { role: user, ref: null };
@@ -71,15 +92,26 @@ export function jwtClaims(key: string): { ref?: string; role?: string } | null {
   }
 }
 
-export function checkStaging({ env, linkedRef }: StagingInputs): CheckResult[] {
+export function checkStaging({ env, linkedRef, fileEnv }: StagingInputs): CheckResult[] {
   const out: CheckResult[] = [];
   const add = (status: CheckStatus, check: string, detail: string) => out.push({ status, check, detail });
   const v = (name: string) => env[name]?.trim() || undefined;
+
+  // 0. The values checked are exactly the ones written in .env.staging.
+  if (fileEnv === null) add("FAIL", ".env.staging", "file not found next to package.json");
+  else if (fileEnv) {
+    const overridden = Object.keys(fileEnv).filter((k) => env[k] !== fileEnv[k]);
+    if (overridden.length) {
+      add("FAIL", ".env.staging", `your shell exports a different value for: ${overridden.join(", ")} — open a new terminal or unset them`);
+    } else add("PASS", ".env.staging", "every value comes from the file (no shell override)");
+  }
 
   // 1. Production identity must be known, or nothing below can prove separation.
   const prod = v("PRODUCTION_SUPABASE_REF");
   if (!prod || !REF.test(prod)) {
     add("FAIL", "PRODUCTION_SUPABASE_REF", "set it to the production project ref (20 lowercase letters/digits, from the production project URL) so separation can be proved");
+  } else {
+    add("PASS", "PRODUCTION_SUPABASE_REF", `production project ${prod} — confirm it matches the production dashboard URL; every check below compares against it`);
   }
 
   // 2. Staging project ref from the public URL.
@@ -113,8 +145,10 @@ export function checkStaging({ env, linkedRef }: StagingInputs): CheckResult[] {
   const close = v("SEASON_CLOSE_DATABASE_URL");
   if (!close) add("FAIL", "SEASON_CLOSE_DATABASE_URL", "missing — seasons cannot be closed");
   else {
-    const db = parseDbUrl(close);
-    if (!db) add("FAIL", "SEASON_CLOSE_DATABASE_URL", "not a postgresql:// URL");
+    const problem = dbUrlProblem(close);
+    const db = problem ? null : parseDbUrl(close);
+    if (problem) add("FAIL", "SEASON_CLOSE_DATABASE_URL", problem);
+    else if (!db) add("FAIL", "SEASON_CLOSE_DATABASE_URL", "has no user name");
     else if (db.role !== CLOSE_ROLE) add("FAIL", "SEASON_CLOSE_DATABASE_URL", `must log in as ${CLOSE_ROLE}, not another role`);
     else if (!db.ref) add("FAIL", "SEASON_CLOSE_DATABASE_URL", "cannot identify the project (use the Supabase direct or pooler address)");
     else if (prod && db.ref === prod) add("FAIL", "SEASON_CLOSE_DATABASE_URL", "points at PRODUCTION — stop");
@@ -125,8 +159,10 @@ export function checkStaging({ env, linkedRef }: StagingInputs): CheckResult[] {
   // 5. Migration connection (operator only, optional here; required by staging-migrate).
   const mig = v("STAGING_MIGRATION_DATABASE_URL");
   if (mig) {
-    const db = parseDbUrl(mig);
-    if (!db || !db.ref) add("FAIL", "STAGING_MIGRATION_DATABASE_URL", "cannot identify the project (use the Supabase direct or pooler address)");
+    const problem = dbUrlProblem(mig);
+    const db = problem ? null : parseDbUrl(mig);
+    if (problem) add("FAIL", "STAGING_MIGRATION_DATABASE_URL", problem);
+    else if (!db || !db.ref) add("FAIL", "STAGING_MIGRATION_DATABASE_URL", "cannot identify the project (use the Supabase direct or pooler address)");
     else if (prod && db.ref === prod) add("FAIL", "STAGING_MIGRATION_DATABASE_URL", "points at PRODUCTION — stop");
     else if (staging && db.ref !== staging) add("FAIL", "STAGING_MIGRATION_DATABASE_URL", "points at a different project than NEXT_PUBLIC_SUPABASE_URL");
     else if (db.role === CLOSE_ROLE) add("FAIL", "STAGING_MIGRATION_DATABASE_URL", `must be the owner (postgres), not ${CLOSE_ROLE}`);
