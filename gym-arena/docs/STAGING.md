@@ -39,7 +39,8 @@ first two rows name production; every other value must come from the **staging**
 | `SEASON_CLOSE_DATABASE_URL` | yes | staging | Filled in step 5. |
 | `CRON_SECRET` | yes for staging | staging only | New random value, `openssl rand -hex 24`. Never the production one. |
 | `APP_ORIGIN` | optional | staging | Leave empty (see §4). |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | step 6 only | staging | The staging admin. Not your production password. Delete the password line after step 6. |
+| `ADMIN_EMAIL`, `ADMIN_NAME` | step 6 only | staging | The staging admin's sign-in email and display name. |
+| `ADMIN_PASSWORD` | leave **empty** | — | Step 6 asks for the password twice without showing it, so it is never written to disk. Not your production password. |
 
 Copy every URI exactly as the dashboard shows it. Do not add `?…` parameters: the check refuses any
 except `sslmode`, because drivers let `?host=` / `?user=` override the visible address.
@@ -128,8 +129,10 @@ The app opens one connection with prepared statements off, so transaction mode w
 ```bash
 npm run staging:create-admin
 ```
-This runs the preflight first, then creates the one admin account. It refuses if an admin already
-exists. Afterwards, remove `ADMIN_PASSWORD` from `.env.staging`.
+This runs the preflight first, asks for the admin password twice (nothing is shown or printed),
+then creates the one admin account and prints only `Admin created: <email>`. It refuses if an
+admin already exists or if it cannot read the existing accounts (wrong URL or key). Store the
+password in your password manager.
 
 ### Step 7 — Create the staging hosting project (Vercel)
 PR #1 does **not** need to be merged: a Vercel project can track any branch as its production
@@ -156,7 +159,9 @@ directory is set after the import, not during it.
    | `APP_ORIGIN` | **leave unset** | optional (§4) — the sixth variable |
 
    **Never** add `STAGING_MIGRATION_DATABASE_URL`, `PRODUCTION_SUPABASE_REF`, `PRODUCTION_APP_ORIGIN`
-   or `ADMIN_*` to hosting. Copy values from the editor showing `.env.staging` after the preflight
+   or `ADMIN_*` to hosting. Do not set `NEXT_DIST_DIR` (a test-only build-folder switch read by
+   `next.config.ts`; Vercel expects the default) or `NODE_ENV` (the platform sets it).
+   `APP_TIMEZONE` is not read by the code (Cairo is fixed in `src/lib/time.ts`); leave it out. Copy values from the editor showing `.env.staging` after the preflight
    passed, never from the production project.
 5. Deployments → **Create Deployment** → branch `claude/ecstatic-goodall-3p1zte` (the `NEXT_PUBLIC_*`
    values are built into the bundle, so build only after step 4; after any later variable change,
@@ -164,6 +169,24 @@ directory is set after the import, not during it.
    to the branch. The deployment must show the branch name, the **latest commit of that branch on GitHub**, and
    the label **Production** of gym-arena-staging.
 6. Open the staging address: the sign-in page appears. Delete the failed first deployment.
+
+### Step 8 — Verify the deployment (read-only)
+```bash
+npm run staging:verify -- https://<staging-address>
+```
+It runs the preflight, then only GET requests, and prints status codes, never values. It checks:
+- `/login` answers 200 and the deployed Content-Security-Policy names **only the staging project**.
+  `next.config.ts` builds it from `NEXT_PUBLIC_SUPABASE_URL` at build time, so this proves which
+  project the live bundle talks to. It fails on the production ref, another project, or none
+  (variables were missing at build time → Redeploy).
+- `/api/tv/state` without a key and with a wrong key → 401; `/api/cron/snapshot` without the
+  secret → 401; `/api/me` without a session → 401.
+- Supabase reports public sign-up **disabled**.
+- The anonymous key cannot read `members`, `profiles`, `entries`, `attendance`, `season_results`,
+  `app_settings` or `audit_log`.
+
+Every line must be PASS before the checklist starts. Then sign in once as the staging admin:
+the admin dashboard opens.
 
 ---
 
@@ -275,6 +298,20 @@ the screen showed. Do not send screenshots that show secrets.
 39. Vercel (staging project) → Logs: `GET /api/cron/snapshot` returned `200` once per day.
     `curl -i https://<staging-site>/api/cron/snapshot` (no header) → `401`.
 
+### H · Security spot checks (do each on the day shown)
+These add checks; they change nothing above.
+40. **D1**, signed out: sign in with a wrong password → refused, no dashboard.
+41. **D2**, signed in as Coach One, in the browser console of the staging site:
+    `fetch('/api/seasons/<championship-id>/close',{method:'POST'}).then(r=>r.status)` → `403`;
+    `fetch('/api/settings/tv-key',{method:'POST'}).then(r=>r.status)` → `403`. The TV link still works.
+42. **D2**, while live: open `/api/tv/state?key=<current key>` in a browser. The board rows have only
+    `rank, name, initials, photo_url, total, categories, gap_to_next, movement, pr_at, ref`.
+    Search the page for the last 6 digits of Alpha's phone number, and for `+20`, `member_`,
+    `coach`, `evidence` → no matches (the same allow-list is enforced in CI, `e2e/tv.spec.ts`).
+43. **D3**, after step 38: Audit log → "TV key regenerated" → the record shows no key, old or new.
+44. **D3** (optional here; required on the real TV): switch the TV's Wi-Fi off for 60 s →
+    "Reconnecting" with the last screen kept; on → it recovers by itself.
+
 ### After acceptance
 Keep the staging project for coach practice and future checks, or delete it. Deleting it cannot
 affect production. Never copy staging data into production.
@@ -283,7 +320,9 @@ affect production. Never copy staging data into production.
 
 ## 3. Why staging cannot affect production
 
-1. **The app's only route to data is six variables** (`src/**` reads no other `process.env`). Every `process.env` read in the app is one of
+1. **The app's only route to data is six variables** (`src/**` reads no other `process.env`;
+   `next.config.ts` additionally reads `NODE_ENV`, set by the platform, and `NEXT_DIST_DIR`, a
+   test-only output folder that is never set in hosting). Every `process.env` read in the app is one of
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
    `SEASON_CLOSE_DATABASE_URL`, `CRON_SECRET` or `APP_ORIGIN`. No host or project is written in the
    code. The staging deployment can reach only the project those variables name.

@@ -17,6 +17,7 @@
     "staging:preflight": "node --env-file=.env.staging --import tsx scripts/staging-preflight.ts",
     "staging:migrate": "node --env-file=.env.staging --import tsx scripts/staging-migrate.ts",
     "staging:psql": "node --env-file=.env.staging --import tsx scripts/staging-psql.ts",
+    "staging:verify": "node --env-file=.env.staging --import tsx scripts/staging-verify.ts",
     "staging:create-admin": "npm run staging:preflight && node --env-file=.env.staging --import tsx scripts/create-admin.ts",
     "test:stack": "bash scripts/test-stack.sh",
     "test:db:isolated": "node -e \"console.error('test:db:isolated is disabled: it used to reset the protected gym-arena-test stack. Write-capable DB tests run in CI on a disposable gym-arena-ci stack (see tests/FIXTURES.md).');process.exit(1)\"",
