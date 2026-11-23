@@ -1,7 +1,8 @@
 /**
  * One-time bootstrap: create the first admin (DATABASE_SCHEMA profiles, D2).
  *
- *   ADMIN_EMAIL=… ADMIN_PASSWORD=… ADMIN_NAME=… npm run create-admin
+ *   ADMIN_EMAIL=… ADMIN_NAME=… npm run create-admin   (the password is asked for; never put it
+ *   on the command line, where it would stay in the shell history)
  *
  * Reads NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY from the environment
  * (load .env.local first, e.g. `node --env-file=.env.local`). Never hard-code values.

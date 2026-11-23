@@ -35,7 +35,9 @@ that header. The snapshot is computed from data dated before the Cairo day, so t
 not change the result.
 
 ## First admin
-`npm run create-admin` with `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` (scripts/create-admin.ts).
+`npm run create-admin` with `ADMIN_EMAIL` and `ADMIN_NAME` set (scripts/create-admin.ts). Leave
+`ADMIN_PASSWORD` unset: the script asks for it twice without showing it. Never type a password on
+the command line (`ADMIN_PASSWORD=… npm run …`): it would stay in the shell history.
 
 ## After the first cloud deployment
 Migrations become add-only (D22). Never run `db reset`, seed or push against a linked or cloud

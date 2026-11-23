@@ -9,6 +9,30 @@ checked. Never paste a secret into chat, a ticket or this file.
 
 ---
 
+## 0. Owner checklist (the steps that need your accounts)
+
+Work in this order. Each step names its section below. **Never paste a password, key or database
+URL into a chat** — the command outputs listed here contain none of them and are safe to share.
+
+| # | Where | Do | Copy → to | Never copy | Run | Success looks like | If it fails |
+|---|---|---|---|---|---|---|---|
+| A1 | Supabase → New project (step 1) | Project `gym-arena-staging`, new DB password (password manager) | project ref → notes; production ref → notes | anything from the production project except its ref | — | dashboard of the new project | — |
+| A2 | Staging → Authentication (step 1.3) | Sign-ups **off**, min password length **10** | — | — | — | settings saved | — |
+| A3 | Your computer, `gym-arena/` (step 2) | `cp .env.staging.example .env.staging` and fill it | staging URL, anon key, service key → `.env.staging`; Session-pooler URI + DB password → `STAGING_MIGRATION_DATABASE_URL`; production ref → `PRODUCTION_SUPABASE_REF` | production keys/URLs; `ADMIN_PASSWORD` (leave empty) | — | file saved, never committed (git ignores it) | — |
+| A4 | New terminal (step 3) | Preflight | — | — | `npm ci && npm run staging:preflight` | every line PASS (WARN only for `sb_…` keys); both refs match the dashboards; last line `Staging preflight passed.` | fix the variable named on the FAIL line; re-run |
+| A5 | Terminal (step 4) | Migration dry run | — | — | `npm run staging:migrate` | the 8 files listed in step 4, nothing else | stop; share the output |
+| **Gate 1** | | **Share the A4 + A5 output and approve applying the migrations** | | | | | |
+| A6 | Terminal (step 4) | Apply + check | — | — | `npm run staging:migrate -- --apply`, then the step 4 checks | 8 migrations applied; check counts as listed | stop; share the error text |
+| **Gate 2** | | **Share the A6 check results and approve enabling the close role** | | | | | |
+| A7 | Terminal (step 5) | Close role login + password, role checks | new close-role password → only into `SEASON_CLOSE_DATABASE_URL` (Transaction pooler URI) | the owner password into this variable | `npm run staging:psql`, then the SQL in step 5; then `npm run staging:preflight` | 9 checks as listed; preflight `PASS SEASON_CLOSE_DATABASE_URL: arena_season_closer on <ref>` | stop; share which check differs |
+| **Gate 3** | | **Approve creating the staging admin** | | | | | |
+| A8 | Terminal (step 6) | Admin account | — | — | `npm run staging:create-admin` (type the password when asked) | `Admin created: <email>` | message names the cause; nothing half-created |
+| A9 | Vercel → Add New → Project (step 7) | New project `gym-arena-staging`; Branch Tracking `claude/ecstatic-goodall-3p1zte`; Root Directory `gym-arena`; 5 variables (Production, Sensitive) | 5 values from `.env.staging` → Vercel | `STAGING_MIGRATION_DATABASE_URL`, `PRODUCTION_*`, `ADMIN_*`, `NEXT_DIST_DIR`; anything from the production Vercel project | — | settings saved in **gym-arena-staging** | — |
+| **Gate 4** | | **Approve the staging deployment** | | | | | |
+| A10 | Vercel → Deployments (step 7.5) | Create Deployment from the branch | staging address → notes | — | — | status Ready, label Production of gym-arena-staging, latest branch commit | share the build log's error lines |
+| A11 | Terminal (step 8) | Read-only verification | — | — | `npm run staging:verify -- https://<staging-address>` | every line PASS, `Staging verification passed.` | share the output |
+| A12 | Phone, laptop, TV (§2) | Three-day checklist | results → `docs/STAGING_ACCEPTANCE_REPORT.md` §5 (or send them) | screenshots showing keys, passwords or TV link keys | — | as listed per step | record actual result; stop on FAIL |
+
 ## 1. Setup (one time, about 45 minutes)
 
 ### Step 1 — Create the staging Supabase project
@@ -41,6 +65,11 @@ first two rows name production; every other value must come from the **staging**
 | `APP_ORIGIN` | optional | staging | Leave empty (see §4). |
 | `ADMIN_EMAIL`, `ADMIN_NAME` | step 6 only | staging | The staging admin's sign-in email and display name. |
 | `ADMIN_PASSWORD` | leave **empty** | — | Step 6 asks for the password twice without showing it, so it is never written to disk. Not your production password. |
+
+Keys: if the staging API Keys page offers **legacy** keys (`anon` and `service_role`, long
+`eyJ…` values), use those — the preflight then proves from the key itself that it belongs to the
+staging project. With the newer `sb_publishable_…` / `sb_secret_…` keys the preflight can only
+WARN, and you confirm by eye that you copied them from the staging project's page.
 
 Copy every URI exactly as the dashboard shows it. Do not add `?…` parameters: the check refuses any
 except `sslmode`, because drivers let `?host=` / `?user=` override the visible address.
@@ -86,6 +115,29 @@ The migrations create:
 - a random TV key;
 - the restricted role `arena_season_closer`, which cannot log in yet.
 
+The dry run must list exactly these 8 files, in this order, and nothing else:
+`20261114000001_schema`, `20261114000002_rules_and_triggers`, `20261114000003_rls_and_storage`,
+`20261115000001_member_active_coach_guard`, `20261116000001_entry_evidence_once`,
+`20261116000002_participants_select_set_based`, `20261116000003_set_based_read_policies`,
+`20261116000004_leaderboard_baselines`. Anything else, or an error, means stop.
+
+After `--apply`, check the result. These checks are read-only and contain no secrets. Run them in
+`npm run staging:psql`, or in the staging SQL Editor after reading the project name:
+```sql
+select count(*) from supabase_migrations.schema_migrations;                                   -- 8
+select count(*) from pg_tables where schemaname = 'public';                                   -- 11
+select count(*) from pg_tables where schemaname = 'public' and not rowsecurity;               -- 0 (RLS on every table)
+select count(*) from pg_policies where schemaname = 'public';                                 -- > 0
+select count(*) from pg_proc where pronamespace = 'public'::regnamespace and proname in
+  ('begin_season_close','finish_season_close','server_log_entry','server_void_entry',
+   'server_edit_entry','server_log_attendance');                                              -- 6
+select count(*) from pg_trigger t join pg_class c on c.oid = t.tgrelid
+  join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and not t.tgisinternal; -- > 0
+select id, public from storage.buckets where id in ('avatars','evidence') order by id;         -- 2 rows, public = f
+select count(*) from public.app_settings;                                                     -- 1 (do not select its columns: it holds the TV key)
+select count(*) from auth.users;                                                              -- 0 (no seed ran)
+```
+
 ### Step 5 — Enable the restricted season-close role
 Connect as the owner and set the password without it appearing in any query history:
 ```bash
@@ -100,8 +152,10 @@ alter role arena_season_closer login;
 ```
 Without `psql`: Supabase dashboard → **check the project name at the top is `gym-arena-staging`**
 → SQL Editor → a **new** snippet → `alter role arena_season_closer login password '<password>';`
-→ Run → delete the snippet. Running this in the production project would give production's
-close role a login with your staging password.
+→ Run → delete the snippet. This route sends the password as plain SQL text, which the database
+may record in its logs; `npm run staging:psql` with `\password` does not, so prefer it. Running
+this in the production project would give production's close role a login with your staging
+password.
 
 Still in the same session, check the role. These checks contain no secrets:
 ```sql
