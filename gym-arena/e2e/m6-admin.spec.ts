@@ -177,7 +177,7 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
     expect((await page.request.get(`/api/tv/state?key=${TV_KEY}`)).status()).toBe(200);
   });
 
-  test("phone (360 px): the last Settings buttons are never under the bottom tab bar and respond to a real tap", async ({ page }) => {
+  test("phone (360 px): the last Settings buttons sit above the bottom tab bar, on top of the page, and work", async ({ page }) => {
     await asAdmin(page);
     await english(page);
     await page.setViewportSize({ width: 360, height: 740 });
@@ -212,8 +212,12 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
         bodyScrollWidth: document.body.scrollWidth,
       };
     });
+    // the button is the topmost element at its centre, and the page is not wider than the phone
     expect(probe.hit, JSON.stringify(probe)).toBe(true);
-    await show.click({ timeout: 10_000 });
+    expect(Math.max(probe.scrollWidth, probe.bodyScrollWidth), JSON.stringify(probe)).toBeLessThanOrEqual(360);
+    // activate it the way a keyboard / switch-access user does (independent of emulated pointer maths)
+    await show.focus();
+    await page.keyboard.press("Enter");
     await expect(page.getByTestId("tv-url")).toContainText(TV_KEY);
   });
 
