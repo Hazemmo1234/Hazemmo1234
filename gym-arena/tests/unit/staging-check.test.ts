@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkStaging, dbUrlProblem, hasFailure, jwtClaims, parseDbUrl, refFromSupabaseUrl } from "../../scripts/staging-check";
+import { TARGETS, checkStaging, checkTarget, dbUrlProblem, hasFailure, jwtClaims, parseDbUrl, refFromSupabaseUrl } from "../../scripts/staging-check";
 
 const PROD = "prodprodprodprodprod";
 const STG = "stagstagstagstagstag";
@@ -182,3 +182,80 @@ describe("staging isolation check", () => {
 
 const byCheckFile = (env: Record<string, string>, fileEnv: Record<string, string> | null) =>
   Object.fromEntries(checkStaging({ env, fileEnv }).map((r) => [r.check, r]));
+
+describe("production target", () => {
+  const prodJwt = (role: string) => jwt({ iss: "supabase", ref: PROD, role });
+  const prodEnv = (): Record<string, string> => ({
+    PRODUCTION_SUPABASE_REF: PROD,
+    STAGING_SUPABASE_REF: STG,
+    STAGING_APP_ORIGIN: "https://arena-staging.example.com",
+    NEXT_PUBLIC_SUPABASE_URL: `https://${PROD}.supabase.co`,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: prodJwt("anon"),
+    SUPABASE_SERVICE_ROLE_KEY: prodJwt("service_role"),
+    SEASON_CLOSE_DATABASE_URL: `postgresql://arena_season_closer.${PROD}:closer-pw@aws-0-eu-central-1.pooler.supabase.com:6543/postgres`,
+    PRODUCTION_MIGRATION_DATABASE_URL: `postgresql://postgres.${PROD}:owner-pw@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`,
+    CRON_SECRET: "prod-cron-secret-0123456789",
+    APP_ORIGIN: "https://arena.example.com",
+  });
+  const run = (env: Record<string, string | undefined>, fileEnv?: Record<string, string> | null) =>
+    Object.fromEntries(checkTarget({ env, fileEnv }, "production").map((r) => [r.check, r]));
+
+  it("passes a production configuration and never echoes a secret", () => {
+    const results = checkTarget({ env: prodEnv() }, "production");
+    expect(hasFailure(results)).toBe(false);
+    const text = JSON.stringify(results);
+    for (const secret of ["closer-pw", "owner-pw", "prod-cron-secret-0123456789"]) expect(text).not.toContain(secret);
+    expect(TARGETS.production.envFile).toBe(".env.production-ops");
+    expect(run(prodEnv(), prodEnv())[".env.production-ops"]!.status).toBe("PASS");
+    expect(run(prodEnv(), null)[".env.production-ops"]!.status).toBe("FAIL");
+  });
+
+  it("refuses any staging value in a production run", () => {
+    const e = prodEnv();
+    e.NEXT_PUBLIC_SUPABASE_URL = `https://${STG}.supabase.co`;
+    expect(run(e).NEXT_PUBLIC_SUPABASE_URL!.detail).toContain("STAGING");
+    const e2 = prodEnv();
+    e2.SUPABASE_SERVICE_ROLE_KEY = jwt({ ref: STG, role: "service_role" });
+    expect(run(e2).SUPABASE_SERVICE_ROLE_KEY!.detail).toContain("STAGING");
+    const e3 = prodEnv();
+    e3.PRODUCTION_MIGRATION_DATABASE_URL = `postgresql://postgres.${STG}:x@aws-0-x.pooler.supabase.com:5432/postgres`;
+    const r3 = run(e3);
+    expect(r3.PRODUCTION_MIGRATION_DATABASE_URL!.status).toBe("FAIL");
+    expect(r3["staging ref"]!.status).toBe("FAIL");
+    const e4 = prodEnv();
+    e4.APP_ORIGIN = "https://arena-staging.example.com";
+    expect(run(e4).APP_ORIGIN!.detail).toContain("STAGING");
+  });
+
+  it("requires the URL to name the declared production ref, and the two refs to differ", () => {
+    const e = prodEnv();
+    e.NEXT_PUBLIC_SUPABASE_URL = `https://${OTHER}.supabase.co`;
+    expect(run(e).NEXT_PUBLIC_SUPABASE_URL!.detail).toContain("not the declared PRODUCTION_SUPABASE_REF");
+    const e2 = prodEnv();
+    e2.STAGING_SUPABASE_REF = PROD;
+    expect(run(e2).PRODUCTION_SUPABASE_REF!.status).toBe("FAIL");
+    const e3 = prodEnv();
+    delete (e3 as Record<string, string | undefined>).PRODUCTION_SUPABASE_REF;
+    delete (e3 as Record<string, string | undefined>).STAGING_SUPABASE_REF;
+    const r3 = run(e3);
+    expect(r3.PRODUCTION_SUPABASE_REF!.status).toBe("FAIL");
+    expect(r3.STAGING_SUPABASE_REF!.status).toBe("FAIL");
+  });
+
+  it("requires the public address and the cron secret in production", () => {
+    const e = prodEnv();
+    delete (e as Record<string, string | undefined>).APP_ORIGIN;
+    delete (e as Record<string, string | undefined>).CRON_SECRET;
+    const r = run(e);
+    expect(r.APP_ORIGIN!.status).toBe("FAIL");
+    expect(r.CRON_SECRET!.status).toBe("FAIL");
+    // staging keeps them optional
+    const s = good();
+    delete (s as Record<string, string | undefined>).CRON_SECRET;
+    expect(byCheck(s).CRON_SECRET!.status).toBe("WARN");
+  });
+
+  it("refuses a CLI link to staging during production work", () => {
+    expect(Object.fromEntries(checkTarget({ env: prodEnv(), linkedRef: STG }, "production").map((r) => [r.check, r]))["supabase CLI link"]!.status).toBe("FAIL");
+  });
+});

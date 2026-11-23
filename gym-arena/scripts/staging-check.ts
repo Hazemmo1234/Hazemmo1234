@@ -92,35 +92,93 @@ export function jwtClaims(key: string): { ref?: string; role?: string } | null {
   }
 }
 
-export function checkStaging({ env, linkedRef, fileEnv }: StagingInputs): CheckResult[] {
+export type OpsTarget = "staging" | "production";
+
+interface TargetSpec {
+  envFile: string;
+  label: string; // the environment being operated on
+  forbiddenVar: string; // ref of the OTHER environment, which must appear nowhere
+  forbiddenLabel: string;
+  expectedVar?: string; // declared ref the target must equal (production: typed by the operator)
+  migrationVar: string;
+  forbiddenOriginVar: string;
+  originRequired: boolean;
+  cronRequired: boolean;
+}
+
+export const TARGETS: Record<OpsTarget, TargetSpec> = {
+  staging: {
+    envFile: ".env.staging",
+    label: "staging",
+    forbiddenVar: "PRODUCTION_SUPABASE_REF",
+    forbiddenLabel: "PRODUCTION",
+    migrationVar: "STAGING_MIGRATION_DATABASE_URL",
+    forbiddenOriginVar: "PRODUCTION_APP_ORIGIN",
+    originRequired: false,
+    cronRequired: false,
+  },
+  production: {
+    envFile: ".env.production-ops",
+    label: "production",
+    forbiddenVar: "STAGING_SUPABASE_REF",
+    forbiddenLabel: "STAGING",
+    expectedVar: "PRODUCTION_SUPABASE_REF",
+    migrationVar: "PRODUCTION_MIGRATION_DATABASE_URL",
+    forbiddenOriginVar: "STAGING_APP_ORIGIN",
+    originRequired: true,
+    cronRequired: true,
+  },
+};
+
+export function checkStaging(inputs: StagingInputs): CheckResult[] {
+  return checkTarget(inputs, "staging");
+}
+
+/**
+ * Proves every value names the TARGET project and never the other environment's project.
+ * Staging: the target is whatever NEXT_PUBLIC_SUPABASE_URL names, and PRODUCTION_SUPABASE_REF
+ * must appear nowhere. Production: NEXT_PUBLIC_SUPABASE_URL must name the declared
+ * PRODUCTION_SUPABASE_REF, STAGING_SUPABASE_REF must appear nowhere, and the public address
+ * and cron secret are required.
+ */
+export function checkTarget({ env, linkedRef, fileEnv }: StagingInputs, target: OpsTarget): CheckResult[] {
+  const t = TARGETS[target];
   const out: CheckResult[] = [];
   const add = (status: CheckStatus, check: string, detail: string) => out.push({ status, check, detail });
   const v = (name: string) => env[name]?.trim() || undefined;
+  const OTHER = t.forbiddenLabel;
 
-  // 0. The values checked are exactly the ones written in .env.staging.
-  if (fileEnv === null) add("FAIL", ".env.staging", "file not found next to package.json");
+  // 0. The values checked are exactly the ones written in the operator file.
+  if (fileEnv === null) add("FAIL", t.envFile, "file not found next to package.json");
   else if (fileEnv) {
     const overridden = Object.keys(fileEnv).filter((k) => env[k] !== fileEnv[k]);
     if (overridden.length) {
-      add("FAIL", ".env.staging", `your shell exports a different value for: ${overridden.join(", ")} — open a new terminal or unset them`);
-    } else add("PASS", ".env.staging", "every value comes from the file (no shell override)");
+      add("FAIL", t.envFile, `your shell exports a different value for: ${overridden.join(", ")} — open a new terminal or unset them`);
+    } else add("PASS", t.envFile, "every value comes from the file (no shell override)");
   }
 
-  // 1. Production identity must be known, or nothing below can prove separation.
-  const prod = v("PRODUCTION_SUPABASE_REF");
-  if (!prod || !REF.test(prod)) {
-    add("FAIL", "PRODUCTION_SUPABASE_REF", "set it to the production project ref (20 lowercase letters/digits, from the production project URL) so separation can be proved");
+  // 1. The other environment's identity must be known, or nothing below can prove separation.
+  const forbidden = v(t.forbiddenVar);
+  if (!forbidden || !REF.test(forbidden)) {
+    add("FAIL", t.forbiddenVar, `set it to the ${OTHER.toLowerCase()} project ref (20 lowercase letters/digits, from that project's URL) so separation can be proved`);
   } else {
-    add("PASS", "PRODUCTION_SUPABASE_REF", `production project ${prod} — confirm it matches the production dashboard URL; every check below compares against it`);
+    add("PASS", t.forbiddenVar, `${OTHER.toLowerCase()} project ${forbidden} — confirm it matches that dashboard's URL; every check below compares against it`);
+  }
+  const expected = t.expectedVar ? v(t.expectedVar) : undefined;
+  if (t.expectedVar) {
+    if (!expected || !REF.test(expected)) add("FAIL", t.expectedVar, `set it to the ${t.label} project ref you are operating on`);
+    else if (expected === forbidden) add("FAIL", t.expectedVar, `is the same as ${t.forbiddenVar} — the two environments must be different projects`);
+    else add("PASS", t.expectedVar, `${t.label} project ${expected} — confirm it matches the ${t.label} dashboard URL`);
   }
 
-  // 2. Staging project ref from the public URL.
+  // 2. Target project ref from the public URL.
   const url = v("NEXT_PUBLIC_SUPABASE_URL");
-  const staging = url ? refFromSupabaseUrl(url) : null;
+  const ref = url ? refFromSupabaseUrl(url) : null;
   if (!url) add("FAIL", "NEXT_PUBLIC_SUPABASE_URL", "missing");
-  else if (!staging) add("FAIL", "NEXT_PUBLIC_SUPABASE_URL", "not an https://<ref>.supabase.co address — cannot identify the project");
-  else if (prod && staging === prod) add("FAIL", "NEXT_PUBLIC_SUPABASE_URL", `points at PRODUCTION (${staging}) — stop`);
-  else add("PASS", "NEXT_PUBLIC_SUPABASE_URL", `staging project ${staging}`);
+  else if (!ref) add("FAIL", "NEXT_PUBLIC_SUPABASE_URL", "not an https://<ref>.supabase.co address — cannot identify the project");
+  else if (forbidden && ref === forbidden) add("FAIL", "NEXT_PUBLIC_SUPABASE_URL", `points at ${OTHER} (${ref}) — stop`);
+  else if (t.expectedVar && expected && ref !== expected) add("FAIL", "NEXT_PUBLIC_SUPABASE_URL", `names ${ref}, not the declared ${t.expectedVar}`);
+  else add("PASS", "NEXT_PUBLIC_SUPABASE_URL", `${t.label} project ${ref}`);
 
   // 3. API keys belong to the same project (legacy JWT keys carry the ref; new sb_… keys do not).
   const keyCheck = (name: string, role: string, newPrefix: string) => {
@@ -129,19 +187,19 @@ export function checkStaging({ env, linkedRef, fileEnv }: StagingInputs): CheckR
     const claims = jwtClaims(key);
     if (claims) {
       if (claims.role !== role) return add("FAIL", name, `is not the ${role} key`);
-      if (prod && claims.ref === prod) return add("FAIL", name, "is a PRODUCTION key — stop");
-      if (staging && claims.ref !== staging) return add("FAIL", name, "belongs to a different project than NEXT_PUBLIC_SUPABASE_URL");
+      if (forbidden && claims.ref === forbidden) return add("FAIL", name, `is a ${OTHER} key — stop`);
+      if (ref && claims.ref !== ref) return add("FAIL", name, "belongs to a different project than NEXT_PUBLIC_SUPABASE_URL");
       return add("PASS", name, `${role} key of ${claims.ref}`);
     }
     if (key.startsWith(newPrefix)) {
-      return add("WARN", name, "new-format key: its project cannot be read from the key — confirm you copied it from the STAGING project's API settings");
+      return add("WARN", name, `new-format key: its project cannot be read from the key — confirm you copied it from the ${t.label.toUpperCase()} project's API settings`);
     }
     return add("FAIL", name, "not a recognised Supabase key");
   };
   keyCheck("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon", "sb_publishable_");
   keyCheck("SUPABASE_SERVICE_ROLE_KEY", "service_role", "sb_secret_");
 
-  // 4. Close connection: restricted role, staging project, never the owner.
+  // 4. Close connection: restricted role, target project, never the owner.
   const close = v("SEASON_CLOSE_DATABASE_URL");
   if (!close) add("FAIL", "SEASON_CLOSE_DATABASE_URL", "missing — seasons cannot be closed");
   else {
@@ -151,33 +209,37 @@ export function checkStaging({ env, linkedRef, fileEnv }: StagingInputs): CheckR
     else if (!db) add("FAIL", "SEASON_CLOSE_DATABASE_URL", "has no user name");
     else if (db.role !== CLOSE_ROLE) add("FAIL", "SEASON_CLOSE_DATABASE_URL", `must log in as ${CLOSE_ROLE}, not another role`);
     else if (!db.ref) add("FAIL", "SEASON_CLOSE_DATABASE_URL", "cannot identify the project (use the Supabase direct or pooler address)");
-    else if (prod && db.ref === prod) add("FAIL", "SEASON_CLOSE_DATABASE_URL", "points at PRODUCTION — stop");
-    else if (staging && db.ref !== staging) add("FAIL", "SEASON_CLOSE_DATABASE_URL", "points at a different project than NEXT_PUBLIC_SUPABASE_URL");
+    else if (forbidden && db.ref === forbidden) add("FAIL", "SEASON_CLOSE_DATABASE_URL", `points at ${OTHER} — stop`);
+    else if (ref && db.ref !== ref) add("FAIL", "SEASON_CLOSE_DATABASE_URL", "points at a different project than NEXT_PUBLIC_SUPABASE_URL");
     else add("PASS", "SEASON_CLOSE_DATABASE_URL", `${CLOSE_ROLE} on ${db.ref}`);
   }
 
-  // 5. Migration connection (operator only, optional here; required by staging-migrate).
-  const mig = v("STAGING_MIGRATION_DATABASE_URL");
+  // 5. Migration connection (operator only, optional here; required by the migrate/psql commands).
+  const mig = v(t.migrationVar);
   if (mig) {
     const problem = dbUrlProblem(mig);
     const db = problem ? null : parseDbUrl(mig);
-    if (problem) add("FAIL", "STAGING_MIGRATION_DATABASE_URL", problem);
-    else if (!db || !db.ref) add("FAIL", "STAGING_MIGRATION_DATABASE_URL", "cannot identify the project (use the Supabase direct or pooler address)");
-    else if (prod && db.ref === prod) add("FAIL", "STAGING_MIGRATION_DATABASE_URL", "points at PRODUCTION — stop");
-    else if (staging && db.ref !== staging) add("FAIL", "STAGING_MIGRATION_DATABASE_URL", "points at a different project than NEXT_PUBLIC_SUPABASE_URL");
-    else if (db.role === CLOSE_ROLE) add("FAIL", "STAGING_MIGRATION_DATABASE_URL", `must be the owner (postgres), not ${CLOSE_ROLE}`);
-    else add("PASS", "STAGING_MIGRATION_DATABASE_URL", `owner connection on ${db.ref}`);
+    if (problem) add("FAIL", t.migrationVar, problem);
+    else if (!db || !db.ref) add("FAIL", t.migrationVar, "cannot identify the project (use the Supabase direct or pooler address)");
+    else if (forbidden && db.ref === forbidden) add("FAIL", t.migrationVar, `points at ${OTHER} — stop`);
+    else if (ref && db.ref !== ref) add("FAIL", t.migrationVar, "points at a different project than NEXT_PUBLIC_SUPABASE_URL");
+    else if (db.role === CLOSE_ROLE) add("FAIL", t.migrationVar, `must be the owner (postgres), not ${CLOSE_ROLE}`);
+    else add("PASS", t.migrationVar, `owner connection on ${db.ref}`);
   }
 
   // 6. Cron secret and public origin.
   const cron = v("CRON_SECRET");
-  if (!cron) add("WARN", "CRON_SECRET", "missing — the nightly snapshot job will be refused (the first TV request of the day still writes it)");
-  else if (cron.length < 16) add("FAIL", "CRON_SECRET", "shorter than 16 characters");
+  if (!cron) {
+    if (t.cronRequired) add("FAIL", "CRON_SECRET", `missing — required in ${t.label} (the nightly snapshot job would be refused)`);
+    else add("WARN", "CRON_SECRET", "missing — the nightly snapshot job will be refused (the first TV request of the day still writes it)");
+  } else if (cron.length < 16) add("FAIL", "CRON_SECRET", "shorter than 16 characters");
   else add("PASS", "CRON_SECRET", "set (length ok)");
 
   const origin = v("APP_ORIGIN");
-  if (!origin) add("PASS", "APP_ORIGIN", "not set — the TV link uses the request's own host (optional)");
-  else {
+  if (!origin) {
+    if (t.originRequired) add("FAIL", "APP_ORIGIN", `missing — required in ${t.label}: the final public https address (TV links are built from it)`);
+    else add("PASS", "APP_ORIGIN", "not set — the TV link uses the request's own host (optional)");
+  } else {
     let ok = false;
     try {
       const u = new URL(origin);
@@ -185,26 +247,27 @@ export function checkStaging({ env, linkedRef, fileEnv }: StagingInputs): CheckR
     } catch {
       ok = false;
     }
-    const prodOrigin = v("PRODUCTION_APP_ORIGIN")?.replace(/\/+$/, "");
+    const otherOrigin = v(t.forbiddenOriginVar)?.replace(/\/+$/, "");
     if (!ok) add("FAIL", "APP_ORIGIN", "must be an https:// origin with no path, e.g. https://arena-staging.example.com");
-    else if (prodOrigin && origin.replace(/\/+$/, "") === prodOrigin) add("FAIL", "APP_ORIGIN", "is the PRODUCTION address — TV links would point at production");
+    else if (otherOrigin && origin.replace(/\/+$/, "") === otherOrigin) add("FAIL", "APP_ORIGIN", `is the ${OTHER} address — TV links would point at ${OTHER.toLowerCase()}`);
     else add("PASS", "APP_ORIGIN", "https origin");
   }
 
-  // 7. No value anywhere mentions the production project.
-  if (prod && REF.test(prod)) {
+  // 7. No value anywhere mentions the other environment's project.
+  if (forbidden && REF.test(forbidden)) {
     const leaking = Object.entries(env)
-      .filter(([k, val]) => k !== "PRODUCTION_SUPABASE_REF" && typeof val === "string" && val.includes(prod))
+      .filter(([k, val]) => k !== t.forbiddenVar && typeof val === "string" && val.includes(forbidden))
       .map(([k]) => k);
-    if (leaking.length) add("FAIL", "production ref", `found in: ${leaking.join(", ")}`);
-    else add("PASS", "production ref", "appears in no configured value");
+    const check = `${OTHER.toLowerCase()} ref`;
+    if (leaking.length) add("FAIL", check, `found in: ${leaking.join(", ")}`);
+    else add("PASS", check, "appears in no configured value");
   }
 
-  // 8. A CLI link in this folder must not target production.
+  // 8. A CLI link in this folder must not target the other environment.
   if (linkedRef) {
-    const ref = linkedRef.trim();
-    if (prod && ref === prod) add("FAIL", "supabase CLI link", "this folder is linked to PRODUCTION — run `npx supabase unlink` first");
-    else add("WARN", "supabase CLI link", `this folder is linked to ${ref}; staging scripts never use the link (they pass an explicit URL)`);
+    const linked = linkedRef.trim();
+    if (forbidden && linked === forbidden) add("FAIL", "supabase CLI link", `this folder is linked to ${OTHER} — run \`npx supabase unlink\` first`);
+    else add("WARN", "supabase CLI link", `this folder is linked to ${linked}; the ops scripts never use the link (they pass an explicit URL)`);
   }
 
   return out;

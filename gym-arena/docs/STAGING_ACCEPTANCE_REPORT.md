@@ -35,7 +35,16 @@ each gate is passed only on the owner's explicit approval.
 | Staging admin account | — | REQUIRES APPROVAL (Gate 3) |
 | Staging deployment | — | REQUIRES APPROVAL (Gate 4) |
 
-## 2. Commit and CI evidence — `42d6491`
+## 2. Commit and CI evidence
+
+Later verified commit: `8d97f02` (self-hosted fonts):
+- [push #53](https://github.com/Hazemmo1234/Hazemmo1234/actions/runs/45279307146) and [PR #54](https://github.com/Hazemmo1234/Hazemmo1234/actions/runs/45279319272) both succeeded on all four jobs.
+- 774/774 unit tests, DB suite passed, build passed, E2E 128 passed with 108 device-project skips.
+- The build needs no network.
+
+Each later commit's evidence is reported with that commit; see `docs/RELEASE_HISTORY.md`.
+
+### `42d6491`
 
 | Run | Lint, typecheck, unit + coverage | DB / RLS / security | Production build | E2E | Conclusion |
 |---|---|---|---|---|---|
@@ -198,6 +207,37 @@ Inherent trust (D21/D27): the password allows closing an *ended* season with res
 
 Staging-side checks (STAGING.md step 5): **NOT RUN**.
 
+### 3.8 Focused security review: no defect found (VERIFIED, code + tests)
+
+| Area | Finding | Evidence |
+|---|---|---|
+| API authorization | Every route authenticates the caller. The three public routes each keep their own check: TV key (constant time), `CRON_SECRET`, and locale (own profile only, via RLS). Middleware also answers 401 for unauthenticated `/api`. | `tests/unit/api-guards.test.ts`, which fails if a route ships without a guard; `src/lib/routes.ts` |
+| Service role | Used only in `server-only` modules and the cron route, after the app has authorized the caller; never in a client component | `grep createServiceClient` |
+| RLS | Every table has RLS. The only `using (true)` policies are the close role's read policies. Behaviour is covered by the DB suite (119 tests) | migrations `…03_rls_and_storage.sql`; `tests/db/*` |
+| Close role | Least privilege (§3.7) | `tests/db/seasons.test.ts:317-344` |
+| Secrets in client bundle | None | build attestation tests; bundle scan |
+| Audit content | No credential or TV key is ever logged (`tv_key.regenerate` has no values) | `rules_and_triggers.sql:661-675` |
+| Cookies | Supabase auth cookies are `SameSite=Lax` and readable by JavaScript, which `@supabase/ssr` needs. Accepted risk; HSTS and CSP mitigate it | `node_modules/@supabase/ssr` defaults; `next.config.ts` |
+| CSP | `script-src 'unsafe-inline'`, needed for Next.js inline bootstrap without nonces. Accepted risk; no other script origin | `next.config.ts` |
+| Rate limiting | None in the app. Sign-in uses Supabase Auth's own rate limits. The TV key has 192 bits; the cron secret is at least 16 characters | — |
+
+### 3.9 Production-target operator tooling (VERIFIED locally)
+The `prod:*` commands (preflight, migrate, psql, backup, create-admin, verify) use
+`.env.production-ops`. This file is git-ignored and not loaded by Next.js. In this mode:
+- every value must name the declared `PRODUCTION_SUPABASE_REF`;
+- `STAGING_SUPABASE_REF` must appear nowhere;
+- `APP_ORIGIN` and `CRON_SECRET` are required;
+- migrations with `--apply`, psql and admin creation require typing the production ref, and refuse without a terminal.
+
+Tests: 11 more in `tests/unit/staging-check.test.ts` (23 in total with verify).
+
+Smoke-tested with fake values and stubs:
+- preflight and dry run pass;
+- `--apply`, psql and create-admin refuse without a terminal;
+- a mistyped ref changes nothing; the right ref proceeds;
+- staging values in the production file are refused;
+- no secret appeared in any output.
+
 ## 4. Setup execution (STAGING.md §0)
 
 | Step | Status | Evidence to share (no secrets) |
@@ -265,6 +305,10 @@ Expected scores and rules are never changed to make a step pass.
 | Issue | Severity | Impact | Owner / action | Blocks production? |
 |---|---|---|---|---|
 | Staging not yet created | — | no acceptance evidence yet | Owner: §0 A1–A3 | yes |
+| Vercel builds on every push without waiting for CI | medium | a broken commit could reach **staging** before CI fails | Accepted for staging. Production deploys only from `release/gym-arena`, advanced to a CI-green SHA (`PRODUCTION_RUNBOOK.md` §3) | no, given the release gate |
+| No branch protection on either branch | medium | the release branch could be pushed without checks | Owner: protect `release/gym-arena` (and the default branch) and require the 4 CI checks | recommended before production |
+| Vercel Hobby is non-commercial only; Supabase Free has no backups and can pause | decision | terms and data safety | Owner: Pro plans for production (`PRODUCTION_RUNBOOK.md` §1) | yes (decision) |
+| GitHub Actions warns that `actions/*@v4` run Node 20 (forced to 24) | low | warning only; jobs pass | Update action versions when convenient | no |
 | New-format `sb_…` keys cannot be tied to a project by the preflight | low | relies on copying from the right page | Prefer legacy keys if offered (STAGING.md step 2) | no |
 | Migration URL visible in the local process list during `staging:migrate` | low | local only, own computer | accepted; not logged | no |
 | PR #1 title/body still say "M0 foundation" | low | confusing history | Owner decision; edit only with approval | no |

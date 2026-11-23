@@ -179,6 +179,9 @@ The pooler is needed because the hosting platform cannot reach Supabase's IPv6-o
 The app opens one connection with prepared statements off, so transaction mode works. Run
 `npm run staging:preflight` again; it must show `PASS SEASON_CLOSE_DATABASE_URL: arena_season_closer on <staging-ref>`.
 
+Optional, before risky steps: `npm run staging:backup` writes a read-only `pg_dump` to
+`backups/` (git-ignored; needs `pg_dump`, e.g. `brew install libpq`).
+
 ### Step 6 — Create the staging admin
 ```bash
 npm run staging:create-admin
@@ -407,6 +410,10 @@ affect production. Never copy staging data into production.
 | any | Running `supabase link`, `supabase db push` or `psql` by hand | Bypasses every check | Use only the `npm run staging:*` commands |
 | any | Reusing a production password or secret | One leak opens both | Generate new ones for staging |
 | after | Copying staging data into production | Invented people in the live championship | Never; production starts empty |
+
+Production uses the same commands as `prod:*` with its own file `.env.production-ops`. There,
+every value must name the declared production project and never the staging one, and each change
+asks you to type the production ref (`docs/PRODUCTION_RUNBOOK.md`).
 
 ## 4. `APP_ORIGIN` — what the code actually does
 `src/lib/origin.ts`: when `APP_ORIGIN` is set (trailing `/` removed), the TV link in Settings uses

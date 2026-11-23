@@ -34,6 +34,7 @@ yarn-error.log*
 .env*
 !.env.example
 !.env.staging.example
+!.env.production-ops.example
 
 # vercel
 .vercel
@@ -55,3 +56,6 @@ supabase/.temp
 /.ci-stack/
 /.next-fresh/
 /.next-test/
+
+# operator database dumps (scripts/ops-backup.ts) — never commit
+/backups

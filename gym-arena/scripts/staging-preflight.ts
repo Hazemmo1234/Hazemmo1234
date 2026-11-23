@@ -1,10 +1,11 @@
 /**
- * npm run staging:preflight — proves the staging settings in .env.staging (git-ignored) point at
- * the staging Supabase project and never at production, and that no shell variable overrides
- * the file. Prints check names and project refs only, never a value. Exit code 1 on any FAIL.
- * Makes no network connection.
+ * npm run staging:preflight / npm run prod:preflight — proves the operator file's settings point
+ * at the target Supabase project and never at the other environment, and that no shell variable
+ * overrides the file. Prints check names and project refs only, never a value. Exit code 1 on any
+ * FAIL. Makes no network connection.
  */
-import { runPreflightOrExit } from "./staging-env";
+import { opsTarget, runPreflightOrExit } from "./staging-env";
 
-runPreflightOrExit("Staging preflight FAILED — fix the items above before any staging step.");
-console.log("\nStaging preflight passed.");
+const target = opsTarget();
+runPreflightOrExit(`${target === "production" ? "Production" : "Staging"} preflight FAILED — fix the items above before any ${target} step.`, target);
+console.log(`\n${target === "production" ? "Production" : "Staging"} preflight passed.`);

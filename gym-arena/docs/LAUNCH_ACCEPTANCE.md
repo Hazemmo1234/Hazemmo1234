@@ -57,12 +57,14 @@ Steps (admin, in the app):
 Record: date, environment (staging/production pre-launch), result of each step.
 
 ## 3. Physical TV acceptance
+Record results in `docs/REAL_WORLD_ACCEPTANCE.md` §3.
 Use `docs/TV_TEST_CHECKLIST.md` on the actual gym TV (resolution/aspect ratio, full-screen/kiosk,
 5 m readability in both languages, podium and 12 s paging, reveal 3rd → 2nd → champion → final podium,
 refresh during the reveal, 60 s network loss and recovery, key rotation → old link shows
 "Display not authorized"). Not yet performed.
 
 ## 4. Real-device mobile check (5 minutes)
+The full phone protocol and evidence log: `docs/REAL_WORLD_ACCEPTANCE.md` §2.
 On an actual phone (iOS Safari and Android Chrome if available), as admin:
 - Settings: scroll to the bottom — Copy link / Open TV / Generate new key fully visible above the
   bottom tab bar and tappable; the keyboard opened from "Gym name" does not hide the Save button

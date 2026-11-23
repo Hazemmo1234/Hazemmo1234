@@ -10,8 +10,9 @@ export interface VerifyInputs {
   site: string; // https://… of the staging deployment
   supabaseUrl: string; // staging NEXT_PUBLIC_SUPABASE_URL (preflight-checked)
   anonKey: string;
-  stagingRef: string;
-  prodRef: string;
+  stagingRef: string; // the TARGET project ref (staging, or production for prod:verify)
+  prodRef: string; // the OTHER environment's ref, which must never appear
+  forbiddenLabel?: string; // name of that other environment in messages (default PRODUCTION)
   fetch: typeof fetch;
 }
 
@@ -44,7 +45,7 @@ export async function verifyStaging(i: VerifyInputs): Promise<CheckResult[]> {
   else {
     add("PASS", "site /login", "HTTP 200");
     const refs = cspRefs(login.headers.get("content-security-policy") ?? "");
-    if (refs.includes(i.prodRef)) add("FAIL", "build bound to project", "the deployed CSP names the PRODUCTION project — stop");
+    if (refs.includes(i.prodRef)) add("FAIL", "build bound to project", `the deployed CSP names the ${i.forbiddenLabel ?? "PRODUCTION"} project — stop`);
     else if (refs.length === 1 && refs[0] === i.stagingRef) add("PASS", "build bound to project", `CSP names only ${i.stagingRef}`);
     else add("FAIL", "build bound to project", refs.length ? `CSP names ${refs.join(", ")}, expected ${i.stagingRef}` : "no Supabase origin in the CSP (variables missing at build time? Redeploy)");
   }

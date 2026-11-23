@@ -6,14 +6,16 @@ preflight (`npm run staging:preflight`) that proves no value points at productio
 The application fails safely when any of these is missing; nothing here is created by code or CI.
 Never commit values. Set them in the hosting provider's secret store.
 
-| Variable | Scope | Required for | Behaviour when missing |
-|---|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | everything | the app refuses to start a request ("Server misconfigured") |
-| `SUPABASE_SERVICE_ROLE_KEY` | server only | leaderboards, TV, staff creation, writes through server functions | those requests fail with an error; no data is exposed |
-| `SEASON_CLOSE_DATABASE_URL` | server only | **closing a season** (D21, D27) | Close returns 503 "not set up"; nothing changes |
-| `CRON_SECRET` (≥ 16 chars) | server only | the daily rank snapshot job | the job is refused (401); the first TV request of each day still writes the snapshot |
-| `APP_ORIGIN` | server only, optional | only the address at the start of the TV link shown in Settings (`src/lib/origin.ts`); set it in production to the public domain if Settings may be opened from another address | the request's own host is used |
-| `APP_TIMEZONE` | server | documentation only — Africa/Cairo is fixed in code | — |
+Every variable, where it is read, whether it is required per environment and where it is
+configured: `docs/ENVIRONMENT_VARIABLES.md` (single reference). Behaviour when missing:
+- the Supabase URL or anon key: every request fails ("Server misconfigured");
+- the service key: leaderboards, TV and server writes fail with an error, no data exposed;
+- `SEASON_CLOSE_DATABASE_URL`: Close answers 503 and nothing changes;
+- `CRON_SECRET`: the daily job is refused (401); the first TV request of each day still writes the snapshot;
+- `APP_ORIGIN`: the TV link uses the request's own host.
+
+Production setup and releases: `docs/PRODUCTION_RUNBOOK.md`; rollback: `docs/ROLLBACK.md`;
+release gates: `docs/RELEASE_CHECKLIST.md`.
 
 ## Season-close role (once per database)
 1. On the cloud database, enable login for the restricted role created by the migrations, with a
