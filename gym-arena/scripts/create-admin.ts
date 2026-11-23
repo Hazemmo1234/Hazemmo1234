@@ -4,12 +4,18 @@
  *   ADMIN_EMAIL=… ADMIN_NAME=… npm run create-admin   (the password is asked for; never put it
  *   on the command line, where it would stay in the shell history)
  *
+ * Target (`--target=`): `local` (default) refuses any non-local Supabase URL; `staging` and
+ * `production` (npm run staging:create-admin / prod:create-admin) run that target's isolation
+ * preflight first, and production also asks you to type the production project ref. So a cloud
+ * admin can never be created without the checks, however the script is started.
+ *
  * Reads NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY from the environment
  * (load .env.local first, e.g. `node --env-file=.env.local`). Never hard-code values.
  * When ADMIN_PASSWORD is empty and this runs in a terminal, the password is asked for twice
  * without echo, so it never has to be written into an env file. It is never printed.
  */
 import { createClient } from "@supabase/supabase-js";
+import { confirmTargetOrExit, runPreflightOrExit } from "./staging-env";
 
 function required(name: string): string {
   const value = process.env[name]?.trim();
@@ -69,8 +75,39 @@ async function adminPassword(): Promise<string> {
   return first;
 }
 
+type AdminTarget = "local" | "staging" | "production";
+
+function adminTarget(): AdminTarget {
+  const arg = process.argv.find((a) => a.startsWith("--target="))?.slice("--target=".length) ?? "local";
+  if (arg !== "local" && arg !== "staging" && arg !== "production") {
+    console.error(`Unknown --target=${arg} (local, staging or production).`);
+    process.exit(1);
+  }
+  return arg;
+}
+
+async function guardTarget(target: AdminTarget, url: string) {
+  if (target === "local") {
+    let host = "";
+    try {
+      host = new URL(url).hostname;
+    } catch {
+      host = "";
+    }
+    if (!["127.0.0.1", "localhost", "[::1]"].includes(host)) {
+      console.error("This Supabase URL is not a local stack. Use `npm run staging:create-admin` or `npm run prod:create-admin`, which check the target first.");
+      process.exit(1);
+    }
+    return;
+  }
+  runPreflightOrExit(`Refusing to create an admin: ${target} preflight failed.`, target);
+  await confirmTargetOrExit("create the first admin", target);
+}
+
 async function main() {
+  const target = adminTarget();
   const url = required("NEXT_PUBLIC_SUPABASE_URL");
+  await guardTarget(target, url);
   const serviceKey = required("SUPABASE_SERVICE_ROLE_KEY");
   const email = required("ADMIN_EMAIL").toLowerCase();
   const fullName = required("ADMIN_NAME");

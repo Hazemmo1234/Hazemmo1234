@@ -13,8 +13,20 @@ import { TARGETS, checkTarget, hasFailure, type OpsTarget } from "./staging-chec
 
 export const APP_DIR = join(__dirname, "..");
 
-export function opsTarget(argv: string[] = process.argv): OpsTarget {
-  return argv.includes("--target=production") ? "production" : "staging";
+/** `--target=production` or `--target=staging` (the default); any other `--target=` value stops the command. */
+export function opsTarget(
+  argv: string[] = process.argv,
+  onError: (message: string) => never = (message) => {
+    console.error(message);
+    process.exit(1);
+  },
+): OpsTarget {
+  const given = argv.filter((a) => a.startsWith("--target="));
+  if (given.length > 1) onError("Give --target only once.");
+  if (given.length === 0) return "staging";
+  const value = given[0]!.slice("--target=".length);
+  if (value === "production" || value === "staging") return value;
+  return onError(`Unknown --target=${value} (staging or production).`);
 }
 
 export function runPreflightOrExit(failMessage: string, target: OpsTarget = opsTarget()): void {

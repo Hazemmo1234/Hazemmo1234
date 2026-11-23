@@ -7,7 +7,7 @@
  * Needs pg_dump at least as new as the server (e.g. `brew install libpq`).
  */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { TARGETS } from "./staging-check";
 import { APP_DIR, envWithoutPg, opsTarget, runPreflightOrExit } from "./staging-env";
@@ -41,4 +41,8 @@ if (r.error) {
   process.exit(1);
 }
 if (r.status !== 0) process.exit(r.status ?? 1);
+if (!existsSync(file)) {
+  console.error("pg_dump reported success but wrote no file — treat this backup as missing.");
+  process.exit(1);
+}
 console.log(`Backup written: ${statSync(file).size} bytes. Keep it off this laptop too (it holds real data in production).`);

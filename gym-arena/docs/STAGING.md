@@ -36,14 +36,20 @@ URL into a chat** — the command outputs listed here contain none of them and a
 ## 1. Setup (one time, about 45 minutes)
 
 ### Step 1 — Create the staging Supabase project
-1. Supabase dashboard → **New project**. Name it `gym-arena-staging`. Pick the same region you plan
-   for production. Generate a strong database password and store it in your password manager.
+1. Supabase dashboard → **New organization** `DFN GYM staging` (Free plan), then **New project**
+   in it named `gym-arena-staging`. Use the same region you plan for production. Generate a strong
+   database password and store it in your password manager.
+   Keep staging in **its own free organization**. Supabase plans are per organization, and in a
+   paid organization every extra project is billed for compute (about $10/month). The production
+   project goes in a separate organization that is upgraded at launch.
 2. Write down its **project ref**: the `xxxx` in `https://xxxx.supabase.co`. It is not a secret.
    Also write down the **production** project ref; the preflight (step 3) refuses to run without
    it, because every check compares against it. If no production project exists yet, create it
    now, empty (no app, no data, nothing connected), only so its ref exists. Copy both refs from
    the dashboards' address bars. **A wrong production ref blinds every check**, so the preflight
    prints it back for you to compare.
+   The free plan pauses a project after about a week with little activity. Data is kept; if
+   that happens between test days, restore it from the dashboard before continuing.
 3. **Authentication → Sign In / Providers**: turn **off** "Allow new users to sign up" (accounts are
    created by the admin only; SECURITY_SPECIFICATION §1). Set **minimum password length ≥ 10**.
    Email confirmation and redirect URLs are not used by the app.

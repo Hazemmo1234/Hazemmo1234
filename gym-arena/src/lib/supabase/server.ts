@@ -1,14 +1,18 @@
 import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { publicEnv } from "@/lib/env";
+import { authCookieSecure } from "./cookie-security";
 
-/** Server client acting as the signed-in user (RLS applies). */
+/** Server client acting as the signed-in user (RLS applies). Auth cookies are Secure except on local plain HTTP. */
 export async function createClient() {
   const { url, anonKey } = publicEnv();
   const cookieStore = await cookies();
+  const h = await headers();
+  const secure = authCookieSecure(h.get("x-forwarded-proto"), h.get("x-forwarded-host") ?? h.get("host"));
   return createServerClient(url, anonKey, {
+    cookieOptions: { secure },
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (toSet) => {

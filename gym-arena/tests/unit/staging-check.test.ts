@@ -259,3 +259,61 @@ describe("production target", () => {
     expect(Object.fromEntries(checkTarget({ env: prodEnv(), linkedRef: STG }, "production").map((r) => [r.check, r]))["supabase CLI link"]!.status).toBe("FAIL");
   });
 });
+
+describe("the two targets cannot be confused", () => {
+  const prodJwt = (role: string) => jwt({ ref: PROD, role });
+  const productionFile = (): Record<string, string> => ({
+    PRODUCTION_SUPABASE_REF: PROD,
+    STAGING_SUPABASE_REF: STG,
+    NEXT_PUBLIC_SUPABASE_URL: `https://${PROD}.supabase.co`,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: prodJwt("anon"),
+    SUPABASE_SERVICE_ROLE_KEY: prodJwt("service_role"),
+    SEASON_CLOSE_DATABASE_URL: `postgresql://arena_season_closer.${PROD}:x@aws-0-x.pooler.supabase.com:6543/postgres`,
+    PRODUCTION_MIGRATION_DATABASE_URL: `postgresql://postgres.${PROD}:x@aws-0-x.pooler.supabase.com:5432/postgres`,
+    CRON_SECRET: "c".repeat(24),
+    APP_ORIGIN: "https://arena.example.com",
+  });
+
+  it("production values run as a STAGING operation are refused", () => {
+    const results = checkTarget({ env: productionFile() }, "staging");
+    expect(hasFailure(results)).toBe(true);
+    const r = Object.fromEntries(results.map((x) => [x.check, x]));
+    expect(r.NEXT_PUBLIC_SUPABASE_URL!.detail).toContain("PRODUCTION");
+    expect(r.SEASON_CLOSE_DATABASE_URL!.detail).toContain("PRODUCTION");
+  });
+
+  it("staging values run as a PRODUCTION operation are refused", () => {
+    const staging = { ...good(), STAGING_SUPABASE_REF: STG };
+    const results = checkTarget({ env: staging }, "production");
+    expect(hasFailure(results)).toBe(true);
+    const r = Object.fromEntries(results.map((x) => [x.check, x]));
+    expect(r.NEXT_PUBLIC_SUPABASE_URL!.detail).toContain("STAGING");
+  });
+
+  it("a staging file without the production declarations cannot pass as production", () => {
+    expect(hasFailure(checkTarget({ env: good() }, "production"))).toBe(true);
+  });
+
+  it("each target compares against its own operator file", () => {
+    const prod = productionFile();
+    expect(TARGETS.staging.envFile).not.toBe(TARGETS.production.envFile);
+    // production values loaded, but the staging command reads .env.staging: every key differs
+    const r = Object.fromEntries(checkTarget({ env: prod, fileEnv: good() }, "staging").map((x) => [x.check, x]));
+    expect(r[".env.staging"]!.status).toBe("FAIL");
+  });
+});
+
+describe("target selection", () => {
+  it("is staging unless --target=production is given exactly", async () => {
+    const { opsTarget } = await import("../../scripts/staging-env");
+    expect(opsTarget(["node", "x"])).toBe("staging");
+    expect(opsTarget(["node", "x", "--target=production"])).toBe("production");
+    expect(opsTarget(["node", "x", "--target=staging"])).toBe("staging");
+    expect(opsTarget(["node", "x", "production"])).toBe("staging"); // a bare word is not a target flag
+    const thrower = (m: string): never => {
+      throw new Error(m);
+    };
+    expect(() => opsTarget(["node", "x", "--target=prod"], thrower)).toThrow(/Unknown --target=prod/);
+    expect(() => opsTarget(["node", "x", "--target=production", "--target=staging"], thrower)).toThrow(/only once/);
+  });
+});

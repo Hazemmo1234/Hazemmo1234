@@ -22,7 +22,8 @@ the deployment was confirmed by the platform.
 | 2026-11-23 | `0a2c455` … `0480c0c` | Phone layout fix (Settings zoom-out); launch and coach docs |
 | 2026-11-23 | `6386f33` … `382bf72` | Staging tooling: isolation preflight, guarded migrate/psql/admin, read-only verify, owner checklist |
 | 2026-11-23 | `8d97f02` | Self-hosted Cairo and Barlow Condensed; builds no longer depend on Google Fonts |
-| 2026-11-23 | (this stage) | Route-guard regression test; production-target operator tooling (`prod:*`); backups; runbook, rollback, release checklist, environment reference, real-world acceptance protocol |
+| 2026-11-23 | `3fc086e` | Production-target operator tooling (`prod:*`), backups; runbook, rollback, release checklist, environment reference, real-world acceptance protocol (CI: push #55, PR #56 green) |
+| 2026-11-24 | (this stage) | Auth cookies `Secure` on HTTPS (fail-closed); behavioural API guard test; audit-path guard; create-admin enforces its target; strict `--target` parsing; cost decision; Supabase organization separation |
 
 CI evidence per commit is recorded in `docs/STAGING_ACCEPTANCE_REPORT.md` §2 and the commit's
 GitHub Actions runs.

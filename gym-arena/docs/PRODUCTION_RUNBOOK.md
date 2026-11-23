@@ -13,18 +13,37 @@ development or staging work never covers a production step. Variable details are
 
 ## 1. Plans and costs (owner decision, before anything is created)
 
-| Service | Recommended for production | Why |
-|---|---|---|
-| Vercel | **Pro** | Vercel's terms limit Hobby to personal, non-commercial use. A gym's member-facing app is commercial use. |
-| Supabase | **Pro** (from $25/month) | Free has no automatic backups and pauses after a week of low activity. Pro: daily backups kept 7 days, never paused. Point-in-time recovery is a paid add-on and optional. |
-
-Staging can stay on free tiers. Check the current prices on the providers' pricing pages
+Checked against the providers' own pages in November 2026. Prices change, so re-check the
+[Vercel pricing](https://vercel.com/pricing), [Vercel Pro](https://vercel.com/docs/plans/pro-plan),
+[Supabase pricing](https://supabase.com/pricing), [Supabase backups](https://supabase.com/docs/guides/platform/backups)
+and [Supabase pausing](https://supabase.com/kb/faqs/platform/free-project-pausing) pages
 before you subscribe.
+
+| Provider facts | |
+|---|---|
+| Vercel Hobby | Free, but limited by Vercel's terms to personal, non-commercial use, with hard usage caps. A gym's member-facing app is commercial use. |
+| Vercel Pro | $20/month platform fee, which includes 1 deploying seat and $20 of usage credit. Usage beyond the credit is billed on demand. Spend Management (a budget, optionally pausing projects at the limit) is included at no cost. |
+| Supabase Free | $0. **No automatic backups.** The project is **paused after about a week of low activity** (data kept; restore from the dashboard). 2 active projects per account. |
+| Supabase Pro | From $25/month per organization (includes $10 compute credit, enough for one Micro project). **Daily backups, 7 days kept**, never paused. Point-in-time recovery is a separate add-on (about $100/month for 7 days). |
+
+**Cost decision**
+
+| | Staging | Production |
+|---|---|---|
+| **Mandatory** | $0: Supabase Free, in its **own free organization** (a project inside a paid organization is billed about $10/month for compute). It may pause between test days; restore it from the dashboard | Vercel Pro **$20/month**; Supabase Pro **$25/month**; a domain (registrar price, typically ~$10–20/year). **About $45/month plus the domain** |
+| **Recommended, no extra cost** | Host the staging Vercel project inside the same Pro team once production is on Pro. The platform fee covers several projects; staging usage counts toward the $20 credit. | Set a Vercel Spend Management budget with a hard limit (for example $40) so usage beyond the credit cannot surprise you |
+| **Optional** | — | Point-in-time recovery (~$100/month), only if losing up to a day of entries is not acceptable; a free uptime monitor; extra Vercel seats for other people who deploy |
+
+Until production exists, staging on Vercel Hobby is a grey area under Vercel's terms, because it
+is a business's pre-release environment. Moving it into the Pro team removes the question.
+Without Supabase Pro, the **only** production backup is `npm run prod:backup` (manual, before
+every migration and at least weekly), and it does not include storage photos
+(`docs/ROLLBACK.md` §3).
 
 ## 2. One-time setup — production (owner does each step; `→` = expected result)
 
 **P1. Supabase project (GATE A: create a paid resource).**
-1. Create a new project named `gym-arena` (not the staging one), in the same region as staging.
+1. In a **separate organization** from staging (upgrade that organization to Pro), create a new project named `gym-arena`, in the same region as staging.
 2. Generate a new database password (letters and digits), and keep it in your password manager.
 3. Authentication:
    - Sign-ups **off**.

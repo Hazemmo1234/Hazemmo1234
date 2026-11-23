@@ -168,6 +168,7 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
         const audit = await (await page.request.get("/api/audit?action=tv_key.regenerate")).json();
         expect(audit.rows[0]).toMatchObject({ action: "tv_key.regenerate" });
         expect(JSON.stringify(audit)).not.toContain(newKey);
+        expect(JSON.stringify(audit)).not.toContain(TV_KEY); // neither the old nor the new key
       });
     } finally {
       await test.step("restore the seed TV key on the disposable stack", async () => {

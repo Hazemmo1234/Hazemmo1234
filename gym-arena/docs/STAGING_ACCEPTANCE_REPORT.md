@@ -207,35 +207,52 @@ Inherent trust (D21/D27): the password allows closing an *ended* season with res
 
 Staging-side checks (STAGING.md step 5): **NOT RUN**.
 
-### 3.8 Focused security review: no defect found (VERIFIED, code + tests)
+### 3.8 Focused security review (VERIFIED, behaviour tests)
 
-| Area | Finding | Evidence |
+| Area | Verified behaviour | Evidence |
 |---|---|---|
-| API authorization | Every route authenticates the caller. The three public routes each keep their own check: TV key (constant time), `CRON_SECRET`, and locale (own profile only, via RLS). Middleware also answers 401 for unauthenticated `/api`. | `tests/unit/api-guards.test.ts`, which fails if a route ships without a guard; `src/lib/routes.ts` |
-| Service role | Used only in `server-only` modules and the cron route, after the app has authorized the caller; never in a client component | `grep createServiceClient` |
-| RLS | Every table has RLS. The only `using (true)` policies are the close role's read policies. Behaviour is covered by the DB suite (119 tests) | migrations `…03_rls_and_storage.sql`; `tests/db/*` |
+| API authorization | **Every** exported handler of every API route (38 handlers, 28 routes) is called. Signed out, each protected one answers **401 before reading any table**. An active coach gets **403 from every admin-only handler**, after reading only their own profile, and passes the role gate on the 17 coach handlers. An inactive profile counts as signed out. The service-role client is never touched. Mutation-tested: removing a guard, opening an admin route to coaches, or reading data before the guard each fails the test. | `tests/unit/api-guards.test.ts` |
+| Public endpoints | **TV state:** a missing, empty, wrong or one-character-short key → 401, with no board data and no state built. **Cron:** no secret configured, no header, a wrong or truncated secret, a missing `Bearer`, or a too-short configured secret → 401, and the service role is not touched. **Locale:** returns only `{locale}`; strict schema; signed out it reads and writes nothing; signed in it updates only the caller's own `profiles.locale`. | same file |
+| Auth cookies | **`Secure` on every HTTPS / public host** (fail-closed). The only exception is plain HTTP to localhost/127.x/::1, i.e. local dev and CI. `SameSite=Lax`, `path=/`. The real `@supabase/ssr` writes our setting into the `sb-<ref>-auth-token` cookie; the middleware, server client and browser client all pass it. `httpOnly` stays false because `@supabase/ssr` reads the session in the browser (accepted; HSTS and CSP mitigate it). | `src/lib/supabase/cookie-security.ts`, `tests/unit/auth-cookies.test.ts` (20 tests) |
+| Audit records | Only trigger-called `public.audit()` writes them. No API role may call it or insert into `audit_log`; the app only reads it. Settings and profile rows are never logged whole; the key rotation is logged as `null, null, null`. The E2E checks that neither the old nor the new key appears in the rotation's audit row. | `tests/unit/audit-sql.test.ts`, `e2e/m6-admin.spec.ts`, DB suite |
+| Service role | Only in `server-only` modules and the cron route, after the app has authorized the caller | `grep createServiceClient`; api-guards test |
+| RLS | Every table has RLS; the only `using (true)` policies are the close role's read policies; behaviour is covered by the DB suite (119 tests) | migrations; `tests/db/*` |
 | Close role | Least privilege (§3.7) | `tests/db/seasons.test.ts:317-344` |
 | Secrets in client bundle | None | build attestation tests; bundle scan |
-| Audit content | No credential or TV key is ever logged (`tv_key.regenerate` has no values) | `rules_and_triggers.sql:661-675` |
-| Cookies | Supabase auth cookies are `SameSite=Lax` and readable by JavaScript, which `@supabase/ssr` needs. Accepted risk; HSTS and CSP mitigate it | `node_modules/@supabase/ssr` defaults; `next.config.ts` |
-| CSP | `script-src 'unsafe-inline'`, needed for Next.js inline bootstrap without nonces. Accepted risk; no other script origin | `next.config.ts` |
-| Rate limiting | None in the app. Sign-in uses Supabase Auth's own rate limits. The TV key has 192 bits; the cron secret is at least 16 characters | — |
+| CSP | `script-src 'unsafe-inline'` (Next.js bootstrap without nonces). Accepted risk; no other script origin | `next.config.ts` |
+| Rate limiting | None in the app. Sign-in uses Supabase Auth's own limits. The TV key has 192 bits; the cron secret is at least 16 characters | — |
 
-### 3.9 Production-target operator tooling (VERIFIED locally)
+### 3.9 Production-target operator tooling (VERIFIED locally; never run against real infrastructure)
+
 The `prod:*` commands (preflight, migrate, psql, backup, create-admin, verify) use
-`.env.production-ops`. This file is git-ignored and not loaded by Next.js. In this mode:
+`.env.production-ops`. That file is git-ignored and not loaded by Next.js.
+
+In production mode:
 - every value must name the declared `PRODUCTION_SUPABASE_REF`;
 - `STAGING_SUPABASE_REF` must appear nowhere;
 - `APP_ORIGIN` and `CRON_SECRET` are required;
-- migrations with `--apply`, psql and admin creation require typing the production ref, and refuse without a terminal.
+- `migrate --apply`, psql and create-admin require typing the production ref, and refuse without a terminal.
 
-Tests: 11 more in `tests/unit/staging-check.test.ts` (23 in total with verify).
+Target selection:
+- `--target=production` or `--target=staging`;
+- any other value, or a repeated flag, stops the command;
+- each target compares against its own operator file, so a cross-wired file fails.
 
-Smoke-tested with fake values and stubs:
-- preflight and dry run pass;
-- `--apply`, psql and create-admin refuse without a terminal;
-- a mistyped ref changes nothing; the right ref proceeds;
-- staging values in the production file are refused;
+`scripts/create-admin.ts` enforces its target itself, however it is started:
+- `local` refuses any non-local URL;
+- `staging` and `production` run the preflight;
+- production also needs the typed ref.
+
+Tests: `tests/unit/staging-check.test.ts`, 22 tests, including production values run as staging, staging values run as production, and target parsing.
+
+No-network smoke matrix with fake values and stubbed `npx`/`psql`/`pg_dump`, 12 cases:
+- the right command on the wrong file is refused;
+- a typo target is refused;
+- a cloud URL through plain `create-admin` is refused;
+- production admin creation without a terminal is refused;
+- production admin creation with the wrong typed ref changes nothing;
+- the verify address of the other environment is refused;
+- backups pass only the checked host;
 - no secret appeared in any output.
 
 ## 4. Setup execution (STAGING.md §0)
