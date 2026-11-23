@@ -1,7 +1,7 @@
 # Launch acceptance — operational checklist
 
 Release under acceptance: branch `claude/ecstatic-goodall-3p1zte` (CI green on every job — see the
-final handoff). Everything below happens **after** deployment, by the owner/admin. Nothing here has
+final handoff). Staging setup and the full staging checklist: `docs/STAGING.md`. Everything below happens **after** deployment, by the owner/admin. Nothing here has
 been executed yet; tick and date each item as it is done. Never paste a secret value into chat,
 tickets or this file.
 
@@ -11,7 +11,7 @@ tickets or this file.
 |---|---|---|---|---|---|
 | `SEASON_CLOSE_DATABASE_URL` | Hosting provider secret store, server env only (never `NEXT_PUBLIC_`) | Yes, to close seasons | Direct Postgres connection as the restricted role `arena_season_closer` for the close transaction (D21, D27) | §2 below (a test season closes); plus the role checks in §1a | Close button answers "not set up" (HTTP 503); the season stays open, nothing is written |
 | `CRON_SECRET` | Hosting secret store; the scheduler sends it (Vercel Cron does automatically) | Recommended | Authorizes `GET /api/cron/snapshot` (daily rank snapshot, 00:05/01:05 Cairo) | Hosting cron log shows `200 {"ok":true,…}`; a request **without** the header returns 401 | Job refused (401). The first TV request of each day still writes the same snapshot, so arrows still work |
-| `APP_ORIGIN` | Server env | Optional | Public address used in the TV link shown in Settings | Admin → Settings → TV link starts with the expected `https://…` address | The request's own host is used |
+| `APP_ORIGIN` | Server env | Optional (recommended in production when the site has a custom domain) | Only the address at the start of the TV link shown in Settings (`src/lib/origin.ts`); nothing else uses it | Admin → Settings → TV link starts with the expected `https://…` address | The request's own host is used — opening Settings from a `*.vercel.app` address would then copy a TV link with that address |
 
 Also required (already part of the base setup): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
 `SUPABASE_SERVICE_ROLE_KEY` (server only). Verified in the build: no server secret appears in any
@@ -30,7 +30,9 @@ select has_table_privilege('arena_season_closer', 'public.entries', 'update');  
 
 **Precondition — do not skip.** A closed season and its frozen results can never be deleted (by design).
 A test season also enrols every active member automatically. So run this either
-- **(recommended)** on a **staging** Supabase project with the same migrations and the seed data, or
+- **(recommended)** on a **staging** Supabase project — follow `docs/STAGING.md`, which has the full
+  setup and a three-day checklist with expected scores (the seed refuses every non-local database,
+  so staging data is entered through the app), or
 - on production **before any real member is registered**, accepting one permanent season named
   "Acceptance test" in the admin season list.
 

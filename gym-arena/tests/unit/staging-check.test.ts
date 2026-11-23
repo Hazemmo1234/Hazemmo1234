@@ -1,0 +1,142 @@
+import { describe, expect, it } from "vitest";
+import { checkStaging, hasFailure, jwtClaims, parseDbUrl, refFromSupabaseUrl } from "../../scripts/staging-check";
+
+const PROD = "prodprodprodprodprod";
+const STG = "stagstagstagstagstag";
+const OTHER = "otherotherotherother";
+
+const jwt = (payload: object) =>
+  ["eyJhbGciOiJIUzI1NiJ9", Buffer.from(JSON.stringify(payload)).toString("base64url"), "sig"].join(".");
+
+const good = (): Record<string, string> => ({
+  PRODUCTION_SUPABASE_REF: PROD,
+  NEXT_PUBLIC_SUPABASE_URL: `https://${STG}.supabase.co`,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: jwt({ iss: "supabase", ref: STG, role: "anon" }),
+  SUPABASE_SERVICE_ROLE_KEY: jwt({ iss: "supabase", ref: STG, role: "service_role" }),
+  SEASON_CLOSE_DATABASE_URL: `postgresql://arena_season_closer.${STG}:s3cret-value@aws-0-eu-central-1.pooler.supabase.com:6543/postgres`,
+  STAGING_MIGRATION_DATABASE_URL: `postgresql://postgres:0wner-pass@db.${STG}.supabase.co:5432/postgres`,
+  CRON_SECRET: "0123456789abcdef-cron",
+});
+
+const byCheck = (env: Record<string, string | undefined>, linkedRef?: string) =>
+  Object.fromEntries(checkStaging({ env, linkedRef }).map((r) => [r.check, r]));
+
+describe("staging isolation check", () => {
+  it("passes a fully staging configuration and never echoes a secret", () => {
+    const env = good();
+    const results = checkStaging({ env });
+    expect(hasFailure(results)).toBe(false);
+    const text = JSON.stringify(results);
+    for (const secret of ["s3cret-value", "0wner-pass", "0123456789abcdef-cron", env.SUPABASE_SERVICE_ROLE_KEY!]) expect(text).not.toContain(secret);
+  });
+
+  it("refuses without the production ref (separation cannot be proved)", () => {
+    const env = good();
+    delete (env as Record<string, string | undefined>).PRODUCTION_SUPABASE_REF;
+    expect(byCheck(env).PRODUCTION_SUPABASE_REF!.status).toBe("FAIL");
+  });
+
+  it("refuses a production URL, production keys and production database URLs", () => {
+    const env = good();
+    env.NEXT_PUBLIC_SUPABASE_URL = `https://${PROD}.supabase.co`;
+    expect(byCheck(env).NEXT_PUBLIC_SUPABASE_URL!.status).toBe("FAIL");
+
+    const env2 = good();
+    env2.SUPABASE_SERVICE_ROLE_KEY = jwt({ ref: PROD, role: "service_role" });
+    expect(byCheck(env2).SUPABASE_SERVICE_ROLE_KEY!.detail).toContain("PRODUCTION");
+
+    const env3 = good();
+    env3.SEASON_CLOSE_DATABASE_URL = `postgresql://arena_season_closer:x@db.${PROD}.supabase.co:5432/postgres`;
+    env3.STAGING_MIGRATION_DATABASE_URL = `postgresql://postgres.${PROD}:x@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`;
+    const r = byCheck(env3);
+    expect(r.SEASON_CLOSE_DATABASE_URL!.status).toBe("FAIL");
+    expect(r.STAGING_MIGRATION_DATABASE_URL!.status).toBe("FAIL");
+    expect(r["production ref"]!.status).toBe("FAIL");
+  });
+
+  it("refuses values that mix projects or use the wrong role", () => {
+    const env = good();
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY = jwt({ ref: OTHER, role: "anon" });
+    env.SEASON_CLOSE_DATABASE_URL = `postgresql://postgres:x@db.${STG}.supabase.co:5432/postgres`;
+    env.STAGING_MIGRATION_DATABASE_URL = `postgresql://arena_season_closer:x@db.${STG}.supabase.co:5432/postgres`;
+    const r = byCheck(env);
+    expect(r.NEXT_PUBLIC_SUPABASE_ANON_KEY!.status).toBe("FAIL");
+    expect(r.SEASON_CLOSE_DATABASE_URL!.detail).toContain("arena_season_closer");
+    expect(r.STAGING_MIGRATION_DATABASE_URL!.status).toBe("FAIL");
+
+    const env2 = good();
+    env2.SUPABASE_SERVICE_ROLE_KEY = jwt({ ref: STG, role: "anon" }); // anon key pasted as service key
+    expect(byCheck(env2).SUPABASE_SERVICE_ROLE_KEY!.status).toBe("FAIL");
+
+    const env3 = good();
+    env3.SEASON_CLOSE_DATABASE_URL = `postgresql://arena_season_closer:x@db.${OTHER}.supabase.co:5432/postgres`;
+    expect(byCheck(env3).SEASON_CLOSE_DATABASE_URL!.status).toBe("FAIL");
+  });
+
+  it("warns (does not pass silently) on new-format keys whose project cannot be read", () => {
+    const env = good();
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "sb_publishable_abc";
+    env.SUPABASE_SERVICE_ROLE_KEY = "sb_secret_abc";
+    const r = byCheck(env);
+    expect(r.NEXT_PUBLIC_SUPABASE_ANON_KEY!.status).toBe("WARN");
+    expect(r.SUPABASE_SERVICE_ROLE_KEY!.status).toBe("WARN");
+    env.SUPABASE_SERVICE_ROLE_KEY = "garbage";
+    expect(byCheck(env).SUPABASE_SERVICE_ROLE_KEY!.status).toBe("FAIL");
+  });
+
+  it("checks missing values, the cron secret and APP_ORIGIN", () => {
+    const r0 = byCheck({ PRODUCTION_SUPABASE_REF: PROD });
+    for (const k of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "SEASON_CLOSE_DATABASE_URL"]) expect(r0[k]!.status).toBe("FAIL");
+    expect(r0.CRON_SECRET!.status).toBe("WARN");
+    expect(r0.APP_ORIGIN!.status).toBe("PASS"); // optional
+
+    const env = good();
+    env.CRON_SECRET = "short";
+    env.APP_ORIGIN = "http://arena-staging.example.com/path";
+    let r = byCheck(env);
+    expect(r.CRON_SECRET!.status).toBe("FAIL");
+    expect(r.APP_ORIGIN!.status).toBe("FAIL");
+
+    env.APP_ORIGIN = "https://arena.example.com/";
+    env.PRODUCTION_APP_ORIGIN = "https://arena.example.com";
+    r = byCheck(env);
+    expect(r.APP_ORIGIN!.detail).toContain("PRODUCTION");
+
+    env.APP_ORIGIN = "https://arena-staging.example.com";
+    expect(byCheck(env).APP_ORIGIN!.status).toBe("PASS");
+    env.APP_ORIGIN = "not a url";
+    expect(byCheck(env).APP_ORIGIN!.status).toBe("FAIL");
+  });
+
+  it("refuses a CLI link to production and warns on any other link", () => {
+    expect(byCheck(good(), `${PROD}\n`)["supabase CLI link"]!.status).toBe("FAIL");
+    expect(byCheck(good(), STG)["supabase CLI link"]!.status).toBe("WARN");
+  });
+
+  it("parses Supabase addresses and keys", () => {
+    expect(refFromSupabaseUrl(`https://${STG}.supabase.co/`)).toBe(STG);
+    expect(refFromSupabaseUrl(`http://${STG}.supabase.co`)).toBeNull();
+    expect(refFromSupabaseUrl("https://example.com")).toBeNull();
+    expect(refFromSupabaseUrl("nope")).toBeNull();
+    expect(parseDbUrl("https://x")).toBeNull();
+    expect(parseDbUrl("nope")).toBeNull();
+    expect(parseDbUrl("postgresql://@db.x.supabase.co/postgres")).toBeNull();
+    expect(parseDbUrl("postgresql://u:p@localhost:5432/postgres")).toEqual({ role: "u", ref: null });
+    expect(parseDbUrl("postgresql://postgres:p@aws-0-x.pooler.supabase.com:6543/postgres")).toEqual({ role: "postgres", ref: null });
+    expect(parseDbUrl(`postgres://arena_season_closer.${STG}:p@aws-1-x.pooler.supabase.com:6543/postgres`)).toEqual({ role: "arena_season_closer", ref: STG });
+    expect(jwtClaims("a.b")).toBeNull();
+    expect(jwtClaims("a.!!!.c")).toBeNull();
+    expect(jwtClaims(jwt({ ref: 1, role: 2 }))).toEqual({ ref: undefined, role: undefined });
+  });
+
+  it("refuses close and migration URLs whose project cannot be identified", () => {
+    const env = good();
+    env.SEASON_CLOSE_DATABASE_URL = "postgresql://arena_season_closer:x@localhost:5432/postgres";
+    env.STAGING_MIGRATION_DATABASE_URL = "postgresql://postgres:x@localhost:5432/postgres";
+    const r = byCheck(env);
+    expect(r.SEASON_CLOSE_DATABASE_URL!.status).toBe("FAIL");
+    expect(r.STAGING_MIGRATION_DATABASE_URL!.status).toBe("FAIL");
+    env.SEASON_CLOSE_DATABASE_URL = "mysql://x";
+    expect(byCheck(env).SEASON_CLOSE_DATABASE_URL!.detail).toContain("postgresql");
+  });
+});
