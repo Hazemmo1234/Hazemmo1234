@@ -54,6 +54,26 @@ describe("authCookieSecure (fail-closed)", () => {
   });
 });
 
+describe("on a Vercel deployment no header can turn Secure off", () => {
+  it.each([["http", "localhost:3000"], ["http", "127.0.0.1"], [null, null]])("protocol %s, host %s → secure", (proto, host) => {
+    expect(authCookieSecure(proto, host, true)).toBe(true);
+  });
+
+  it("the middleware and server client read VERCEL=1 at request time", async () => {
+    process.env.VERCEL = "1";
+    try {
+      const { middleware } = await import("@/middleware");
+      await middleware(new NextRequest("http://localhost:3000/login")); // spoofed plain-HTTP localhost
+      const { createClient } = await import("@/lib/supabase/server");
+      captured.headers = new Headers({ "x-forwarded-proto": "http", host: "localhost:3000" });
+      await createClient();
+      expect(captured.server.map((o) => o.cookieOptions?.secure)).toEqual([true, true]);
+    } finally {
+      delete process.env.VERCEL;
+    }
+  });
+});
+
 describe("the real @supabase/ssr writes auth cookies with our Secure setting", () => {
   it.each([true, false])("secure=%s", async (secure) => {
     const { createServerClient } = await vi.importActual<typeof import("@supabase/ssr")>("@supabase/ssr");

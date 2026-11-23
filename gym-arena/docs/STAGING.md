@@ -16,7 +16,7 @@ URL into a chat** — the command outputs listed here contain none of them and a
 
 | # | Where | Do | Copy → to | Never copy | Run | Success looks like | If it fails |
 |---|---|---|---|---|---|---|---|
-| A1 | Supabase → New project (step 1) | Project `gym-arena-staging`, new DB password (password manager) | project ref → notes; production ref → notes | anything from the production project except its ref | — | dashboard of the new project | — |
+| A1 | Supabase → New **organization** `DFN GYM staging` (Free), then New project (step 1) | Project `gym-arena-staging` in that free organization, new DB password (password manager). $0; may pause after ~a week idle | project ref → notes; production ref → notes | anything from the production project except its ref | — | dashboard of the new project | — |
 | A2 | Staging → Authentication (step 1.3) | Sign-ups **off**, min password length **10** | — | — | — | settings saved | — |
 | A3 | Your computer, `gym-arena/` (step 2) | `cp .env.staging.example .env.staging` and fill it | staging URL, anon key, service key → `.env.staging`; Session-pooler URI + DB password → `STAGING_MIGRATION_DATABASE_URL`; production ref → `PRODUCTION_SUPABASE_REF` | production keys/URLs; `ADMIN_PASSWORD` (leave empty) | — | file saved, never committed (git ignores it) | — |
 | A4 | New terminal (step 3) | Preflight | — | — | `npm ci && npm run staging:preflight` | every line PASS (WARN only for `sb_…` keys); both refs match the dashboards; last line `Staging preflight passed.` | fix the variable named on the FAIL line; re-run |
@@ -27,7 +27,7 @@ URL into a chat** — the command outputs listed here contain none of them and a
 | A7 | Terminal (step 5) | Close role login + password, role checks | new close-role password → only into `SEASON_CLOSE_DATABASE_URL` (Transaction pooler URI) | the owner password into this variable | `npm run staging:psql`, then the SQL in step 5; then `npm run staging:preflight` | 9 checks as listed; preflight `PASS SEASON_CLOSE_DATABASE_URL: arena_season_closer on <ref>` | stop; share which check differs |
 | **Gate 3** | | **Approve creating the staging admin** | | | | | |
 | A8 | Terminal (step 6) | Admin account | — | — | `npm run staging:create-admin` (type the password when asked) | `Admin created: <email>` | message names the cause; nothing half-created |
-| A9 | Vercel → Add New → Project (step 7) | New project `gym-arena-staging`; Branch Tracking `claude/ecstatic-goodall-3p1zte`; Root Directory `gym-arena`; 5 variables (Production, Sensitive) | 5 values from `.env.staging` → Vercel | `STAGING_MIGRATION_DATABASE_URL`, `PRODUCTION_*`, `ADMIN_*`, `NEXT_DIST_DIR`; anything from the production Vercel project | — | settings saved in **gym-arena-staging** | — |
+| A9 | Vercel → Add New → Project (step 7) | New project `gym-arena-staging`; Branch Tracking `claude/ecstatic-goodall-3p1zte`; Root Directory `gym-arena`; 5 variables (Production, Sensitive); keep "Automatically expose System Environment Variables" on | 5 values from `.env.staging` → Vercel | `STAGING_MIGRATION_DATABASE_URL`, `PRODUCTION_*`, `ADMIN_*`, `NEXT_DIST_DIR`; anything from the production Vercel project | — | settings saved in **gym-arena-staging** | — |
 | **Gate 4** | | **Approve the staging deployment** | | | | | |
 | A10 | Vercel → Deployments (step 7.5) | Create Deployment from the branch | staging address → notes | — | — | status Ready, label Production of gym-arena-staging, latest branch commit | share the build log's error lines |
 | A11 | Terminal (step 8) | Read-only verification | — | — | `npm run staging:verify -- https://<staging-address>` | every line PASS, `Staging verification passed.` | share the output |
@@ -221,6 +221,9 @@ directory is set after the import, not during it.
    | `CRON_SECRET` | from `.env.staging` | yes for staging (checklist step 39); the job is refused without it |
    | `APP_ORIGIN` | **leave unset** | optional (§4) — the sixth variable |
 
+   In the same Environment Variables page, keep **"Automatically expose System Environment
+   Variables"** switched on (Vercel's default). It provides `VERCEL=1`, which makes the auth
+   cookies Secure regardless of request headers.
    **Never** add `STAGING_MIGRATION_DATABASE_URL`, `PRODUCTION_SUPABASE_REF`, `PRODUCTION_APP_ORIGIN`
    or `ADMIN_*` to hosting. Do not set `NEXT_DIST_DIR` (a test-only build-folder switch read by
    `next.config.ts`; Vercel expects the default) or `NODE_ENV` (the platform sets it).
@@ -374,6 +377,13 @@ These add checks; they change nothing above.
 43. **D3**, after step 38: Audit log → "TV key regenerated" → the record shows no key, old or new.
 44. **D3** (optional here; required on the real TV): switch the TV's Wi-Fi off for 60 s →
     "Reconnecting" with the last screen kept; on → it recovers by itself.
+45. **D1**, after signing in on a laptop browser:
+    1. Open DevTools → Application (Safari: Storage) → Cookies → the staging address.
+    2. Find the `sb-<staging-ref>-auth-token` cookie (it may be split into `.0`/`.1` parts).
+    3. Expected: **Secure ✓**, **SameSite Lax**, Path `/`.
+    4. Sign out → the cookie is gone.
+
+    CI runs over plain HTTP, so this is the only check of Secure on HTTPS.
 
 ### After acceptance
 Keep the staging project for coach practice and future checks, or delete it. Deleting it cannot

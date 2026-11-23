@@ -8,7 +8,7 @@ for that release. Status values follow `docs/STAGING_ACCEPTANCE_REPORT.md`.
 - [ ] Release SHA chosen. Push CI and PR CI are green for **that exact SHA** (links).
 - [ ] Unit, DB/RLS/security, build and E2E jobs passed; any skips are the device-project skips.
 - [ ] Staging set up and verified (`docs/STAGING.md` A1–A11; `staging:verify` all PASS).
-- [ ] Staging acceptance steps 1–44 PASS, with evidence (`docs/STAGING_ACCEPTANCE_REPORT.md` §5).
+- [ ] Staging acceptance steps 1–45 PASS, with evidence (`docs/STAGING_ACCEPTANCE_REPORT.md` §5).
 - [ ] Real phones (iPhone Safari, Android Chrome, one small screen) PASS, or risk accepted (`docs/REAL_WORLD_ACCEPTANCE.md`).
 - [ ] Physical gym TV PASS, or risk accepted (`docs/REAL_WORLD_ACCEPTANCE.md`, `docs/TV_TEST_CHECKLIST.md`).
 - [ ] Coach briefing held or scheduled (`docs/COACH_GUIDE.md`).

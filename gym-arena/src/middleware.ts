@@ -17,7 +17,7 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
   const supabase = createServerClient(url, anonKey, {
     // auth cookies are Secure except on local plain HTTP (dev, CI)
-    cookieOptions: { secure: authCookieSecure(request.nextUrl.protocol, request.nextUrl.host) },
+    cookieOptions: { secure: authCookieSecure(request.nextUrl.protocol, request.nextUrl.host, process.env.VERCEL === "1") },
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (toSet) => {

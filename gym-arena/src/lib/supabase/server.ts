@@ -10,7 +10,7 @@ export async function createClient() {
   const { url, anonKey } = publicEnv();
   const cookieStore = await cookies();
   const h = await headers();
-  const secure = authCookieSecure(h.get("x-forwarded-proto"), h.get("x-forwarded-host") ?? h.get("host"));
+  const secure = authCookieSecure(h.get("x-forwarded-proto"), h.get("x-forwarded-host") ?? h.get("host"), process.env.VERCEL === "1");
   return createServerClient(url, anonKey, {
     cookieOptions: { secure },
     cookies: {
