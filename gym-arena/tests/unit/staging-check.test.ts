@@ -317,3 +317,19 @@ describe("target selection", () => {
     expect(() => opsTarget(["node", "x", "--target=production", "--target=staging"], thrower)).toThrow(/only once/);
   });
 });
+
+describe("test-only variables", () => {
+  it.each(["AUTH_COOKIES_ALLOW_LOCAL_HTTP", "NEXT_DIST_DIR", "E2E_ALLOW_WRITES", "GYM_ARENA_CI_DISPOSABLE", "GYM_ARENA_TEST_STACK", "TEST_DATABASE_URL"])(
+    "%s in an operator file is refused for both targets",
+    (name) => {
+      const s = { ...good(), [name]: "1" };
+      const r = Object.fromEntries(checkTarget({ env: s }, "staging").map((x) => [x.check, x]));
+      expect(r["test-only variables"]!.status).toBe("FAIL");
+      expect(r["test-only variables"]!.detail).toContain(name);
+      expect(r["test-only variables"]!.detail).not.toContain("=1");
+    },
+  );
+  it("passes when none is set", () => {
+    expect(Object.fromEntries(checkTarget({ env: good() }, "staging").map((x) => [x.check, x]))["test-only variables"]!.status).toBe("PASS");
+  });
+});

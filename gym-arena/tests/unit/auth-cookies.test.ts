@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { authCookieSecure } from "@/lib/supabase/cookie-security";
+import { authCookieSecure, isLocalPlainHttp, serverCookieTrust } from "@/lib/supabase/cookie-security";
 
 // SECURITY_SPECIFICATION §1: Supabase auth cookies carry `Secure` on every deployed (HTTPS) site.
 // The only exception is plain HTTP to this machine (local dev and the CI browser suite).
@@ -22,6 +22,19 @@ vi.mock("@supabase/ssr", async (importOriginal) => {
   };
 });
 
+async function withEnv<T>(vars: Record<string, string>, fn: () => Promise<T>): Promise<T> {
+  const before = Object.fromEntries(Object.keys(vars).map((k) => [k, process.env[k]]));
+  Object.assign(process.env, vars);
+  try {
+    return await fn();
+  } finally {
+    for (const [k, v] of Object.entries(before)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
+}
+
 beforeEach(() => {
   captured.server = [];
   captured.browser = [];
@@ -31,6 +44,8 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
 });
+
+const ALLOWED = { onVercel: false, localHttpAllowed: true }; // trusted local config (next dev / CI flag)
 
 describe("authCookieSecure (fail-closed)", () => {
   it.each([
@@ -49,28 +64,37 @@ describe("authCookieSecure (fail-closed)", () => {
     ["HTTP", "LOCALHOST", false],
     ["http", "localhost.evil.com", true],
     ["http", "127.0.0.1.nip.io", true],
-  ])("protocol %s, host %s → secure %s", (proto, host, want) => {
-    expect(authCookieSecure(proto as string | null | undefined, host as string | null | undefined)).toBe(want);
+  ])("with local HTTP allowed by the server: protocol %s, host %s → secure %s", (proto, host, want) => {
+    expect(authCookieSecure(proto as string | null | undefined, host as string | null | undefined, ALLOWED)).toBe(want);
+  });
+
+  it.each([["http", "localhost:3000"], ["http", "127.0.0.1"], ["http", "[::1]"]])(
+    "headers alone never open the exception: %s %s without trusted server config → Secure",
+    (proto, host) => {
+      expect(authCookieSecure(proto, host)).toBe(true);
+      expect(authCookieSecure(proto, host, { onVercel: false, localHttpAllowed: false })).toBe(true);
+    },
+  );
+
+  it("trust comes from the server's own environment only", () => {
+    expect(serverCookieTrust({})).toEqual({ onVercel: false, localHttpAllowed: false });
+    expect(serverCookieTrust({ NODE_ENV: "production" })).toEqual({ onVercel: false, localHttpAllowed: false });
+    expect(serverCookieTrust({ NODE_ENV: "development" }).localHttpAllowed).toBe(true);
+    expect(serverCookieTrust({ AUTH_COOKIES_ALLOW_LOCAL_HTTP: "1" }).localHttpAllowed).toBe(true);
+    expect(serverCookieTrust({ AUTH_COOKIES_ALLOW_LOCAL_HTTP: "true" }).localHttpAllowed).toBe(false); // exactly "1"
+    expect(serverCookieTrust({ VERCEL: "1", AUTH_COOKIES_ALLOW_LOCAL_HTTP: "1" })).toEqual({ onVercel: true, localHttpAllowed: true });
+  });
+
+  it("isLocalPlainHttp: only plain HTTP to this machine", () => {
+    expect(isLocalPlainHttp("http:", "localhost:3000")).toBe(true);
+    expect(isLocalPlainHttp("https:", "localhost:3000")).toBe(false);
+    expect(isLocalPlainHttp("http:", "localhost.evil.com")).toBe(false);
   });
 });
 
-describe("on a Vercel deployment no header can turn Secure off", () => {
+describe("on a Vercel deployment nothing can turn Secure off", () => {
   it.each([["http", "localhost:3000"], ["http", "127.0.0.1"], [null, null]])("protocol %s, host %s → secure", (proto, host) => {
-    expect(authCookieSecure(proto, host, true)).toBe(true);
-  });
-
-  it("the middleware and server client read VERCEL=1 at request time", async () => {
-    process.env.VERCEL = "1";
-    try {
-      const { middleware } = await import("@/middleware");
-      await middleware(new NextRequest("http://localhost:3000/login")); // spoofed plain-HTTP localhost
-      const { createClient } = await import("@/lib/supabase/server");
-      captured.headers = new Headers({ "x-forwarded-proto": "http", host: "localhost:3000" });
-      await createClient();
-      expect(captured.server.map((o) => o.cookieOptions?.secure)).toEqual([true, true]);
-    } finally {
-      delete process.env.VERCEL;
-    }
+    expect(authCookieSecure(proto, host, { onVercel: true, localHttpAllowed: true })).toBe(true);
   });
 });
 
@@ -102,14 +126,16 @@ describe("the real @supabase/ssr writes auth cookies with our Secure setting", (
 });
 
 describe("our clients pass the setting", () => {
-  it("middleware: Secure on an HTTPS host, not on http://localhost", async () => {
+  it("middleware: Secure on an HTTPS host; http://localhost is exempt only with trusted server config", async () => {
     const { middleware } = await import("@/middleware");
     await middleware(new NextRequest("https://arena.example.com/login"));
-    await middleware(new NextRequest("http://localhost:3000/login"));
-    expect(captured.server.map((o) => o.cookieOptions?.secure)).toEqual([true, false]);
+    await middleware(new NextRequest("http://localhost:3000/login")); // no trusted config → Secure
+    await withEnv({ AUTH_COOKIES_ALLOW_LOCAL_HTTP: "1" }, () => middleware(new NextRequest("http://localhost:3000/login")));
+    await withEnv({ AUTH_COOKIES_ALLOW_LOCAL_HTTP: "1", VERCEL: "1" }, () => middleware(new NextRequest("http://localhost:3000/login")));
+    expect(captured.server.map((o) => o.cookieOptions?.secure)).toEqual([true, true, false, true]);
   });
 
-  it("server client: follows the forwarded protocol and host; Secure when they are missing", async () => {
+  it("server client: headers can only narrow a trusted exception, never open one", async () => {
     const { createClient } = await import("@/lib/supabase/server");
     const cases: Array<Record<string, string>> = [
       { "x-forwarded-proto": "https", host: "arena.example.com" },
@@ -119,9 +145,19 @@ describe("our clients pass the setting", () => {
     ];
     for (const h of cases) {
       captured.headers = new Headers(h);
-      await createClient();
+      await createClient(); // no trusted config: always Secure, whatever the headers say
     }
-    expect(captured.server.map((o) => o.cookieOptions?.secure)).toEqual([true, false, true, true]);
+    await withEnv({ AUTH_COOKIES_ALLOW_LOCAL_HTTP: "1" }, async () => {
+      for (const h of cases) {
+        captured.headers = new Headers(h);
+        await createClient();
+      }
+    });
+    await withEnv({ AUTH_COOKIES_ALLOW_LOCAL_HTTP: "1", VERCEL: "1" }, async () => {
+      captured.headers = new Headers({ "x-forwarded-proto": "http", host: "localhost:3000" });
+      await createClient();
+    });
+    expect(captured.server.map((o) => o.cookieOptions?.secure)).toEqual([true, true, true, true, true, false, true, true, true]);
   });
 
   it("browser client: follows the page's protocol and host; Secure without a window", async () => {

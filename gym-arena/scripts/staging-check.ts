@@ -94,6 +94,16 @@ export function jwtClaims(key: string): { ref?: string; role?: string } | null {
 
 export type OpsTarget = "staging" | "production";
 
+/** Variables that exist only for local tests and CI (docs/ENVIRONMENT_VARIABLES.md §3). */
+export const TEST_ONLY_VARS = [
+  "AUTH_COOKIES_ALLOW_LOCAL_HTTP",
+  "NEXT_DIST_DIR",
+  "E2E_ALLOW_WRITES",
+  "GYM_ARENA_CI_DISPOSABLE",
+  "GYM_ARENA_TEST_STACK",
+  "TEST_DATABASE_URL",
+] as const;
+
 interface TargetSpec {
   envFile: string;
   label: string; // the environment being operated on
@@ -263,7 +273,12 @@ export function checkTarget({ env, linkedRef, fileEnv }: StagingInputs, target: 
     else add("PASS", check, "appears in no configured value");
   }
 
-  // 8. A CLI link in this folder must not target the other environment.
+  // 8. Test-only switches never belong in an environment's configuration.
+  const testOnly = TEST_ONLY_VARS.filter((k) => v(k) !== undefined);
+  if (testOnly.length) add("FAIL", "test-only variables", `remove ${testOnly.join(", ")} — they exist only for local tests and CI, never for ${t.label}`);
+  else add("PASS", "test-only variables", "none set");
+
+  // 9. A CLI link in this folder must not target the other environment.
   if (linkedRef) {
     const linked = linkedRef.trim();
     if (forbidden && linked === forbidden) add("FAIL", "supabase CLI link", `this folder is linked to ${OTHER} — run \`npx supabase unlink\` first`);

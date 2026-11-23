@@ -115,12 +115,19 @@ jobs:
         run: bash scripts/disposable-stack.sh gym-arena-ci start
       - name: Export its settings (keys masked, never printed)
         run: bash scripts/disposable-stack.sh gym-arena-ci env-github
+      # The browser suite runs over plain http://localhost. Auth cookies are Secure unless the
+      # SERVER's own config allows local plain HTTP (src/lib/supabase/cookie-security.ts); this
+      # test-only flag does that for this job's build and server only. The production-build job
+      # and every deployment run without it (and the operator preflight refuses it).
       - run: npm run build
+        env:
+          AUTH_COOKIES_ALLOW_LOCAL_HTTP: "1"
       # Playwright's global setup verifies the ACTUAL stack before any test (as in the DB job).
       - run: npm run test:e2e
         env:
           E2E_ALLOW_WRITES: "1" # opt-in for @writes tests
           GYM_ARENA_CI_DISPOSABLE: "1" # explicit opt-in for the gym-arena-ci profile, test steps only
+          AUTH_COOKIES_ALLOW_LOCAL_HTTP: "1" # local plain-HTTP auth cookies, this job's server only
       - name: Keep the browser test report when the job fails (diagnostics; local test data only)
         if: failure()
         uses: actions/upload-artifact@v4

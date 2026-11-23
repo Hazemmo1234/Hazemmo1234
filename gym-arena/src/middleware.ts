@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE, isLocale, type Locale } from "@/i18n/config";
 import { SESSION_AWARE_PUBLIC, decideAccess, routeArea, type Viewer } from "@/lib/routes";
-import { authCookieSecure } from "@/lib/supabase/cookie-security";
+import { authCookieSecure, processCookieTrust } from "@/lib/supabase/cookie-security";
 import type { UserRole } from "@/lib/supabase/types";
 
 /**
@@ -16,8 +16,8 @@ export async function middleware(request: NextRequest) {
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(url, anonKey, {
-    // auth cookies are Secure except on local plain HTTP (dev, CI)
-    cookieOptions: { secure: authCookieSecure(request.nextUrl.protocol, request.nextUrl.host, process.env.VERCEL === "1") },
+    // auth cookies are Secure; local plain HTTP is exempt only when the server config allows it
+    cookieOptions: { secure: authCookieSecure(request.nextUrl.protocol, request.nextUrl.host, processCookieTrust()) },
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (toSet) => {

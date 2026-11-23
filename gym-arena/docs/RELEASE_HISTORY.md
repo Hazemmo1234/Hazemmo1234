@@ -23,7 +23,7 @@ the deployment was confirmed by the platform.
 | 2026-11-23 | `6386f33` … `382bf72` | Staging tooling: isolation preflight, guarded migrate/psql/admin, read-only verify, owner checklist |
 | 2026-11-23 | `8d97f02` | Self-hosted Cairo and Barlow Condensed; builds no longer depend on Google Fonts |
 | 2026-11-23 | `3fc086e` | Production-target operator tooling (`prod:*`), backups; runbook, rollback, release checklist, environment reference, real-world acceptance protocol (CI: push #55, PR #56 green) |
-| 2026-11-24 | (this stage) | Auth cookies `Secure` on HTTPS (fail-closed); behavioural API guard test; audit-path guard; create-admin enforces its target; strict `--target` parsing; cost decision; Supabase organization separation |
+| 2026-11-24 | `2d0c423`, `407c7c3`, (next) | Auth cookies `Secure` on HTTPS (fail-closed); behavioural API guard test; audit-path guard; create-admin enforces its target; strict `--target` parsing; cost decision; Supabase organization separation; local-HTTP cookie exception only with trusted server config (CI: `2d0c423` push #57 / PR #58 green) |
 
 CI evidence per commit is recorded in `docs/STAGING_ACCEPTANCE_REPORT.md` §2 and the commit's
 GitHub Actions runs.

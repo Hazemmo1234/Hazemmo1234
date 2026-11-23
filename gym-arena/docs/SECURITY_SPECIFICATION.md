@@ -5,7 +5,7 @@ This document consolidates the security model in one place (D24). It summarizes 
 Trust model (unchanged): coaches are fully trusted to report results honestly (PRODUCT_VISION, BR-E5). Security here means: staff see and change only what their role allows, history cannot be rewritten, closed seasons cannot change, and the TV shows only public fields.
 
 ## 1. Authentication and sessions
-- Supabase Auth cookies are `Secure` on every HTTPS / public host (only plain-HTTP localhost, i.e. dev and CI, is exempt) and `SameSite=Lax` (`src/lib/supabase/cookie-security.ts`).
+- Supabase Auth cookies are always `Secure` and `SameSite=Lax`. The only exception is plain HTTP to localhost when the server itself is configured for local use: `next dev`, or the CI-only flag `AUTH_COOKIES_ALLOW_LOCAL_HTTP=1`. A Vercel deployment is never exempt. See `src/lib/supabase/cookie-security.ts`.
 - Supabase Auth, email + password. Accounts are created by the Admin only; public sign-up is disabled in every environment (D2, SYSTEM_ARCHITECTURE "Security").
 - The server validates the session with the Auth service on every request; it never trusts unverified cookie contents.
 - Every request also checks the staff profile: missing or inactive profile → signed out, no data (AC-1).

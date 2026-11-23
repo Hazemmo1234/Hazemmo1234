@@ -57,5 +57,8 @@ In production it also requires `APP_ORIGIN` and `CRON_SECRET`.
 ## 3. Read only by tests and CI (never in hosting)
 - **Test targets:** `TEST_DATABASE_URL`, `GYM_ARENA_TEST_STACK`, `GYM_ARENA_CI_DISPOSABLE`, `E2E_ALLOW_WRITES`.
 - **Test build output:** `NEXT_DIST_DIR`.
+- **Plain-HTTP auth cookies for the CI browser job:** `AUTH_COOKIES_ALLOW_LOCAL_HTTP=1`. Set only on that job's build and test steps. Without it, or on any Vercel deployment, auth cookies are always `Secure`.
+
+The operator preflight refuses every one of these in `.env.staging` and `.env.production-ops`, so none can be copied into hosting.
 
 These belong to the disposable CI stack (`tests/FIXTURES.md`).
