@@ -10,7 +10,8 @@ export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 export type ButtonSize = "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-colors " +
+  "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-[color,background-color,border-color,transform] duration-[var(--dur-fast)] " +
+  "enabled:active:scale-[0.97] " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-text " +
   "disabled:cursor-not-allowed disabled:opacity-50 select-none whitespace-nowrap";
 const variants: Record<ButtonVariant, string> = {

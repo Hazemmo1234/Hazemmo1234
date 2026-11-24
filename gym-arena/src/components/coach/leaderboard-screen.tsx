@@ -45,7 +45,7 @@ export function LeaderboardScreen({ board }: { board: Leaderboard | null }) {
     { value: "rookies", count: board.rookies.length },
   ];
   return (
-    <main className="mx-auto max-w-3xl space-y-4 px-4 py-4 md:px-6 md:py-6">
+    <main className="mx-auto max-w-3xl space-y-4 px-4 py-4 md:px-6 md:py-6 lg:max-w-4xl">
       {/* D30: a closed season shows its frozen results — say so */}
       {board.final && <Badge tone="warning" className="text-sm">{t("final")}</Badge>}
       <div role="tablist" aria-label={t("tabs")} className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-surface-2 p-1">

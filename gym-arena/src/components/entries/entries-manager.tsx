@@ -274,13 +274,13 @@ export function EntriesManager({
       <PageHeader title={t("title")} description={t("description")} />
       <Card className="mb-4 p-4">
         <form
-          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
           onSubmit={(e) => {
             e.preventDefault();
             go({ q: q.trim() });
           }}
         >
-          <SelectField label={t("filterSeason")} value={filters.season_id} onChange={(e) => go({ season_id: e.target.value })}>
+          <SelectField label={t("filterSeason")} wrapperClassName="lg:col-span-2" value={filters.season_id} onChange={(e) => go({ season_id: e.target.value })}>
             {seasons.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </SelectField>
           <SelectField label={t("filterCoach")} value={filters.coach_id} onChange={(e) => go({ coach_id: e.target.value })}>
@@ -294,6 +294,7 @@ export function EntriesManager({
           <Field label={t("filterDate")} type="date" dir="ltr" value={filters.date} min={season?.starts_on} max={season?.ends_on} onChange={(e) => go({ date: e.target.value })} />
           <Field
             label={t("search")}
+            wrapperClassName="lg:col-span-2"
             placeholder={t("searchPlaceholder")}
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -340,8 +341,9 @@ export function EntriesManager({
                   <p className="text-sm text-text-muted">{formatDate(r.performed_on, locale)}{r.coach_name && <>{" · "}<bdi>{r.coach_name}</bdi></>}</p>
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold" dir="ltr" style={{ textAlign: "start" }}>{CATEGORY_LABEL[r.category]}</p>
-                  <p className="text-sm text-text-muted" dir="ltr" style={{ textAlign: "start" }}>{text(r)}</p>
+                  {/* screen direction, not forced ltr: in Arabic "137 kg × 5" used to read as "137 5 × kg" */}
+                  <p className="font-semibold"><bdi>{CATEGORY_LABEL[r.category]}</bdi></p>
+                  <p data-testid="entry-value" className="text-sm text-text-muted">{text(r)}</p>
                 </div>
                 <div className="min-w-0 text-sm">
                   <p className="text-text-muted">{t("loggedBy", { name: r.logged_by_name ?? "—" })}</p>
@@ -367,7 +369,8 @@ export function EntriesManager({
                         <PencilIcon size={18} />
                         {t("edit")}
                       </Button>
-                      <Button variant="danger" onClick={() => setDialog({ kind: "void", row: r })} aria-label={t("voidNamed", { name: r.member_name })}>
+                      {/* quiet until used: the void dialog (reason required) is the confirmation */}
+                      <Button variant="ghost" className="text-down hover:bg-down/10 hover:text-down" onClick={() => setDialog({ kind: "void", row: r })} aria-label={t("voidNamed", { name: r.member_name })}>
                         <BanIcon size={18} />
                         {t("void")}
                       </Button>

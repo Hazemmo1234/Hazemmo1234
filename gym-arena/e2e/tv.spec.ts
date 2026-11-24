@@ -273,6 +273,38 @@ test.describe("TV state API and screen @writes", () => {
     });
   }
 
+  // Ten standings rows and the rookies strip share the 824 px column. At a 66 px row pitch the
+  // list shrank and its 10th row (rank 13) sat under the strip. Real geometry, 1080p and 720p.
+  for (const viewport of [{ width: 1920, height: 1080 }, { width: 1280, height: 720 }]) {
+    test(`all ten standings rows are clear of the rookies strip (${viewport.width}×${viewport.height})`, async ({ page }) => {
+      test.setTimeout(45_000);
+      await page.setViewportSize(viewport);
+      const now = Date.now();
+      const row = (rank: number) => ({ ref: `g${rank}`, rank, name: `Member ${rank}`, photo_url: null, initials: "M", total: 1000 - rank, movement: 0, gap_to_next: rank === 1 ? 0 : 1, pr_at: null, categories: {} });
+      const rookie = (rank: number) => ({ ref: `r${rank}`, rank, name: `Rookie Number ${rank}`, photo_url: null, initials: "R", total: 300 - rank });
+      const live = { ...tvBase("en", now), version: "geometry", mode: "live", board: Array.from({ length: 13 }, (_, i) => row(i + 1)), rookies: Array.from({ length: 5 }, (_, i) => rookie(i + 1)) };
+      await page.route("**/api/tv/state*", (route) => route.fulfill({ json: live }));
+      await page.goto(`/tv?key=${TV_KEY}`);
+      await expect(page.getByTestId("board-name")).toHaveCount(10, { timeout: 15_000 });
+      await page.waitForTimeout(800); // page-in animation
+      const geometry = await page.evaluate(() => {
+        const rows = [...document.querySelectorAll('[data-testid="standings-list"] li')].map((li) => li.getBoundingClientRect());
+        const strip = document.querySelector('[data-testid="rookies-strip"]')!.getBoundingClientRect();
+        return { lastBottom: Math.max(...rows.map((r) => r.bottom)), stripTop: strip.top, stripBottom: strip.bottom, height: window.innerHeight };
+      });
+      expect(geometry.lastBottom, "10th row ends above the rookies strip").toBeLessThanOrEqual(geometry.stripTop);
+      expect(geometry.stripBottom, "strip stays on the screen").toBeLessThanOrEqual(geometry.height);
+    });
+  }
+
+  test("a wrong key shows the branded 'not authorized' screen with how to fix it, in the TV language", async ({ page }) => {
+    await page.goto("/tv?key=not-the-key");
+    const screen = page.getByTestId("tv-not-authorized");
+    await expect(screen).toBeVisible();
+    await expect(screen.locator("p").nth(1)).not.toBeEmpty(); // the hint line
+    expect(await screen.textContent()).not.toMatch(/GA-\d|Arena —/); // nothing about the gym's data
+  });
+
   test("between seasons: results coming soon, no standings; network loss keeps the last state (AC-29)", async ({ page }) => {
     test.setTimeout(75_000); // three 10 s polls: first state, the lost one, the recovered one
     const between = {

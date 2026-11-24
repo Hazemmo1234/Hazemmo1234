@@ -64,7 +64,7 @@ export function ActivityScreen({ rows, days, today }: { rows: ActivityRow[]; day
     r.weight_kg !== null ? te("liftLine", { weight: Number(r.weight_kg), reps: r.reps ?? 0, value: r.value }) : r.km !== null ? te("valueKm", { value: r.value }) : te("valueReps", { value: r.value });
 
   return (
-    <main className="mx-auto max-w-3xl space-y-4 px-4 py-4 md:px-6 md:py-6">
+    <main className="mx-auto max-w-3xl space-y-4 px-4 py-4 md:px-6 md:py-6 lg:max-w-4xl">
       <div>
         <h1 className="text-2xl font-extrabold">{t("title")}</h1>
         <p className="text-sm text-text-muted">{t("description")}</p>

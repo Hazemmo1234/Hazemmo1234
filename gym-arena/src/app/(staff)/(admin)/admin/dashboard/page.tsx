@@ -198,7 +198,8 @@ export default async function AdminDashboardPage() {
         )}
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* three stats → three columns from iPad portrait up (two columns left an empty cell) */}
+      <div className="grid gap-4 sm:grid-cols-3">
         <Stat icon={<MembersIcon />} label={t("activeMembers")} value={n(o.activeMembers)} />
         <Stat icon={<ActivityIcon />} label={t("entriesToday")} value={n(o.entriesToday)} />
         <Stat

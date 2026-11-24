@@ -10,12 +10,13 @@ export function Field({
   hint,
   error,
   trailing,
+  wrapperClassName,
   ...input
-}: InputHTMLAttributes<HTMLInputElement> & { label: ReactNode; hint?: ReactNode; error?: ReactNode; trailing?: ReactNode }) {
+}: InputHTMLAttributes<HTMLInputElement> & { label: ReactNode; hint?: ReactNode; error?: ReactNode; trailing?: ReactNode; wrapperClassName?: string }) {
   const id = useId();
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   return (
-    <div>
+    <div className={wrapperClassName}>
       <label htmlFor={id} className="mb-1.5 block text-start text-sm font-semibold">{label}</label>
       <div className="relative">
         <input
@@ -78,12 +79,13 @@ export function SelectField({
   hint,
   error,
   children,
+  wrapperClassName,
   ...select
-}: SelectHTMLAttributes<HTMLSelectElement> & { label: ReactNode; hint?: ReactNode; error?: ReactNode }) {
+}: SelectHTMLAttributes<HTMLSelectElement> & { label: ReactNode; hint?: ReactNode; error?: ReactNode; wrapperClassName?: string }) {
   const id = useId();
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   return (
-    <div>
+    <div className={wrapperClassName}>
       <label htmlFor={id} className="mb-1.5 block text-start text-sm font-semibold">{label}</label>
       <select id={id} aria-invalid={error ? true : undefined} aria-describedby={describedBy} className={`${inputClasses} appearance-auto`} {...select}>
         {children}

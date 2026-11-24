@@ -245,6 +245,40 @@ test.describe("M5/M6 admin and coach screens @writes", () => {
     }
   });
 
+  // Owner review of the visual baseline: names cut in the iPad members table, phone numbers on
+  // two lines, "137 كجم × 5" shown as "137 5 × كجم" (forced ltr), and the framework's unbranded 404.
+  test("iPad + Arabic: member names whole, phones on one line, result values in screen direction, branded 404", async ({ page }) => {
+    await asAdmin(page);
+    expect((await page.request.patch("/api/me", { data: { locale: "ar" } })).status()).toBe(200);
+    await page.setViewportSize({ width: 1194, height: 834 });
+    await page.goto("/admin/members");
+    const rowsShown = page.getByRole("main").getByRole("listitem");
+    await expect(rowsShown.first()).toBeVisible();
+    const cut = await page.evaluate(() =>
+      [...document.querySelectorAll("main li .name-text")]
+        .filter((el) => (el as HTMLElement).offsetParent !== null && el.scrollWidth > el.clientWidth + 1)
+        .map((el) => el.textContent),
+    );
+    expect(cut, "names cut in the members table").toEqual([]);
+    const wrapped = await page.evaluate(() =>
+      [...document.querySelectorAll("main li span.whitespace-nowrap")]
+        .filter((el) => (el as HTMLElement).offsetParent !== null && el.getBoundingClientRect().height > 1.5 * parseFloat(getComputedStyle(el).lineHeight))
+        .map((el) => el.textContent),
+    );
+    expect(wrapped, "phone numbers on two lines").toEqual([]);
+
+    await page.goto("/admin/entries?category=squat");
+    const value = page.getByTestId("entry-value").first();
+    await expect(value).toBeVisible();
+    expect(await value.evaluate((el) => getComputedStyle(el).direction)).toBe("rtl");
+    await expect(value).toHaveText(/^\d+(\.\d)? كجم × [345] · e1RM /);
+
+    const res = await page.goto("/admin/no-such-page");
+    expect(res!.status()).toBe(404);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("الصفحة غير موجودة");
+    await expect(page.getByRole("link", { name: "الذهاب إلى صفحتي الرئيسية" })).toHaveAttribute("href", "/");
+  });
+
   test("missing deployment secrets fail safely: close → 503 without any change; cron → 401", async ({ page }) => {
     await asAdmin(page);
     // an ended, still-open season far in the past (unique month per attempt: no overlap)

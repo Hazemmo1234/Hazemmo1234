@@ -8,7 +8,13 @@ import type { TvBoardRow, TvRookieRow, TvState } from "@/modules/tv/payload";
 import { CountUp, Movement, Ticker, TvAvatar, type TvT } from "./tv-parts";
 import { NameText } from "../name-text";
 
-const ROW_H = 66;
+/**
+ * Standings row pitch on the 1920×1080 stage. The standings column is 824 px tall: header 56 px,
+ * ten rows, then the rookies strip (≈ 122 px). At 66 px the ten rows (660 px) and the strip did
+ * not fit, so the list shrank and its 10th row sat under the strip. 64 px leaves 6 px to spare
+ * (e2e/tv.spec.ts measures it); a row is still 58 px tall for 40 px names (UX C minimum).
+ */
+const ROW_H = 64;
 const PLACE_COLOR: Record<number, { text: string; ring: string; bg: string }> = {
   1: { text: "text-gold", ring: "ring-gold", bg: "from-gold/25" },
   2: { text: "text-silver", ring: "ring-silver", bg: "from-silver/20" },
@@ -84,19 +90,28 @@ function BoardRow({ row, index, locale, t, serverNow }: { row: TvBoardRow; index
   );
 }
 
+/**
+ * "Rookies of the month" (UX C): a compact strip of the top 5 under the standings. The rank sits
+ * on the avatar so the name gets the width (about 60 % more than before); a name that still does
+ * not fit is cut at its end (NameText).
+ */
 function RookiesStrip({ rookies, locale, t }: { rookies: TvRookieRow[]; locale: Locale; t: TvT }) {
   if (rookies.length === 0) return null;
   return (
-    <section className="mt-4 rounded-2xl border border-border bg-surface px-5 py-3">
-      <p className="mb-2 text-[24px] font-extrabold uppercase text-brand-text">{t("rookiesTitle")}</p>
-      <ul className="grid grid-cols-5 gap-3">
+    <section data-testid="rookies-strip" className="rounded-2xl border border-border bg-surface px-5 py-3">
+      <p className="mb-2 text-[20px] font-extrabold uppercase leading-[24px] text-brand-text">{t("rookiesTitle")}</p>
+      <ul className="grid grid-cols-5 gap-4">
         {rookies.map((r) => (
           <li key={r.ref} className="flex min-w-0 items-center gap-3">
-            <span className="display tabular text-[30px] text-text-muted">{formatNumber(r.rank, locale, 0)}</span>
-            <TvAvatar photoUrl={r.photo_url} initials={r.initials} size={44} />
-            <div className="min-w-0">
-              <NameText as="p" data-testid="rookie-name" className="text-[24px] font-bold leading-tight">{r.name}</NameText>
-              <p className="display tabular text-[28px] leading-tight">{formatNumber(r.total, locale, 0)}</p>
+            <span className="relative shrink-0">
+              <TvAvatar photoUrl={r.photo_url} initials={r.initials} size={44} />
+              <span className="display tabular absolute -bottom-1 -start-1.5 grid size-[26px] place-items-center rounded-full border-2 border-surface bg-surface-2 text-[17px] leading-none text-text">
+                {formatNumber(r.rank, locale, 0)}
+              </span>
+            </span>
+            <div className="min-w-0 flex-1">
+              <NameText as="p" data-testid="rookie-name" className="text-[22px] font-bold leading-[27px]">{r.name}</NameText>
+              <p className="display tabular text-[24px] leading-[26px] text-text-muted">{formatNumber(r.total, locale, 0)}</p>
             </div>
           </li>
         ))}
@@ -153,13 +168,13 @@ export function TvLive({ state, locale, t, serverNow }: { state: TvState; locale
               {rest.length === 0 ? (
                 <p className="flex flex-1 items-center justify-center text-[34px] text-text-muted">{t("onlyPodium")}</p>
               ) : (
-                <ol key={page} className="tv-page-in relative" style={{ height: ROWS_PER_PAGE * ROW_H }}>
+                <ol key={page} data-testid="standings-list" className="tv-page-in relative shrink-0" style={{ height: ROWS_PER_PAGE * ROW_H }}>
                   {rows.map((r, i) => (
                     <BoardRow key={r.ref} row={r} index={i} locale={locale} t={t} serverNow={serverNow} />
                   ))}
                 </ol>
               )}
-              <div className="mt-auto"><RookiesStrip rookies={state.rookies} locale={locale} t={t} /></div>
+              <div className="mt-auto pt-3"><RookiesStrip rookies={state.rookies} locale={locale} t={t} /></div>
             </section>
           </>
         )}

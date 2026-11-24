@@ -147,3 +147,18 @@ export function ConnectionDot({ offline, label }: { offline: boolean; label: str
     </span>
   );
 }
+
+/**
+ * A TV opened without a valid key (UX C "Invalid key"): the brand, "Display not authorized" and
+ * one line on how to fix it, in the TV language. Shows nothing about the gym's data.
+ */
+export function TvNotAuthorized({ title, hint }: { title: string; hint: string }) {
+  return (
+    <main data-testid="tv-not-authorized" className="flex flex-1 flex-col items-center justify-center gap-8 px-16 text-center">
+      {/* eslint-disable-next-line @next/next/no-img-element -- static brand tile, same file as the top bar */}
+      <img src="/brand/logo-tile.png" alt="" width={160} height={160} className="rounded-3xl opacity-90" />
+      <p className="display text-[72px] uppercase leading-none">{title}</p>
+      <p className="max-w-[1200px] text-[36px] leading-snug text-text-muted">{hint}</p>
+    </main>
+  );
+}

@@ -65,6 +65,35 @@ test.describe("coach workflow", () => {
     await expect(page.getByText(C.en.noResults)).toBeVisible();
   });
 
+  // The "Add client" action lives in the search toolbar: a floating button used to cover the
+  // second client's points on phones. No control may overlap a client row, before or after
+  // scrolling; the seven dots have a legend.
+  for (const locale of ["ar", "en"] as const) {
+    test(`Today: Add client never covers a client row; dots have a legend (${locale}, phone)`, async ({ page }) => {
+      await page.setViewportSize(VIEWPORTS.phone);
+      await asCoach(page, locale);
+      await expect(page.getByTestId("dots-legend")).toBeVisible();
+      const add = page.getByRole("main").getByRole("button", { name: C[locale].add });
+      await expect(add).toBeVisible();
+      // at rest: no client row is under the button
+      const a = (await add.boundingBox())!;
+      for (const row of await rows(page).all()) {
+        const r = (await row.boundingBox())!;
+        const intersect = a.x < r.x + r.width && r.x < a.x + a.width && a.y < r.y + r.height && r.y < a.y + a.height;
+        expect(intersect, `Add client covers "${(await row.textContent())!.slice(0, 24)}"`).toBe(false);
+      }
+      // scrolled: the button stays inside the opaque toolbar pinned to the top edge, never over
+      // the middle of the list (rows pass under the whole toolbar, like under a header)
+      await page.mouse.wheel(0, 400);
+      await page.waitForTimeout(300);
+      const bar = (await page.getByTestId("today-toolbar").boundingBox())!;
+      const b = (await add.boundingBox())!;
+      expect(bar.y).toBeLessThanOrEqual(1);
+      expect(b.y).toBeGreaterThanOrEqual(bar.y);
+      expect(b.y + b.height).toBeLessThanOrEqual(bar.y + bar.height + 0.5);
+    });
+  }
+
   test("member card: seven tiles, today's entries; another coach's client is not found", async ({ page }) => {
     await page.setViewportSize(VIEWPORTS.ipad);
     await asCoach(page, "ar");

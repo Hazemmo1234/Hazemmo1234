@@ -18,7 +18,6 @@ import type { CardSeason, CategoryTile, MemberCard } from "@/modules/entries/car
 import type { MemberDetail } from "@/modules/members/service";
 import { EntrySheet, type SavedEntry } from "./entry-sheet";
 import { ActionToast, MemberAvatar, SeasonBanner, api, useApiErrorText } from "./shared";
-import { NameText } from "../name-text";
 
 type Toast = { message: string; action?: { label: string; run: () => void } } | null;
 
@@ -102,29 +101,34 @@ export function MemberCardScreen({
   }
 
   return (
-    <main className="mx-auto max-w-3xl space-y-4 px-4 py-4 md:px-6 md:py-6">
+    <main className="mx-auto max-w-3xl space-y-4 px-4 py-4 md:px-6 md:py-6 lg:max-w-5xl">
       <Link href="/today" className="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-text-muted hover:text-text">
         <ChevronIcon size={16} className="-scale-x-100 rtl:scale-x-100" />
         {t("back")}
       </Link>
 
       <section className="rounded-3xl border border-border bg-surface p-5">
-        <div className="flex items-center gap-4">
-          <MemberAvatar name={member.full_name} url={member.photo_url} size="size-20" text="text-2xl" />
-          <div className="min-w-0 flex-1">
-            <NameText as="h1" className="text-xl font-extrabold">{member.full_name}</NameText>
-            <p className="text-sm text-text-muted" dir="ltr">{member.member_code}</p>
+        {/* phones: the total and rank move to their own row so the client's name gets the full
+            width (it was cut to "Mohamed …"); from sm up they sit at the end of the first row */}
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-4 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
+          <MemberAvatar name={member.full_name} url={member.photo_url} size="size-16 sm:size-20" text="text-xl sm:text-2xl" />
+          <div className="min-w-0">
+            {/* a full name may wrap to a second line here; it is the page title */}
+            <h1 dir="auto" className="name-text line-clamp-2 text-xl font-extrabold leading-tight [overflow-wrap:anywhere]">{member.full_name}</h1>
+            <p className="text-sm text-text-muted"><bdi dir="ltr">{member.member_code}</bdi></p>
             <div className="mt-2 flex flex-wrap gap-2">
               {season && card.is_rookie && <Badge tone="warning">{tm("rookie")}</Badge>}
               {member.status !== "active" && <Badge>{tm("status.inactive")}</Badge>}
             </div>
           </div>
           {championship && (
-            <div className="shrink-0 text-end">
-              <p className="text-4xl font-extrabold tabular leading-none">{card.total_display}</p>
-              <p className="mt-1 text-xs text-text-muted">{t("totalPoints")}</p>
+            <div className="col-span-2 flex items-center justify-between gap-3 rounded-2xl bg-surface-2 px-4 py-3 sm:col-span-1 sm:block sm:bg-transparent sm:p-0 sm:text-end">
+              <div className="flex items-baseline gap-2 sm:block">
+                <p className="text-4xl font-extrabold tabular leading-none">{card.total_display}</p>
+                <p className="text-xs text-text-muted sm:mt-1">{t("totalPoints")}</p>
+              </div>
               {card.rank !== null && card.rank_of !== null && (
-                <p data-testid="card-rank" className="mt-2 text-sm font-bold text-brand-text">
+                <p data-testid="card-rank" className="text-sm font-bold text-brand-text sm:mt-2">
                   {t(card.is_rookie ? "rookieRankOf" : "rankOf", { rank: card.rank, of: card.rank_of })}
                 </p>
               )}
@@ -172,12 +176,14 @@ export function MemberCardScreen({
                 <span dir="ltr" className="font-bold">{CATEGORY_LABEL[tile.code]}</span>
                 {tile.logged_today && <CheckIcon size={18} className="shrink-0 text-up" />}
               </span>
-              <span className="mt-1 text-sm text-text-muted" dir="ltr">
+              {/* the treadmill line is a sentence in the screen language; only "baseline → best" is a
+                  left-to-right number pair (forcing ltr on the Arabic sentence scrambled it) */}
+              <span className="mt-1 text-sm text-text-muted">
                 {tile.code === "treadmill"
                   ? te("creditedKm", { km: tile.month_best ?? "0.0" })
                   : building
                     ? null
-                    : `${tile.baseline ?? "—"} → ${tile.month_best ?? "—"}`}
+                    : <bdi dir="ltr">{`${tile.baseline ?? "—"} → ${tile.month_best ?? "—"}`}</bdi>}
               </span>
               {building && <span className="mt-1 text-sm font-semibold text-gold">{t("buildingBaseline")}</span>}
               <span className="mt-auto pt-3">
@@ -201,7 +207,9 @@ export function MemberCardScreen({
             </button>
           );
         })}
-        <div className="flex min-h-32 flex-col rounded-2xl border border-border bg-surface p-4">
+        {/* Consistency spans the whole row: seven tiles in a 2- or 3-column grid used to leave it
+            alone on its last row with an empty cell beside it */}
+        <div className="col-span-2 flex min-h-28 flex-col rounded-2xl border border-border bg-surface p-4 md:col-span-3">
           <span className="flex items-start justify-between gap-2">
             <span className="font-bold">{t("consistency")}</span>
             {card.season && (

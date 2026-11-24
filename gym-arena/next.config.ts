@@ -41,6 +41,12 @@ const nextConfig: NextConfig = {
   // mixes with the development build.
   distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
+  // Branded 404 for addresses that match no page (src/app/global-not-found.tsx): with two root
+  // layouts the framework otherwise falls back to its own unstyled page.
+  experimental: { globalNotFound: true },
+  // The development-only "N" indicator sat over the phone tab bar's last tab in Arabic and appeared
+  // in every development screenshot; production builds never show it.
+  devIndicators: false,
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

@@ -16,6 +16,13 @@
   --bronze: #d08a4e;
   --up: #22c55e;
   --down: #ff5a4a;
+  /* Motion tokens (staff screens). One easing family, three durations; everything collapses
+     under prefers-reduced-motion (end of file). TV motion keeps its own spec timings below. */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
   color-scheme: dark;
 }
 
@@ -65,6 +72,27 @@ body {
     text-align: match-parent;
   }
 }
+
+/* ── Staff motion ── */
+/* Page content entering after navigation (route templates re-mount it): a short rise + fade. */
+@keyframes page-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+/* fill-mode backwards: once finished no transform remains, so fixed toasts inside the page keep
+   the viewport as their containing block */
+.page-enter { animation: page-enter var(--dur-slow) var(--ease-out) backwards; }
+
+/* Dialogs: bottom sheet slides up on phones, centred dialog scales in from iPad up. */
+@keyframes sheet-in { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes dialog-in { from { transform: translateY(8px) scale(0.98); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+dialog[open] { animation: sheet-in var(--dur-slow) var(--ease-out) both; }
+dialog[open]::backdrop { animation: backdrop-in var(--dur-base) linear both; }
+@media (min-width: 48rem) {
+  dialog[open] { animation-name: dialog-in; animation-duration: var(--dur-base); }
+}
+
+/* Toasts rise into place. */
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: none; } }
+.toast-in { animation: toast-in var(--dur-base) var(--ease-out) both; }
 
 /* Condensed italic sports face for numbers/headings (echoes the logo) */
 .display {

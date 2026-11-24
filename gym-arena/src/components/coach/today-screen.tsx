@@ -11,7 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { inputClasses } from "@/components/ui/field";
 import { ChevronIcon, MembersIcon, PlusIcon, SearchIcon } from "@/components/ui/icons";
 import type { TodayOverview } from "@/modules/entries/service";
-import { ActionToast, ActivityDots, MemberAvatar, SeasonBanner } from "./shared";
+import { ActionToast, ActivityDots, DotsLegend, MemberAvatar, SeasonBanner } from "./shared";
 import { NameText } from "../name-text";
 
 type Filter = "all" | "pending" | "done";
@@ -45,7 +45,7 @@ export function TodayScreen({ data }: { data: TodayOverview }) {
   ];
 
   return (
-    <main className="mx-auto max-w-3xl space-y-4 px-4 py-4 md:px-6 md:py-6">
+    <main className="mx-auto max-w-3xl space-y-4 px-4 py-4 md:px-6 md:py-6 lg:max-w-5xl">
       <SeasonBanner current={context.current} next={context.next} closed={context.closed} />
 
       <dl className="grid grid-cols-4 gap-2">
@@ -57,13 +57,26 @@ export function TodayScreen({ data }: { data: TodayOverview }) {
         ))}
       </dl>
 
+      {/* UX C2 "+ Add client": stays at hand in a sticky toolbar with the search instead of a
+          floating button, which covered a client's points on phones (owner rule: floating
+          controls never cover information). The rows scroll under an opaque bar. A direct child
+          of <main>, so it stays pinned while the whole list scrolls. */}
       {data.members.length > 0 && (
-        <div className="space-y-3">
-          <label className="relative block">
+        <div data-testid="today-toolbar" className="sticky top-0 z-20 -mx-4 flex gap-2 bg-bg/95 px-4 py-2 backdrop-blur md:-mx-6 md:px-6">
+          <label className="relative block min-w-0 flex-1">
             <span className="sr-only">{t("search")}</span>
             <SearchIcon className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
             <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} className={`${inputClasses} ps-11`} />
           </label>
+          <Button size="lg" className="h-12 shrink-0 px-4" onClick={() => setAdding(true)}>
+            <PlusIcon size={20} />
+            {t("addClient")}
+          </Button>
+        </div>
+      )}
+
+      {data.members.length > 0 && (
+        <div>
           <div role="radiogroup" aria-label={t("filter")} className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-surface-2 p-1">
             {(["all", "pending", "done"] as const).map((f) => (
               <button
@@ -93,9 +106,11 @@ export function TodayScreen({ data }: { data: TodayOverview }) {
       ) : members.length === 0 ? (
         <p className="rounded-2xl border border-border bg-surface px-4 py-8 text-center text-sm text-text-muted">{t("noResults")}</p>
       ) : (
-        <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
+        <>
+        <DotsLegend />
+        <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface lg:grid lg:grid-cols-2 lg:gap-3 lg:divide-y-0 lg:overflow-visible lg:border-0 lg:bg-transparent">
           {members.map((m) => (
-            <li key={m.id}>
+            <li key={m.id} className="lg:overflow-hidden lg:rounded-2xl lg:border lg:border-border lg:bg-surface">
               <Link href={`/members/${m.id}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2/60 active:bg-surface-2">
                 <MemberAvatar name={m.full_name} url={m.photo_url} />
                 <span className="min-w-0 flex-1">
@@ -123,17 +138,7 @@ export function TodayScreen({ data }: { data: TodayOverview }) {
             </li>
           ))}
         </ul>
-      )}
-
-      {data.members.length > 0 && (
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          className="fixed bottom-24 end-4 z-30 flex min-h-14 items-center gap-2 rounded-2xl bg-brand px-5 font-bold text-white shadow-2xl hover:bg-brand-hover md:bottom-8 md:end-8"
-        >
-          <PlusIcon size={20} />
-          {t("addClient")}
-        </button>
+        </>
       )}
 
       {adding && (

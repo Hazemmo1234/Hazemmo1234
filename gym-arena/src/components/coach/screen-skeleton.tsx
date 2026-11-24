@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export function ScreenSkeleton() {
   return (
-    <main aria-busy="true" className="mx-auto max-w-3xl space-y-4 px-4 py-4 md:px-6 md:py-6">
+    <main aria-busy="true" className="mx-auto max-w-3xl space-y-4 px-4 py-4 md:px-6 md:py-6 lg:max-w-5xl">
       <Skeleton className="h-16 rounded-2xl" />
       <Skeleton className="h-12 rounded-xl" />
       {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-16 rounded-2xl" />)}

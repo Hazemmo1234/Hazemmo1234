@@ -27,3 +27,9 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
 export function isNavReady(key: AdminNavKey): boolean {
   return ADMIN_NAV.some((item) => item.key === key && item.ready);
 }
+
+/**
+ * Phone tab bar (< 768 px): the four sections used most on the gym floor get a tab; the rest
+ * sit behind "More". Seven tabs did not fit a phone (they scrolled sideways with no hint).
+ */
+export const PHONE_TABS: readonly AdminNavKey[] = ["dashboard", "seasons", "members", "entries"];

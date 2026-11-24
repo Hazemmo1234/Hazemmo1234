@@ -115,3 +115,9 @@ export const PhotoIcon = (p: IconProps) => (
 export const BanIcon = (p: IconProps) => (
   <Svg {...p}><circle cx="12" cy="12" r="8.5" /><path d="m6 6 12 12" /></Svg>
 );
+export const MoreIcon = (p: IconProps) => (
+  <Svg {...p}><circle cx="5" cy="12" r="1.25" /><circle cx="12" cy="12" r="1.25" /><circle cx="19" cy="12" r="1.25" /></Svg>
+);
+export const FilterIcon = (p: IconProps) => (
+  <Svg {...p}><path d="M4 6h16M7 12h10M10 18h4" /></Svg>
+);

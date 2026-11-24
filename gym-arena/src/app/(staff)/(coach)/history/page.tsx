@@ -19,7 +19,7 @@ export default async function HistoryPage() {
   const [t, locale, seasons] = await Promise.all([getTranslations("results"), getLocale(), closedSeasons(await createClient())]);
   const championships = seasons.filter((s) => s.type === "championship");
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6">
+    <main className="mx-auto max-w-3xl px-4 py-6 lg:max-w-4xl">
       <h1 className="mb-4 text-2xl font-extrabold">{t("historyTitle")}</h1>
       {championships.length === 0 ? (
         <EmptyState icon={<CalendarIcon />} title={t("historyEmptyTitle")} description={t("historyEmptyBody")} />

@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
-import { TvScreen, type TvMessages } from "@/components/tv/tv-screen";
+import { TvNotAuthorized } from "@/components/tv/tv-parts";
+import { TvScreen, TvStage, type TvMessages } from "@/components/tv/tv-screen";
 import { today } from "@/lib/time";
 import { tvKeyMatches } from "@/modules/tv/key";
 import { getTvSettings } from "@/modules/tv/settings";
@@ -18,7 +19,11 @@ export default async function TvPage({ searchParams }: { searchParams: Promise<{
   const settings = await getTvSettings();
   const t = await getTranslations({ locale: settings.locale, namespace: "tv" });
   if (!settings.tvKey || !key || !tvKeyMatches(key, settings.tvKey)) {
-    return <main className="flex min-h-dvh items-center justify-center text-2xl text-text-muted">{t("notAuthorized")}</main>;
+    return (
+      <TvStage locale={settings.locale}>
+        <TvNotAuthorized title={t("notAuthorized")} hint={t("notAuthorizedHint")} />
+      </TvStage>
+    );
   }
   let initial: TvState | null = null;
   try {

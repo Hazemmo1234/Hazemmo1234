@@ -6,7 +6,7 @@ import { directionOf, type Locale } from "@/i18n/config";
 import type { TvState } from "@/modules/tv/payload";
 import { TvLive } from "./tv-live";
 import { TvBetween, TvPreseason, TvReveal } from "./tv-modes";
-import { ConnectionDot, TvClock, TvTopBar, type TvT } from "./tv-parts";
+import { ConnectionDot, TvClock, TvNotAuthorized, TvTopBar, type TvT } from "./tv-parts";
 
 /** D4: the TV polls every 10 s. */
 export const POLL_MS = 10_000;
@@ -27,6 +27,27 @@ function useStageScale() {
   return scale;
 }
 
+/** The scaled 1920×1080 stage in the TV language's direction. */
+export function TvStage({ locale, children }: { locale: Locale; children: React.ReactNode }) {
+  const scale = useStageScale();
+  return (
+    <div className="fixed inset-0 overflow-hidden bg-bg" dir={directionOf(locale)} lang={locale}>
+      <div
+        className="absolute flex flex-col bg-bg text-text"
+        style={{
+          width: BASE_W,
+          height: BASE_H,
+          left: "50%",
+          top: "50%",
+          transform: `translate(-50%, -50%) scale(${scale})`,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 /**
  * The gym TV (UX section C). Server-rendered with a first state, then polls the TV state API.
  * - only re-renders content when `version` changes (animations run on real changes only);
@@ -43,7 +64,6 @@ export function TvScreen({ tvKey, initial, messages }: { tvKey: string; initial:
   const offset = useRef(initial ? Date.parse(initial.server_time) - Date.now() : 0);
   const version = useRef(initial?.version ?? null);
   const [serverNow, setServerNow] = useState(() => Date.now() + offset.current);
-  const scale = useStageScale();
   const locale: Locale = state?.locale ?? "ar";
 
   const t: TvT = useMemo(() => {
@@ -103,7 +123,7 @@ export function TvScreen({ tvKey, initial, messages }: { tvKey: string; initial:
 
   let body: React.ReactNode;
   if (unauthorized) {
-    body = <main className="flex flex-1 items-center justify-center text-[56px] text-text-muted">{t("notAuthorized")}</main>;
+    body = <TvNotAuthorized title={t("notAuthorized")} hint={t("notAuthorizedHint")} />;
   } else if (!state) {
     body = (
       <main className="flex flex-1 flex-col items-center justify-center gap-8">
@@ -140,20 +160,5 @@ export function TvScreen({ tvKey, initial, messages }: { tvKey: string; initial:
     );
   }
 
-  return (
-    <div className="fixed inset-0 overflow-hidden bg-bg" dir={directionOf(locale)} lang={locale}>
-      <div
-        className="absolute flex flex-col bg-bg text-text"
-        style={{
-          width: BASE_W,
-          height: BASE_H,
-          left: "50%",
-          top: "50%",
-          transform: `translate(-50%, -50%) scale(${scale})`,
-        }}
-      >
-        {body}
-      </div>
-    </div>
-  );
+  return <TvStage locale={locale}>{body}</TvStage>;
 }

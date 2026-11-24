@@ -50,6 +50,24 @@ test.describe("admin shell", () => {
       for (const link of await bottom.getByRole("link").all()) {
         expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
       }
+      // four tabs + "More", all fully on the screen (seven tabs used to scroll sideways, hiding
+      // three sections with no hint)
+      const tabs = [...(await bottom.getByRole("link").all()), bottom.getByRole("button", { name: locale === "ar" ? "المزيد" : "More" })];
+      expect(tabs).toHaveLength(5);
+      for (const tab of tabs) {
+        const b = (await tab.boundingBox())!;
+        expect(b.x).toBeGreaterThanOrEqual(0);
+        expect(b.x + b.width).toBeLessThanOrEqual(VIEWPORTS.phone.width + 1);
+        expect(b.height).toBeGreaterThanOrEqual(44);
+      }
+      // the other sections are one tap away in the More sheet, and it navigates
+      await tabs[4]!.click();
+      const sheet = page.getByTestId("more-sheet");
+      await expect(sheet.getByRole("link")).toHaveCount(3);
+      await sheet.getByRole("link", { name: locale === "ar" ? "الإعدادات" : "Settings" }).click();
+      await expect(page).toHaveURL(/\/admin\/settings$/);
+      await expect(page.getByTestId("more-sheet")).toHaveCount(0);
+      await expect(bottom.getByRole("button", { name: locale === "ar" ? "المزيد" : "More" })).toHaveClass(/text-brand-text/);
     });
 
     test(`iPad portrait (${locale}): icon rail on the start side`, async ({ page }) => {

@@ -68,6 +68,24 @@ export function ActivityDots({ card }: { card: MemberCard }) {
   );
 }
 
+/** What the seven dots mean: one per test (in card order) and attendance last. */
+export function DotsLegend() {
+  const t = useTranslations("coach.today");
+  const item = (cls: string, label: string) => (
+    <span className="inline-flex items-center gap-1.5">
+      <span aria-hidden="true" className={`size-2 rounded-full ${cls}`} />
+      {label}
+    </span>
+  );
+  return (
+    <p data-testid="dots-legend" className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-text-muted">
+      {item("bg-brand", t("legendLogged"))}
+      {item("bg-up", t("legendAttended"))}
+      {item("bg-border", t("legendPending"))}
+    </p>
+  );
+}
+
 /** UX C2 header line: season + days left / preseason / between seasons / ended. */
 export function SeasonBanner({ current, next, closed }: { current: CardSeason | null; next: CardSeason | null; closed: CardSeason | null }) {
   const t = useTranslations("coach.season");
@@ -109,7 +127,7 @@ export function ActionToast({ toast, onDone }: { toast: { message: string; actio
   return (
     <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center px-4 md:bottom-8">
       {toast && (
-        <div role="status" className="pointer-events-auto flex max-w-md items-center gap-3 rounded-2xl border border-up/30 bg-surface py-2 pe-2 ps-4 text-sm font-semibold shadow-2xl">
+        <div role="status" className="toast-in pointer-events-auto flex max-w-md items-center gap-3 rounded-2xl border border-up/30 bg-surface py-2 pe-2 ps-4 text-sm font-semibold shadow-2xl">
           <CheckIcon size={18} className="shrink-0 text-up" />
           <span className="min-w-0 py-2">{toast.message}</span>
           {toast.action && (

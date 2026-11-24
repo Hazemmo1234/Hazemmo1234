@@ -58,7 +58,10 @@
       "statActive": "نشِط اليوم",
       "statEntries": "النتائج",
       "statAttended": "الحضور",
-      "rank": "المركز {rank}"
+      "rank": "المركز {rank}",
+      "legendLogged": "نتيجة مسجّلة اليوم",
+      "legendAttended": "حضور",
+      "legendPending": "لم يُسجَّل بعد"
     },
     "card": {
       "title": "العميل",
@@ -232,7 +235,8 @@
     "revealChampion": "البطل",
     "revealFinal": "منصة التتويج",
     "revealNoWinners": "لا يوجد متسابقون مصنّفون في هذه البطولة",
-    "place": "المركز {place}"
+    "place": "المركز {place}",
+    "notAuthorizedHint": "افتح رابط الشاشة من صفحة «الإعدادات» في لوحة الإدارة على هذه الشاشة."
   },
   "errors": {
     "UNAUTHENTICATED": "يجب تسجيل الدخول أولًا",
@@ -258,7 +262,8 @@
     "settings": "الإعدادات",
     "soon": "قريبًا",
     "entries": "النتائج",
-    "audit": "سجل التغييرات"
+    "audit": "سجل التغييرات",
+    "more": "المزيد"
   },
   "states": {
     "loadErrorTitle": "تعذّر تحميل الصفحة",
@@ -506,7 +511,9 @@
     "total": "الإجمالي",
     "rookieRank": "مبتدئ {rank}",
     "points": "{total} نقطة",
-    "rankUnavailable": "تعذّر تحميل المركز والإجمالي. حدّث الصفحة للمحاولة مرة أخرى."
+    "rankUnavailable": "تعذّر تحميل المركز والإجمالي. حدّث الصفحة للمحاولة مرة أخرى.",
+    "filters": "التصفية",
+    "filtersCount": "التصفية ({count})"
   },
   "settings": {
     "title": "الإعدادات",
@@ -698,5 +705,10 @@
       "gym_name": "اسم الجيم",
       "tv_locale": "لغة الشاشة"
     }
+  },
+  "notFound": {
+    "title": "الصفحة غير موجودة",
+    "body": "هذا الرابط غير موجود أو غير متاح لحسابك.",
+    "home": "الذهاب إلى صفحتي الرئيسية"
   }
 }
