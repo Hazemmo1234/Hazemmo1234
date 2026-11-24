@@ -15,7 +15,7 @@
 | check (exists) | lint, typecheck, unit tests + coverage | unchanged |
 | build | `next build` | placeholder public env values only |
 | database | local Supabase stack → migrations applied from a clean state → full DB/RLS + security regression suite | disposable database created inside the CI runner and destroyed with it |
-| e2e | built app + local stack + seed → Playwright (coach mobile, TV 1920×1080, both languages) | seed runs only here and locally |
+| e2e | built app + local stack + seed → Playwright (coach mobile, TV 1920×1080, both languages) → real-server auth-cookie check (`npm run test:cookies`: the same build and `next dev`, one server per configuration) | seed runs only here and locally |
 
 Rules: the workflow uses only the local stack's built-in development keys; **no cloud Supabase or Vercel credential is ever added to CI**, the CLI is never linked, and no step uses `--remote`/`--linked`, so CI cannot reach production. No secret values are printed; CLI status output that contains keys is not echoed. Expected runtime (estimate, to be replaced by measured numbers after the first runs): check ≈ 1 min (measured: 50 s today), build ≈ 2 min, database ≈ 3–5 min (mostly image download), e2e ≈ 4–6 min; jobs run in parallel, target total under 10 minutes.
 

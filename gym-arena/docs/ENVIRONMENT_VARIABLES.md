@@ -15,9 +15,11 @@ or in commits.
 | `CRON_SECRET` | `src/app/api/cron/snapshot/route.ts` | Authorizes the daily snapshot job (`Authorization: Bearer`), ≥ 16 chars; different per environment | required | required | **yes** | Vercel (Sensitive); Vercel Cron sends it |
 | `APP_ORIGIN` | `src/lib/origin.ts` | Address at the start of the TV link in Settings (nothing else) | optional (leave unset) | **required**: the final `https://` domain | no | Vercel |
 
-Two more variables exist but are never set by hand:
-- **`NODE_ENV`** is read by `next.config.ts` and set by the platform.
+Four more variables are read but never set by hand:
+- **`NODE_ENV`** is read by `next.config.ts` and set by the platform. Next.js compiles it into the build, so it cannot be changed at runtime.
 - **`NEXT_DIST_DIR`** is read by `next.config.ts`. It is a test-only build-output folder and must **never** be set in Vercel, which expects `.next`.
+- **`VERCEL`** is read by `src/lib/supabase/cookie-security.ts`. Vercel sets it to `1` at build and runtime when system variables are exposed. It makes every auth cookie `Secure` without reading any request header.
+- **`GITHUB_ACTIONS`** is read by the same file. GitHub Actions sets it to `true`. The CI cookie flag (§3) works only with it.
 
 `APP_TIMEZONE` appears in `.env.example` but nothing reads it. Cairo time is fixed in `src/lib/time.ts`.
 
@@ -57,7 +59,10 @@ In production it also requires `APP_ORIGIN` and `CRON_SECRET`.
 ## 3. Read only by tests and CI (never in hosting)
 - **Test targets:** `TEST_DATABASE_URL`, `GYM_ARENA_TEST_STACK`, `GYM_ARENA_CI_DISPOSABLE`, `E2E_ALLOW_WRITES`.
 - **Test build output:** `NEXT_DIST_DIR`.
-- **Plain-HTTP auth cookies for the CI browser job:** `AUTH_COOKIES_ALLOW_LOCAL_HTTP=1`. Set only on that job's build and test steps. Without it, or on any Vercel deployment, auth cookies are always `Secure`.
+- **Plain-HTTP auth cookies for the CI browser job:** `AUTH_COOKIES_ALLOW_LOCAL_HTTP=1`.
+  - Set only on that job's `test:e2e` step, and read at runtime.
+  - It works only inside GitHub Actions (`GITHUB_ACTIONS=true`), and only for plain-HTTP requests from this machine.
+  - Without it, outside GitHub Actions, or on any Vercel deployment, auth cookies are always `Secure`.
 
 The operator preflight refuses every one of these in `.env.staging` and `.env.production-ops`, so none can be copied into hosting.
 

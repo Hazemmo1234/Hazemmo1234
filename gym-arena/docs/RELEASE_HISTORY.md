@@ -23,7 +23,8 @@ the deployment was confirmed by the platform.
 | 2026-11-23 | `6386f33` … `382bf72` | Staging tooling: isolation preflight, guarded migrate/psql/admin, read-only verify, owner checklist |
 | 2026-11-23 | `8d97f02` | Self-hosted Cairo and Barlow Condensed; builds no longer depend on Google Fonts |
 | 2026-11-23 | `3fc086e` | Production-target operator tooling (`prod:*`), backups; runbook, rollback, release checklist, environment reference, real-world acceptance protocol (CI: push #55, PR #56 green) |
-| 2026-11-24 | `2d0c423`, `407c7c3`, (next) | Auth cookies `Secure` on HTTPS (fail-closed); behavioural API guard test; audit-path guard; create-admin enforces its target; strict `--target` parsing; cost decision; Supabase organization separation; local-HTTP cookie exception only with trusted server config (CI: `2d0c423` push #57 / PR #58 green) |
+| 2026-11-24 | `2d0c423`, `407c7c3`, `b6b7b90` | Auth cookies `Secure` on HTTPS (fail-closed); behavioural API guard test; audit-path guard; create-admin enforces its target; strict `--target` parsing; cost decision; Supabase organization separation; local-HTTP cookie exception only with trusted server config (CI green: `2d0c423` push #57 / PR #58, `407c7c3` push #59 / PR #60, `b6b7b90` push #61 / PR #62; #62's E2E job was re-run once after the runner could not bind the CI database port) |
+| 2026-11-24 | (next) | Auth-cookie decision from the request headers: on a self-hosted server the middleware's URL is always the server's own address. The CI cookie flag works only inside GitHub Actions. New real-server cookie check in CI (`npm run test:cookies`) |
 
 CI evidence per commit is recorded in `docs/STAGING_ACCEPTANCE_REPORT.md` §2 and the commit's
 GitHub Actions runs.

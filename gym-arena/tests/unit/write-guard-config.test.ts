@@ -139,10 +139,27 @@ describe("Vitest DB suite: central guard", () => {
   });
 });
 
+describe("Vitest real-server cookie test: central guard", () => {
+  it("the integration config runs the global guard before anything loads", async () => {
+    const c = (await import("../../vitest.integration.config.mjs")).default as { test: { globalSetup: string[]; include: string[] } };
+    expect(c.test.globalSetup).toEqual(["tests/integration/global-setup.ts"]);
+    expect(c.test.include).toEqual(["tests/integration/**/*.test.ts"]);
+  });
+  it("it is CI-only and needs the verified CI stack, like the browser suite", async () => {
+    const { checkCookieRun } = await import("../integration/global-setup");
+    await expect(checkCookieRun(VALID, ROOT, ciProbe)).rejects.toThrow(/runs only in CI/);
+    await expect(checkCookieRun({}, ROOT, ciProbe)).rejects.toThrow(/runs only in CI/);
+    await expect(checkCookieRun({ ...CI_RUN, GYM_ARENA_TEST_STACK: "gym-arena-fresh" }, ROOT, ciProbe)).rejects.toThrow(/runs only in CI/);
+    await expect(checkCookieRun(CI_RUN, ROOT, noStack)).rejects.toThrow(/cannot verify container/);
+    await expect(checkCookieRun({ ...CI_RUN, GYM_ARENA_CI_DISPOSABLE: undefined }, ROOT, ciProbe)).rejects.toThrow(/explicit opt-in/);
+  });
+});
+
 describe("no test can bypass the central guard", () => {
   const files = [
     ...readdirSync(join(ROOT, "e2e")).filter((f) => f.endsWith(".ts") && f !== "global-setup.ts").map((f) => join("e2e", f)),
     ...readdirSync(join(ROOT, "tests", "db")).filter((f) => f.endsWith(".ts") && !["global-setup.ts", "setup-guard.ts"].includes(f)).map((f) => join("tests", "db", f)),
+    ...readdirSync(join(ROOT, "tests", "integration")).filter((f) => f.endsWith(".ts") && f !== "global-setup.ts").map((f) => join("tests", "integration", f)),
   ];
   it("there are test files to check", () => expect(files.length).toBeGreaterThan(15));
   it.each(files)("%s does not change the guard's inputs or the runner's selection", (file) => {

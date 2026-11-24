@@ -222,8 +222,10 @@ directory is set after the import, not during it.
    | `APP_ORIGIN` | **leave unset** | optional (§4) — the sixth variable |
 
    In the same Environment Variables page, keep **"Automatically expose System Environment
-   Variables"** switched on (Vercel's default). It provides `VERCEL=1`, which makes the auth
-   cookies Secure regardless of request headers.
+   Variables"** switched on (Vercel's default; Vercel's documentation calls it "Enable access to
+   System Environment Variables"). It provides `VERCEL=1`, which makes the auth cookies Secure
+   without reading any request header. A production build is Secure even without it, but keep it
+   on so the platform check applies as well.
    **Never** add `STAGING_MIGRATION_DATABASE_URL`, `PRODUCTION_SUPABASE_REF`, `PRODUCTION_APP_ORIGIN`
    or `ADMIN_*` to hosting. Do not set `NEXT_DIST_DIR` (a test-only build-folder switch read by
    `next.config.ts`; Vercel expects the default) or `NODE_ENV` (the platform sets it).
@@ -383,7 +385,9 @@ These add checks; they change nothing above.
     3. Expected: **Secure ✓**, **SameSite Lax**, Path `/`.
     4. Sign out → the cookie is gone.
 
-    CI runs over plain HTTP, so this is the only check of Secure on HTTPS.
+    CI runs over plain HTTP. Its real-server check (`npm run test:cookies`) shows that the
+    production build sends `Secure` even there, but only this step shows the attribute on the
+    real HTTPS deployment.
 
 ### After acceptance
 Keep the staging project for coach practice and future checks, or delete it. Deleting it cannot

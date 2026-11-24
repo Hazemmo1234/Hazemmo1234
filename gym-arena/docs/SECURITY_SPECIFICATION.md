@@ -5,7 +5,19 @@ This document consolidates the security model in one place (D24). It summarizes 
 Trust model (unchanged): coaches are fully trusted to report results honestly (PRODUCT_VISION, BR-E5). Security here means: staff see and change only what their role allows, history cannot be rewritten, closed seasons cannot change, and the TV shows only public fields.
 
 ## 1. Authentication and sessions
-- Supabase Auth cookies are always `Secure` and `SameSite=Lax`. The only exception is plain HTTP to localhost when the server itself is configured for local use: `next dev`, or the CI-only flag `AUTH_COOKIES_ALLOW_LOCAL_HTTP=1`. A Vercel deployment is never exempt. See `src/lib/supabase/cookie-security.ts`.
+- Supabase Auth cookies are always `Secure` and `SameSite=Lax` (`src/lib/supabase/cookie-security.ts`):
+  - **Staging and production (Vercel):** the platform variable `VERCEL=1` makes every auth cookie Secure without reading any request header. No request header is treated as trusted there.
+  - **Any other production build** is Secure too. Next.js compiles `NODE_ENV=production` into the build, and nothing else enables the exception.
+  - **The only exception:** a plain-HTTP request from and to this machine, on a server whose own configuration allows it. That means `next dev`, or the test-only flag `AUTH_COOKIES_ALLOW_LOCAL_HTTP=1`, which works only inside GitHub Actions (`GITHUB_ACTIONS=true`).
+  - **How "from this machine" is decided:** on a self-hosted server the middleware's `request.nextUrl` is the server's own address (`http://localhost:<port>`), not the address the client used. So the request headers decide, and they can only remove the exception. Each of these keeps the cookie Secure:
+    - a Host that is not a loopback name;
+    - an `X-Forwarded-Host` that differs from Host;
+    - an `X-Forwarded-Proto` other than `http`;
+    - an `X-Forwarded-For` or `X-Real-IP` that is not a single loopback address;
+    - any `Forwarded` header.
+  - **Forged headers** can at most drop Secure from the sender's own cookies, and only on a dev or CI server.
+  - **The browser client** uses the page's real address (`window.location`).
+  - **Tests:** `tests/unit/auth-cookies.test.ts` (decision and wiring) and `tests/integration/auth-cookies.server.test.ts` (CI: the Set-Cookie real servers send, for each configuration).
 - Supabase Auth, email + password. Accounts are created by the Admin only; public sign-up is disabled in every environment (D2, SYSTEM_ARCHITECTURE "Security").
 - The server validates the session with the Auth service on every request; it never trusts unverified cookie contents.
 - Every request also checks the staff profile: missing or inactive profile → signed out, no data (AC-1).

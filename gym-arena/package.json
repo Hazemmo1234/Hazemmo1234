@@ -12,6 +12,7 @@
     "test:coverage": "vitest run --coverage",
     "test:db": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run --config vitest.db.config.mts",
     "test:e2e": "playwright test --trace off",
+    "test:cookies": "vitest run --config vitest.integration.config.mts",
     "db:reset": "supabase db reset",
     "create-admin": "node --env-file-if-exists=.env.local --import tsx scripts/create-admin.ts",
     "staging:preflight": "node --env-file=.env.staging --import tsx scripts/staging-preflight.ts",

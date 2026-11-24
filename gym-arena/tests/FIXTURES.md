@@ -69,6 +69,11 @@ authorize nothing in the target check.
      is loaded. Tests tagged `@writes` (permanent rows) also need `E2E_ALLOW_WRITES=1` and call
      `requireWriteTarget()`; owner SQL goes through `ownerSql()`, which uses only the verified
      `TEST_DATABASE_URL`.
+   - Real-server cookie test (`npm run test:cookies`, CI only): `tests/integration/global-setup.ts`
+     applies the browser suite's CI-only policy, steps 1–2, and the static half of step 3 (the
+     build targets the verified stack) before the test loads. Every `next start` server the
+     test then starts must serve exactly that build, on a port that was free beforehand. The test
+     signs in once with the seed admin (Auth sessions only; no application rows).
 5. **A new test is protected automatically, and checked statically:**
    `tests/unit/e2e-import-graph.test.ts` (TypeScript parser, whole repository) fails if a file
    loads Playwright other than through `e2e/fixtures.ts`, a spec does not use `./fixtures`, a

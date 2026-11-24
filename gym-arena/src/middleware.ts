@@ -16,8 +16,10 @@ export async function middleware(request: NextRequest) {
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(url, anonKey, {
-    // auth cookies are Secure; local plain HTTP is exempt only when the server config allows it
-    cookieOptions: { secure: authCookieSecure(request.nextUrl.protocol, request.nextUrl.host, processCookieTrust()) },
+    // Auth cookies are Secure; local plain HTTP is exempt only when the server's own config allows
+    // it. Decided from the request headers, not request.nextUrl: on a self-hosted server nextUrl
+    // is the server's own address, whatever the client asked for (cookie-security.ts).
+    cookieOptions: { secure: authCookieSecure(request.headers, processCookieTrust()) },
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (toSet) => {

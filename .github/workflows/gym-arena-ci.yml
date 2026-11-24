@@ -115,19 +115,24 @@ jobs:
         run: bash scripts/disposable-stack.sh gym-arena-ci start
       - name: Export its settings (keys masked, never printed)
         run: bash scripts/disposable-stack.sh gym-arena-ci env-github
-      # The browser suite runs over plain http://localhost. Auth cookies are Secure unless the
-      # SERVER's own config allows local plain HTTP (src/lib/supabase/cookie-security.ts); this
-      # test-only flag does that for this job's build and server only. The production-build job
-      # and every deployment run without it (and the operator preflight refuses it).
       - run: npm run build
-        env:
-          AUTH_COOKIES_ALLOW_LOCAL_HTTP: "1"
+      # The browser suite runs over plain http://localhost. Auth cookies are Secure unless the
+      # SERVER's own config allows local plain HTTP (src/lib/supabase/cookie-security.ts). The
+      # test-only flag below does that for this step's server, only inside GitHub Actions and only
+      # for requests from this machine; it is read at runtime, so the build above does not need it.
+      # Every deployment runs without it (and the operator preflight refuses it).
       # Playwright's global setup verifies the ACTUAL stack before any test (as in the DB job).
       - run: npm run test:e2e
         env:
           E2E_ALLOW_WRITES: "1" # opt-in for @writes tests
           GYM_ARENA_CI_DISPOSABLE: "1" # explicit opt-in for the gym-arena-ci profile, test steps only
-          AUTH_COOKIES_ALLOW_LOCAL_HTTP: "1" # local plain-HTTP auth cookies, this job's server only
+          AUTH_COOKIES_ALLOW_LOCAL_HTTP: "1" # local plain-HTTP auth cookies, this step's server only
+      # Real-server cookie check: starts the same build (and next dev) once per server
+      # configuration and reads the Set-Cookie each actually sends (tests/integration).
+      # The test sets every server's environment itself, so the flag is deliberately absent here.
+      - run: npm run test:cookies
+        env:
+          GYM_ARENA_CI_DISPOSABLE: "1" # explicit opt-in for the gym-arena-ci profile, test steps only
       - name: Keep the browser test report when the job fails (diagnostics; local test data only)
         if: failure()
         uses: actions/upload-artifact@v4

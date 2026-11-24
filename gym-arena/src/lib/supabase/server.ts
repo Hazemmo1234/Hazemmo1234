@@ -5,12 +5,14 @@ import { cookies, headers } from "next/headers";
 import { publicEnv } from "@/lib/env";
 import { authCookieSecure, processCookieTrust } from "./cookie-security";
 
-/** Server client acting as the signed-in user (RLS applies). Auth cookies are Secure except on local plain HTTP. */
+/**
+ * Server client acting as the signed-in user (RLS applies). Auth cookies are Secure except for a
+ * local plain-HTTP request on a server whose own config allows it (cookie-security.ts).
+ */
 export async function createClient() {
   const { url, anonKey } = publicEnv();
   const cookieStore = await cookies();
-  const h = await headers();
-  const secure = authCookieSecure(h.get("x-forwarded-proto"), h.get("x-forwarded-host") ?? h.get("host"), processCookieTrust());
+  const secure = authCookieSecure(await headers(), processCookieTrust());
   return createServerClient(url, anonKey, {
     cookieOptions: { secure },
     cookies: {
