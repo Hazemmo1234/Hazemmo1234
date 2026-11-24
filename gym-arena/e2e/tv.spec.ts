@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { LOCAL_ONLY, TV_KEY, requireWriteTarget, signIn } from "./helpers";
 
@@ -95,6 +96,110 @@ test.describe("TV state API and screen @writes", () => {
     await expect(page.getByText("Final podium")).toBeVisible({ timeout: 15_000 });
     for (const n of ["Champion Person", "Second Person", "Third Person"]) await expect(page.getByText(n)).toBeVisible();
   });
+
+  // Podium regression (UX C). Playwright's toBeVisible() passes for text a parent clips away,
+  // which is how the #1 card once hid the leader's name (squeezed to 0 px) and points (below
+  // the card's clipped edge). These tests check the real geometry: every podium name and points
+  // element has a size, lies inside every clipping ancestor and inside the screen, and no
+  // podium card needs more height than it has. Long full names and the widest totals.
+  const LONG = ["Abdelrahman Mohamed Elsayed Abdelaziz", "Mostafa Abdelhamid Ibrahim Elshennawy", "Mohamed Ahmed Abdelmoneim Elgendy", "Youssef Abdelrahman Mahmoud Elsherbiny"];
+  const tvBase = (locale: "en" | "ar", now: number) => ({
+    server_time: new Date(now).toISOString(),
+    locale,
+    gym_name: "DFN GYM",
+    season: { name: "Arena — Podium", type: "championship", starts_on: "2026-11-01", ends_on: "2026-11-30", days_left: 6 },
+    next_season_starts_on: null,
+    next_season_in_days: null,
+    between: null,
+    rookies: [],
+    recent_bests: [],
+    preseason: null,
+    reveal: null,
+  });
+  const initialsOf = (n: string) => n.split(" ").map((w) => w[0]).join("").slice(0, 2);
+
+  /** Every podium name/points element that is not fully shown, and every card that overflows. */
+  const podiumProblems = (page: Page) =>
+    page.evaluate(() => {
+      const out: string[] = [];
+      const sel = '[data-testid="podium-name"],[data-testid="podium-total"],[data-testid="winner-name"],[data-testid="winner-total"]';
+      for (const el of document.querySelectorAll(sel)) {
+        const b = el.getBoundingClientRect();
+        const id = `${el.getAttribute("data-testid")} "${(el.textContent ?? "").trim().slice(0, 20)}"`;
+        if (b.width < 1 || b.height < 1) {
+          out.push(`${id}: zero size`);
+          continue;
+        }
+        if (b.left < -0.5 || b.top < -0.5 || b.right > window.innerWidth + 0.5 || b.bottom > window.innerHeight + 0.5) out.push(`${id}: outside the screen`);
+        for (let a = el.parentElement; a; a = a.parentElement) {
+          const s = getComputedStyle(a);
+          if (s.overflowX === "visible" && s.overflowY === "visible") continue;
+          const ab = a.getBoundingClientRect();
+          if (b.top < ab.top - 0.5 || b.bottom > ab.bottom + 0.5 || b.left < ab.left - 0.5 || b.right > ab.right + 0.5) {
+            out.push(`${id}: clipped by <${a.tagName.toLowerCase()} class="${String(a.className).slice(0, 50)}">`);
+            break;
+          }
+        }
+      }
+      for (const card of document.querySelectorAll<HTMLElement>('[data-testid="podium-card"]')) {
+        if (card.scrollHeight > card.clientHeight + 1) out.push(`podium card needs ${card.scrollHeight} px but has ${card.clientHeight} px`);
+      }
+      return out;
+    });
+
+  /** UX C at 1080p (readable at 5 m): names ≥ 40 px, points ≥ 56 px. Font sizes on the unscaled stage. */
+  const expectReadable = async (page: Page, name: string, points: string) => {
+    const px = (id: string) => page.getByTestId(id).evaluateAll((els) => els.map((e) => parseFloat(getComputedStyle(e).fontSize)));
+    for (const size of await px(name)) expect(size, `${name} font size`).toBeGreaterThanOrEqual(40);
+    for (const size of await px(points)) expect(size, `${points} font size`).toBeGreaterThanOrEqual(56);
+  };
+
+  for (const locale of ["en", "ar"] as const) {
+    test(`live podium: 1st, 2nd and 3rd show their name and points in full (${locale})`, async ({ page }) => {
+      test.setTimeout(45_000); // one 10 s poll
+      const now = Date.now();
+      const pr = new Date(now - 2_000).toISOString(); // PR badge on every podium card
+      const row = (rank: number, name: string, total: number, movement: number) => ({ ref: `p${rank}`, rank, name, photo_url: null, initials: initialsOf(name), total, movement, gap_to_next: rank === 1 ? 0 : 1, pr_at: rank <= 3 ? pr : null, categories: {} });
+      const live = {
+        ...tvBase(locale, now),
+        version: `podium-${locale}`,
+        mode: "live",
+        board: [row(1, LONG[0]!, 1000, 12), row(2, LONG[1]!, 999, -10), row(3, LONG[2]!, 998, 15), ...Array.from({ length: 12 }, (_, i) => row(i + 4, `Member ${i + 4}`, 900 - i, 0))],
+      };
+      await page.route("**/api/tv/state*", (route) => route.fulfill({ json: live }));
+      await page.goto(`/tv?key=${TV_KEY}`);
+      await expect(page.getByTestId("podium-name")).toHaveText([LONG[0]!, LONG[1]!, LONG[2]!], { timeout: 15_000 });
+      for (const [i, total] of [1000, 999, 998].entries()) await expect(page.getByTestId("podium-total").nth(i)).toContainText(String(total)); // count-up finished
+      await expectReadable(page, "podium-name", "podium-total");
+      for (const size of [{ width: 1920, height: 1080 }, { width: 1280, height: 720 }, { width: 3840, height: 2160 }]) {
+        await page.setViewportSize(size);
+        // the stage rescales after the resize; a lasting problem still fails after the timeout
+        await expect.poll(() => podiumProblems(page), { message: `${size.width}×${size.height}`, timeout: 5_000 }).toEqual([]);
+      }
+    });
+
+    test(`final podium: every winner's name and points stay on screen, ties included (${locale})`, async ({ page }) => {
+      test.setTimeout(60_000);
+      const now = Date.now();
+      const winner = (place: number, name: string, total: number) => ({ ref: `w-${name}`, place, name, photo_url: null, initials: initialsOf(name), total });
+      const cases = [
+        [winner(1, LONG[0]!, 1000), winner(2, LONG[1]!, 999), winner(3, LONG[2]!, 998)],
+        [winner(1, LONG[0]!, 1000), winner(2, LONG[1]!, 999), winner(3, LONG[2]!, 998), winner(3, LONG[3]!, 998)], // BR-W1: a tie for 3rd
+        [winner(1, LONG[0]!, 1000), winner(1, LONG[3]!, 1000), winner(3, LONG[2]!, 998)], // a tie for 1st
+      ];
+      let current = cases[0]!;
+      await page.route("**/api/tv/state*", (route) =>
+        route.fulfill({ json: { ...tvBase(locale, now), version: `final-${current.length}-${current[1]!.place}`, mode: "reveal", board: [], reveal: { started_at: new Date(now - 600_000).toISOString(), winners: current } } }),
+      );
+      for (const winners of cases) {
+        current = winners;
+        await page.goto(`/tv?key=${TV_KEY}`);
+        await expect(page.getByTestId("winner-name")).toHaveCount(winners.length, { timeout: 15_000 });
+        await expectReadable(page, "winner-name", "winner-total");
+        await expect.poll(() => podiumProblems(page), { message: `places ${winners.map((w) => w.place).join("-")}`, timeout: 5_000 }).toEqual([]);
+      }
+    });
+  }
 
   test("between seasons: results coming soon, no standings; network loss keeps the last state (AC-29)", async ({ page }) => {
     test.setTimeout(75_000); // three 10 s polls: first state, the lost one, the recovered one

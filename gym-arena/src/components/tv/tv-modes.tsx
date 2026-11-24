@@ -88,15 +88,24 @@ export function TvBetween({ state, locale, t }: { state: TvState; locale: Locale
 const PLACE_TEXT: Record<number, string> = { 1: "text-gold", 2: "text-silver", 3: "text-bronze" };
 const PLACE_RING: Record<number, string> = { 1: "ring-gold", 2: "ring-silver", 3: "ring-bronze" };
 
+/** Widest a single winner may be: one on screen (hero step), one of a podium column. */
+const WINNER_MAX = { hero: 900, podium: 560 } as const;
+const PODIUM_TIE_GAP = 32; // gap-8 between tied winners in one podium column
+
+/**
+ * The winners of one place. Tied winners (BR-W1: a tie can put several people on one place) stand
+ * side by side and share the width they are given; each name truncates inside its share. Before,
+ * every name could be 900 px wide, so long full names pushed the 2nd and 3rd places off screen.
+ */
 function WinnerGroup({ winners, place, locale, t, size }: { winners: TvWinner[]; place: number; locale: Locale; t: TvT; size: "hero" | "podium" }) {
   const hero = size === "hero";
   return (
-    <div className="flex flex-wrap items-end justify-center gap-16">
+    <div className={`flex w-full min-w-0 items-end justify-center ${hero ? "gap-16" : "gap-8"}`}>
       {winners.filter((w) => w.place === place).map((w) => (
-        <div key={w.ref} className={`flex flex-col items-center ${hero ? "tv-rise" : ""}`}>
+        <div key={w.ref} data-testid="winner" className={`flex min-w-0 flex-1 flex-col items-center ${hero ? "tv-rise" : ""}`} style={{ maxWidth: WINNER_MAX[size] }}>
           <TvAvatar photoUrl={w.photo_url} initials={w.initials} size={hero ? 320 : place === 1 ? 220 : 170} ring={PLACE_RING[place]} />
-          <p className={`mt-8 max-w-[900px] truncate font-extrabold ${hero ? "text-[88px]" : "text-[48px]"}`}><bdi>{w.name}</bdi></p>
-          <p className={`display leading-none ${PLACE_TEXT[place]} ${hero ? "text-[140px]" : "text-[80px]"}`}>
+          <p data-testid="winner-name" className={`mt-8 w-full truncate font-extrabold leading-tight ${hero ? "text-[88px]" : "text-[48px]"}`}><bdi>{w.name}</bdi></p>
+          <p data-testid="winner-total" className={`display leading-none ${PLACE_TEXT[place]} ${hero ? "text-[140px]" : "text-[80px]"}`}>
             {formatNumber(w.total, locale, 0)}
             <span className="ms-4 text-[36px] not-italic text-text-muted">{t("pts")}</span>
           </p>
@@ -153,13 +162,21 @@ export function TvReveal({ state, locale, t, serverNow }: { state: TvState; loca
         <>
           <p className="text-[48px] font-bold text-text-muted"><bdi>{seasonName}</bdi></p>
           <p className="display mb-12 text-[96px] uppercase leading-none text-gold">{t("revealFinal")}</p>
-          <div className="flex items-end justify-center gap-20">
-            {[2, 1, 3].filter((p) => winners.some((w) => w.place === p)).map((p) => (
-              <div key={p} className={`flex flex-col items-center ${p === 1 ? "tv-shimmer -translate-y-10" : ""}`}>
-                <p className={`display mb-4 text-[72px] ${PLACE_TEXT[p]}`}>{t("place", { place: formatNumber(p, locale, 0) })}</p>
-                <WinnerGroup winners={winners} place={p} locale={locale} t={t} size="podium" />
-              </div>
-            ))}
+          {/* each place column takes a share of the width in proportion to its winners */}
+          <div className="flex w-full min-w-0 items-end justify-center gap-20">
+            {[2, 1, 3].filter((p) => winners.some((w) => w.place === p)).map((p) => {
+              const count = winners.filter((w) => w.place === p).length;
+              return (
+                <div
+                  key={p}
+                  className={`flex min-w-0 flex-col items-center ${p === 1 ? "tv-shimmer -translate-y-10" : ""}`}
+                  style={{ flex: `${count} 1 0%`, maxWidth: count * WINNER_MAX.podium + (count - 1) * PODIUM_TIE_GAP }}
+                >
+                  <p className={`display mb-4 text-[72px] ${PLACE_TEXT[p]}`}>{t("place", { place: formatNumber(p, locale, 0) })}</p>
+                  <WinnerGroup winners={winners} place={p} locale={locale} t={t} size="podium" />
+                </div>
+              );
+            })}
           </div>
         </>
       )}

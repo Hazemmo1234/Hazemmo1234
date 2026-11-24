@@ -24,7 +24,8 @@ the deployment was confirmed by the platform.
 | 2026-11-23 | `8d97f02` | Self-hosted Cairo and Barlow Condensed; builds no longer depend on Google Fonts |
 | 2026-11-23 | `3fc086e` | Production-target operator tooling (`prod:*`), backups; runbook, rollback, release checklist, environment reference, real-world acceptance protocol (CI: push #55, PR #56 green) |
 | 2026-11-24 | `2d0c423`, `407c7c3`, `b6b7b90` | Auth cookies `Secure` on HTTPS (fail-closed); behavioural API guard test; audit-path guard; create-admin enforces its target; strict `--target` parsing; cost decision; Supabase organization separation; local-HTTP cookie exception only with trusted server config (CI green: `2d0c423` push #57 / PR #58, `407c7c3` push #59 / PR #60, `b6b7b90` push #61 / PR #62; #62's E2E job was re-run once after the runner could not bind the CI database port) |
-| 2026-11-24 | (next) | Auth-cookie decision from the request headers: on a self-hosted server the middleware's URL is always the server's own address. The CI cookie flag works only inside GitHub Actions. New real-server cookie check in CI (`npm run test:cookies`) |
+| 2026-11-24 | `31a4630` | Auth-cookie decision from the request headers: on a self-hosted server the middleware's URL is always the server's own address. The CI cookie flag works only inside GitHub Actions. New real-server cookie check in CI (`npm run test:cookies`) (CI green: push #63 / PR #64; cookie check 16/16 in both) |
+| 2026-11-24 | (next) | TV podium: the #1 card no longer hides the leader's name (squeezed to 0 px) and points (below its clipped edge), and long names or ties no longer push final-podium winners off screen. Explicit size budget for the podium column; tied winners share the width. Geometry regression tests in `e2e/tv.spec.ts` |
 
 CI evidence per commit is recorded in `docs/STAGING_ACCEPTANCE_REPORT.md` §2 and the commit's
 GitHub Actions runs.

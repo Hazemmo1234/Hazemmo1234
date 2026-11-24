@@ -18,27 +18,43 @@ function PrBadge({ t }: { t: TvT }) {
   return <span className="rounded-lg bg-brand px-3 py-0.5 text-[24px] font-extrabold text-white">{t("pr")}</span>;
 }
 
+/**
+ * Podium sizes on the 1920×1080 stage (UX C). The podium column is 824 px tall (the stage minus
+ * the top bar, the ticker and the page padding). The #1 card (≈ 450 px), the gap (20 px) and the
+ * #2/#3 row (≈ 330 px) must fit in it with room to spare. The cards clip their overflow (for the
+ * shimmer and the PR glow), so content that did not fit used to vanish without a trace: the #1
+ * card needed ≈ 573 px and was squeezed to 392 px, its name to 0 px. So every line height here
+ * is explicit and no part of a card may shrink (e2e/tv.spec.ts checks the result). UX C minimums
+ * at 1080p (readable at 5 m): names ≥ 40 px, points ≥ 56 px.
+ */
+const PODIUM = {
+  big: { pad: "py-6", rank: 64, move: 30, avatar: 160, name: "text-[50px]", total: 96, pts: "text-[30px]" },
+  small: { pad: "py-5", rank: 48, move: 24, avatar: 112, name: "text-[40px]", total: 64, pts: "text-[26px]" },
+} as const;
+
 /** One podium card. Rank 1 gets the gold shimmer every 10 s (UX "Motion"). */
 function PodiumCard({ row, big, locale, t, serverNow }: { row: TvBoardRow; big: boolean; locale: Locale; t: TvT; serverNow: number }) {
   const color = PLACE_COLOR[row.rank] ?? PLACE_COLOR[3]!;
   const pr = isFreshPr(row.pr_at, serverNow);
+  const s = PODIUM[big ? "big" : "small"];
   return (
     <div
       key={`${row.ref}-${pr ? row.pr_at : ""}`}
-      className={`relative flex min-w-0 flex-col items-center overflow-hidden rounded-3xl border border-border bg-gradient-to-b ${color.bg} to-surface px-6 ${
-        big ? "py-8" : "py-6"
+      data-testid="podium-card"
+      className={`relative flex min-w-0 flex-col items-center justify-center overflow-hidden rounded-3xl border border-border bg-gradient-to-b ${color.bg} to-surface px-6 ${s.pad} ${
+        big ? "shrink-0" : ""
       } ${pr ? "tv-glow" : ""} ${row.rank === 1 ? "tv-shimmer" : ""}`}
     >
-      <div className="flex items-center gap-3">
-        <span className={`display tabular ${color.text}`} style={{ fontSize: big ? 72 : 52 }}>{formatNumber(row.rank, locale, 0)}</span>
-        <Movement value={row.movement} locale={locale} size={big ? 32 : 26} />
+      <div className="flex shrink-0 items-center gap-3">
+        <span className={`display tabular leading-none ${color.text}`} style={{ fontSize: s.rank }}>{formatNumber(row.rank, locale, 0)}</span>
+        <Movement value={row.movement} locale={locale} size={s.move} />
         {pr && <PrBadge t={t} />}
       </div>
-      <TvAvatar photoUrl={row.photo_url} initials={row.initials} size={big ? 196 : 132} ring={color.ring} />
-      <p className={`mt-5 w-full truncate text-center font-extrabold ${big ? "text-[54px]" : "text-[40px]"}`}><bdi>{row.name}</bdi></p>
-      <p className={`display leading-none ${color.text}`} style={{ fontSize: big ? 104 : 72 }}>
+      <TvAvatar photoUrl={row.photo_url} initials={row.initials} size={s.avatar} ring={color.ring} />
+      <p data-testid="podium-name" className={`mt-3 w-full shrink-0 truncate text-center font-extrabold leading-tight ${s.name}`}><bdi>{row.name}</bdi></p>
+      <p data-testid="podium-total" className={`display mt-1 shrink-0 leading-none ${color.text}`} style={{ fontSize: s.total }}>
         <CountUp value={row.total} locale={locale} />
-        <span className="ms-3 text-[30px] not-italic text-text-muted">{t("pts")}</span>
+        <span className={`ms-3 not-italic text-text-muted ${s.pts}`}>{t("pts")}</span>
       </p>
     </div>
   );
@@ -122,7 +138,7 @@ export function TvLive({ state, locale, t, serverNow }: { state: TvState; locale
           <>
             <section className="flex w-[40%] min-w-0 flex-col gap-5" aria-label={t("podium")}>
               {podium[0] && <PodiumCard row={podium[0]} big locale={locale} t={t} serverNow={serverNow} />}
-              <div className="grid flex-1 grid-cols-2 gap-5">
+              <div className="grid min-h-0 flex-1 grid-cols-2 gap-5">
                 {podium.slice(1).map((r) => (
                   <PodiumCard key={r.ref} row={r} big={false} locale={locale} t={t} serverNow={serverNow} />
                 ))}

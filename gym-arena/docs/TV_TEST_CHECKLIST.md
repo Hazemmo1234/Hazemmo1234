@@ -11,6 +11,7 @@ Nothing in this list can be verified by CI; record the date, the person and the 
 
 ## Readability (stand 5 m away)
 - [ ] Names (≥ 40 px at 1080p) and points (≥ 56 px) readable from 5 m, in Arabic and in English.
+- [ ] Podium with the gym's longest real names in the top 3: every podium card shows its name (long names end in "…") and its points in full.
 - [ ] Gold / silver / bronze and the red brand bar distinguishable on this panel (check in daylight and evening light).
 - [ ] Photos (consented members only) not stretched; members without consent show initials.
 - [ ] Movement arrows ▲ (green) / ▼ (red) visible; colour is not the only cue (arrow + number).
@@ -24,7 +25,7 @@ Nothing in this list can be verified by CI; record the date, the person and the 
 ## Season moments
 - [ ] Preseason: countdown and "Baselines logged X / Y" progress.
 - [ ] Ended season: "Results coming soon"; no standings shown before the reveal.
-- [ ] Reveal (Admin → Championships → **Start reveal**): intro → 3rd (8 s) → 2nd (8 s) → "The champion is…" (4 s) → champion with gold burst → final podium held.
+- [ ] Reveal (Admin → Championships → **Start reveal**): intro → 3rd (8 s) → 2nd (8 s) → "The champion is…" (4 s) → champion with gold burst → final podium held. On the final podium, every winner's name and points are on screen (also when a tie gives one place several winners).
 - [ ] Refresh the TV in the middle of the reveal → it continues at the right step.
 - [ ] Sound/lighting cue for the reveal, if the gym wants one (outside the system).
 
