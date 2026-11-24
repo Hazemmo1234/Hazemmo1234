@@ -15,18 +15,18 @@
     "test:cookies": "vitest run --config vitest.integration.config.mts",
     "db:reset": "supabase db reset",
     "create-admin": "node --env-file-if-exists=.env.local --import tsx scripts/create-admin.ts",
-    "staging:preflight": "node --env-file=.env.staging --import tsx scripts/staging-preflight.ts",
-    "staging:migrate": "node --env-file=.env.staging --import tsx scripts/staging-migrate.ts",
-    "staging:psql": "node --env-file=.env.staging --import tsx scripts/staging-psql.ts",
-    "staging:verify": "node --env-file=.env.staging --import tsx scripts/staging-verify.ts",
-    "staging:create-admin": "node --env-file=.env.staging --import tsx scripts/create-admin.ts --target=staging",
-    "staging:backup": "node --env-file=.env.staging --import tsx scripts/ops-backup.ts",
-    "prod:backup": "node --env-file=.env.production-ops --import tsx scripts/ops-backup.ts --target=production",
-    "prod:preflight": "node --env-file=.env.production-ops --import tsx scripts/staging-preflight.ts --target=production",
-    "prod:migrate": "node --env-file=.env.production-ops --import tsx scripts/staging-migrate.ts --target=production",
-    "prod:psql": "node --env-file=.env.production-ops --import tsx scripts/staging-psql.ts --target=production",
-    "prod:verify": "node --env-file=.env.production-ops --import tsx scripts/staging-verify.ts --target=production",
-    "prod:create-admin": "node --env-file=.env.production-ops --import tsx scripts/create-admin.ts --target=production",
+    "staging:preflight": "node scripts/check-node.mjs && node --env-file=.env.staging --import tsx scripts/staging-preflight.ts",
+    "staging:migrate": "node scripts/check-node.mjs && node --env-file=.env.staging --import tsx scripts/staging-migrate.ts",
+    "staging:psql": "node scripts/check-node.mjs && node --env-file=.env.staging --import tsx scripts/staging-psql.ts",
+    "staging:verify": "node scripts/check-node.mjs && node --env-file=.env.staging --import tsx scripts/staging-verify.ts",
+    "staging:create-admin": "node scripts/check-node.mjs && node --env-file=.env.staging --import tsx scripts/create-admin.ts --target=staging",
+    "staging:backup": "node scripts/check-node.mjs && node --env-file=.env.staging --import tsx scripts/ops-backup.ts",
+    "prod:backup": "node scripts/check-node.mjs && node --env-file=.env.production-ops --import tsx scripts/ops-backup.ts --target=production",
+    "prod:preflight": "node scripts/check-node.mjs && node --env-file=.env.production-ops --import tsx scripts/staging-preflight.ts --target=production",
+    "prod:migrate": "node scripts/check-node.mjs && node --env-file=.env.production-ops --import tsx scripts/staging-migrate.ts --target=production",
+    "prod:psql": "node scripts/check-node.mjs && node --env-file=.env.production-ops --import tsx scripts/staging-psql.ts --target=production",
+    "prod:verify": "node scripts/check-node.mjs && node --env-file=.env.production-ops --import tsx scripts/staging-verify.ts --target=production",
+    "prod:create-admin": "node scripts/check-node.mjs && node --env-file=.env.production-ops --import tsx scripts/create-admin.ts --target=production",
     "test:stack": "bash scripts/test-stack.sh",
     "test:db:isolated": "node -e \"console.error('test:db:isolated is disabled: it used to reset the protected gym-arena-test stack. Write-capable DB tests run in CI on a disposable gym-arena-ci stack (see tests/FIXTURES.md).');process.exit(1)\"",
     "test:e2e:isolated": "node -e \"console.error('test:e2e:isolated is disabled: local browser runs write, and the protected gym-arena-test stack is never a target. Browser tests run in CI only (see tests/FIXTURES.md).');process.exit(1)\""
@@ -60,6 +60,6 @@
     "vitest": "^5.1.0"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }

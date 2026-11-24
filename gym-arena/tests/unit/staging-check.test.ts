@@ -1,5 +1,18 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { TARGETS, checkStaging, checkTarget, dbUrlProblem, hasFailure, jwtClaims, parseDbUrl, refFromSupabaseUrl } from "../../scripts/staging-check";
+import {
+  TARGETS,
+  TRANSACTION_POOLER_PORT,
+  checkStaging,
+  checkTarget,
+  closeTransportProblem,
+  dbUrlProblem,
+  hasFailure,
+  jwtClaims,
+  parseDbUrl,
+  refFromSupabaseUrl,
+} from "../../scripts/staging-check";
 
 const PROD = "prodprodprodprodprod";
 const STG = "stagstagstagstagstag";
@@ -164,6 +177,82 @@ describe("staging isolation check", () => {
     expect(byCheck(env).SEASON_CLOSE_DATABASE_URL!.detail).toContain("user name");
   });
 
+  describe("close URL goes through the Transaction pooler (host <region>.pooler.supabase.com, port 6543)", () => {
+    const POOLER = "aws-0-eu-central-1.pooler.supabase.com";
+    const closeUrl = (user: string, hostPort: string) => `postgresql://${user}:s3cret-value@${hostPort}/postgres`;
+    /** The close check for this URL; the results must never contain the password, the host or the URL. */
+    const closeCheck = (url: string) => {
+      const env = good();
+      env.SEASON_CLOSE_DATABASE_URL = url;
+      const results = checkStaging({ env });
+      const text = JSON.stringify(results);
+      for (const leak of ["s3cret-value", POOLER, `db.${STG}.supabase.co`, url]) expect(text).not.toContain(leak);
+      return Object.fromEntries(results.map((r) => [r.check, r])).SEASON_CLOSE_DATABASE_URL!;
+    };
+
+    it("passes the restricted role on the Transaction pooler, port 6543", () => {
+      const r = closeCheck(closeUrl(`arena_season_closer.${STG}`, `${POOLER}:6543`));
+      expect(r.status).toBe("PASS");
+      expect(r.detail).toBe(`arena_season_closer on ${STG} (Transaction pooler, port 6543)`);
+      expect(closeCheck(closeUrl(`arena_season_closer.${STG}`, "aws-1-us-east-1.pooler.supabase.com:6543")).status).toBe("PASS");
+    });
+
+    it("refuses the restricted role on the direct database host, on any port", () => {
+      for (const port of ["5432", "6543", ""]) {
+        const r = closeCheck(closeUrl("arena_season_closer", `db.${STG}.supabase.co${port ? `:${port}` : ""}`));
+        expect(r.status).toBe("FAIL");
+        expect(r.detail).toContain("not the direct database host");
+      }
+    });
+
+    it("refuses the restricted role on the pooler host with any port other than 6543", () => {
+      const session = closeCheck(closeUrl(`arena_season_closer.${STG}`, `${POOLER}:5432`));
+      expect(session.status).toBe("FAIL");
+      expect(session.detail).toBe("must use port 6543 (Transaction pooler), not port 5432 (the Session pooler)");
+      const other = closeCheck(closeUrl(`arena_season_closer.${STG}`, `${POOLER}:6544`));
+      expect(other.status).toBe("FAIL");
+      expect(other.detail).toBe("must use port 6543 (Transaction pooler), not port 6544");
+      const none = closeCheck(closeUrl(`arena_season_closer.${STG}`, POOLER));
+      expect(none.status).toBe("FAIL");
+      expect(none.detail).toContain("no port");
+    });
+
+    it("refuses the owner role even on the Transaction pooler, port 6543", () => {
+      for (const owner of [`postgres.${STG}`, "postgres"]) {
+        const r = closeCheck(closeUrl(owner, `${POOLER}:6543`));
+        expect(r.status).toBe("FAIL");
+        expect(r.detail).toContain("must log in as arena_season_closer");
+      }
+    });
+
+    it("refuses malformed URLs", () => {
+      for (const bad of [
+        "not a url",
+        "postgresql://",
+        `arena_season_closer.${STG}:s3cret-value@${POOLER}:6543/postgres`, // no scheme
+        `https://arena_season_closer.${STG}:s3cret-value@${POOLER}:6543/postgres`, // not postgres
+        `postgresql://arena_season_closer.${STG}:s3cret-value@${POOLER}:6543,${POOLER}:6543/postgres`, // host list
+      ]) {
+        expect(closeCheck(bad).status, bad.replace("s3cret-value", "***")).toBe("FAIL");
+      }
+    });
+
+    it("exposes the rule as a pure function", () => {
+      expect(TRANSACTION_POOLER_PORT).toBe("6543");
+      expect(closeTransportProblem(closeUrl(`arena_season_closer.${STG}`, `${POOLER}:6543`))).toBeNull();
+      expect(closeTransportProblem(closeUrl("arena_season_closer", `db.${STG}.supabase.co:6543`))).toContain("not the direct database host");
+      expect(closeTransportProblem(closeUrl(`arena_season_closer.${STG}`, `${POOLER}:5432`))).toContain("not port 5432");
+    });
+
+    it("matches the close connection: one connection, prepared statements off (what transaction mode needs)", () => {
+      const src = readFileSync(join(__dirname, "..", "..", "src", "modules", "seasons", "close.ts"), "utf8");
+      const options = src.match(/postgres\(url, \{(.*)\}\);/); // the options object, on one line
+      expect(options, "close.ts opens its connection with postgres(url, { … })").not.toBeNull();
+      expect(options![1]).toMatch(/\bmax: 1\b/);
+      expect(options![1]).toMatch(/\bprepare: false\b/);
+    });
+  });
+
   it("checks exactly the values written in .env.staging (a shell export must not override them)", () => {
     const file = good();
     expect(byCheckFile({ ...file }, file)[".env.staging"]!.status).toBe("PASS");
@@ -208,6 +297,18 @@ describe("production target", () => {
     expect(TARGETS.production.envFile).toBe(".env.production-ops");
     expect(run(prodEnv(), prodEnv())[".env.production-ops"]!.status).toBe("PASS");
     expect(run(prodEnv(), null)[".env.production-ops"]!.status).toBe("FAIL");
+  });
+
+  it("requires the close URL to go through the Transaction pooler, port 6543, as in staging", () => {
+    expect(run(prodEnv()).SEASON_CLOSE_DATABASE_URL!.detail).toBe(`arena_season_closer on ${PROD} (Transaction pooler, port 6543)`);
+    const e = prodEnv();
+    e.SEASON_CLOSE_DATABASE_URL = `postgresql://arena_season_closer:closer-pw@db.${PROD}.supabase.co:5432/postgres`;
+    const direct = run(e).SEASON_CLOSE_DATABASE_URL!;
+    expect(direct.status).toBe("FAIL");
+    expect(direct.detail).toContain("not the direct database host");
+    e.SEASON_CLOSE_DATABASE_URL = `postgresql://arena_season_closer.${PROD}:closer-pw@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`;
+    expect(run(e).SEASON_CLOSE_DATABASE_URL!.detail).toContain("not port 5432");
+    expect(JSON.stringify(checkTarget({ env: e }, "production"))).not.toContain("closer-pw");
   });
 
   it("refuses any staging value in a production run", () => {

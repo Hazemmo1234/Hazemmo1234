@@ -24,7 +24,7 @@ URL into a chat** — the command outputs listed here contain none of them and a
 | **Gate 1** | | **Share the A4 + A5 output and approve applying the migrations** | | | | | |
 | A6 | Terminal (step 4) | Apply + check | — | — | `npm run staging:migrate -- --apply`, then the step 4 checks | 8 migrations applied; check counts as listed | stop; share the error text |
 | **Gate 2** | | **Share the A6 check results and approve enabling the close role** | | | | | |
-| A7 | Terminal (step 5) | Close role login + password, role checks | new close-role password → only into `SEASON_CLOSE_DATABASE_URL` (Transaction pooler URI) | the owner password into this variable | `npm run staging:psql`, then the SQL in step 5; then `npm run staging:preflight` | 9 checks as listed; preflight `PASS SEASON_CLOSE_DATABASE_URL: arena_season_closer on <ref>` | stop; share which check differs |
+| A7 | Terminal (step 5) | Close role login + password, role checks | new close-role password → only into `SEASON_CLOSE_DATABASE_URL` (Transaction pooler URI) | the owner password into this variable | `npm run staging:psql`, then the SQL in step 5; then `npm run staging:preflight` | 9 checks as listed; preflight `PASS SEASON_CLOSE_DATABASE_URL: arena_season_closer on <ref> (Transaction pooler, port 6543)` | stop; share which check differs |
 | **Gate 3** | | **Approve creating the staging admin** | | | | | |
 | A8 | Terminal (step 6) | Admin account | — | — | `npm run staging:create-admin` (type the password when asked) | `Admin created: <email>` | message names the cause; nothing half-created |
 | A9 | Vercel → Add New → Project (step 7) | New project `gym-arena-staging`; Branch Tracking `claude/ecstatic-goodall-3p1zte`; Root Directory `gym-arena`; 5 variables (Production, Sensitive); keep "Automatically expose System Environment Variables" on | 5 values from `.env.staging` → Vercel | `STAGING_MIGRATION_DATABASE_URL`, `PRODUCTION_*`, `ADMIN_*`, `NEXT_DIST_DIR`; anything from the production Vercel project | — | settings saved in **gym-arena-staging** | — |
@@ -68,7 +68,7 @@ first two rows name production; every other value must come from the **staging**
 | `STAGING_MIGRATION_DATABASE_URL` | yes, on your computer only | staging | Staging → Connect → **Session pooler** URI (user `postgres.<ref>`, port 5432) + the database password from step 1. Used by steps 4–5 only. Never in hosting. |
 | `SEASON_CLOSE_DATABASE_URL` | yes | staging | Filled in step 5. |
 | `CRON_SECRET` | yes for staging | staging only | New random value, `openssl rand -hex 24`. Never the production one. |
-| `APP_ORIGIN` | optional | staging | Leave empty (see §4). |
+| `APP_ORIGIN` | optional in staging | staging | Leave empty (see §4). Only production requires it. |
 | `ADMIN_EMAIL`, `ADMIN_NAME` | step 6 only | staging | The staging admin's sign-in email and display name. |
 | `ADMIN_PASSWORD` | leave **empty** | — | Step 6 asks for the password twice without showing it, so it is never written to disk. Not your production password. |
 
@@ -84,6 +84,10 @@ Use only letters and digits in database passwords (`openssl rand -hex 24`), so t
 escaping.
 
 ### Step 3 — Run the preflight (no network, prints no values)
+Your computer needs **Node.js 22** (install the current Node.js 22 LTS from nodejs.org);
+`node --version` must print `v22…` or newer. Every `staging:` and `prod:` command checks this first
+and stops with a message, before reading anything, on an older Node.js.
+
 Open a **new terminal** (no Supabase or `PG*` variables exported from earlier work), then:
 ```bash
 cd gym-arena
@@ -96,7 +100,8 @@ Every line must be `PASS` (a `WARN` for new-format `sb_…` keys only means "mak
 from the staging project"). It **fails** when:
 - any URL, key or connection points at the production ref;
 - any two values point at different projects;
-- the close connection is not the restricted role;
+- the close connection is not the restricted role, or does not go through the Transaction pooler
+  (host `<region>.pooler.supabase.com`, port 6543);
 - the production ref appears anywhere in the configuration;
 - a variable exported in your shell overrides the value written in `.env.staging` (Node gives the
   shell priority, so the file you copy from would not be the one checked);
@@ -182,8 +187,10 @@ Then set in `.env.staging`, using the staging **Transaction pooler** host from t
 SEASON_CLOSE_DATABASE_URL=postgresql://arena_season_closer.<staging-ref>:<password>@<pooler-host>:6543/postgres
 ```
 The pooler is needed because the hosting platform cannot reach Supabase's IPv6-only direct address.
-The app opens one connection with prepared statements off, so transaction mode works. Run
-`npm run staging:preflight` again; it must show `PASS SEASON_CLOSE_DATABASE_URL: arena_season_closer on <staging-ref>`.
+The app opens one connection with prepared statements off, so transaction mode works. The preflight
+refuses the direct address (`db.<ref>.supabase.co`, the Connect dialog's "Direct connection") and any
+port other than 6543 (5432 on the pooler host is the Session pooler). Run `npm run staging:preflight`
+again; it must show `PASS SEASON_CLOSE_DATABASE_URL: arena_season_closer on <staging-ref> (Transaction pooler, port 6543)`.
 
 Optional, before risky steps: `npm run staging:backup` writes a read-only `pg_dump` to
 `backups/` (git-ignored; needs `pg_dump`, e.g. `brew install libpq`).
@@ -219,7 +226,7 @@ directory is set after the import, not during it.
    | `SUPABASE_SERVICE_ROLE_KEY` | from `.env.staging` | yes; leaderboards, TV and writes fail without it |
    | `SEASON_CLOSE_DATABASE_URL` | from `.env.staging` | yes; close answers 503 without it |
    | `CRON_SECRET` | from `.env.staging` | yes for staging (checklist step 39); the job is refused without it |
-   | `APP_ORIGIN` | **leave unset** | optional (§4) — the sixth variable |
+   | `APP_ORIGIN` | **leave unset** | optional in staging (§4) — the sixth variable; required in production |
 
    In the same Environment Variables page, keep **"Automatically expose System Environment
    Variables"** switched on (Vercel's default; Vercel's documentation calls it "Enable access to
@@ -441,9 +448,13 @@ it. Otherwise the link uses the address the request came in on (`x-forwarded-hos
 `x-forwarded-proto`). It is used for nothing else: no security checks, redirects or emails depend
 on it.
 
-- **Staging:** leave it unset; the link uses the staging address automatically.
-- **Production:** optional. Set it to the final public address (e.g. `https://arena.dfngym.com`)
-  if the admin may open Settings from another address, such as a `*.vercel.app` URL. Otherwise the
-  copied TV link would carry that other address.
+- **Local development and staging:** optional; leave it unset. The link uses the address the page
+  was opened on (for staging, the staging address). `npm run staging:preflight` accepts it unset.
+- **Production:** **required**. Set it to the final public `https://` address with no path (e.g.
+  `https://arena.dfngym.com`). `npm run prod:preflight` fails without it, and also fails on a
+  non-https value, a path, or the staging address (when `STAGING_APP_ORIGIN` is declared).
+  Without it, an admin who opens Settings from another address (such as a `*.vercel.app` URL)
+  would copy a TV link that carries that address.
 
-Missing value → the request's own host is used; nothing breaks.
+Missing value at run time → the request's own host is used; the app does not break. The production
+requirement is enforced by the production preflight, not by the app.

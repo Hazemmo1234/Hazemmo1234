@@ -64,7 +64,8 @@ every migration and at least weekly), and it does not include storage photos
 Prefer the legacy `anon` / `service_role` keys if offered: the check can then prove which
 project they belong to.
 
-**P3. Preflight (read-only, no network).** In a new terminal, run `npm ci && npm run prod:preflight`.
+**P3. Preflight (read-only, no network).** In a new terminal, on Node.js 22 LTS (every `prod:`
+command refuses an older Node.js), run `npm ci && npm run prod:preflight`.
 → Every line PASS, and the two refs match the two dashboards.
 
 **P4. Migrations (GATE B: production database change).**

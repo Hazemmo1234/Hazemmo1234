@@ -77,6 +77,29 @@ export function parseDbUrl(raw: string): { role: string; ref: string | null } | 
   return { role: user, ref: null };
 }
 
+/** Port of Supabase's Transaction pooler (Supavisor transaction mode); 5432 on the same host is the Session pooler. */
+export const TRANSACTION_POOLER_PORT = "6543";
+
+/**
+ * Why a season-close URL cannot be used from the hosting platform, or null. The close runs on
+ * Vercel, which cannot reach Supabase's direct database address (`db.<ref>.supabase.co`,
+ * IPv6-only), so it must go through the shared Transaction pooler: host `<region>.pooler.supabase.com`,
+ * port 6543. The close opens one connection with prepared statements off (src/modules/seasons/close.ts),
+ * which is what transaction mode needs. Expects a URL that passed `dbUrlProblem`. The message never
+ * contains the URL: only fixed text and the port number.
+ */
+export function closeTransportProblem(raw: string): string | null {
+  const u = new URL(raw);
+  if (!/^[a-z0-9-]+\.pooler\.supabase\.com$/.test(u.hostname)) {
+    return "must use the Supabase Transaction pooler host (<region>.pooler.supabase.com), not the direct database host — the hosting platform cannot reach the direct address (IPv6 only)";
+  }
+  if (!u.port) return `must use port ${TRANSACTION_POOLER_PORT} (Transaction pooler); the URL has no port, which means 5432 (the Session pooler)`;
+  if (u.port !== TRANSACTION_POOLER_PORT) {
+    return `must use port ${TRANSACTION_POOLER_PORT} (Transaction pooler), not port ${u.port}${u.port === "5432" ? " (the Session pooler)" : ""}`;
+  }
+  return null;
+}
+
 /** `ref` and `role` claims of a legacy Supabase JWT key; `null` for the new sb_… keys or anything else. */
 export function jwtClaims(key: string): { ref?: string; role?: string } | null {
   const parts = key.split(".");
@@ -209,19 +232,22 @@ export function checkTarget({ env, linkedRef, fileEnv }: StagingInputs, target: 
   keyCheck("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon", "sb_publishable_");
   keyCheck("SUPABASE_SERVICE_ROLE_KEY", "service_role", "sb_secret_");
 
-  // 4. Close connection: restricted role, target project, never the owner.
+  // 4. Close connection: restricted role, target project, never the owner, through the
+  //    Transaction pooler (the only address the hosting platform can reach).
   const close = v("SEASON_CLOSE_DATABASE_URL");
   if (!close) add("FAIL", "SEASON_CLOSE_DATABASE_URL", "missing — seasons cannot be closed");
   else {
     const problem = dbUrlProblem(close);
     const db = problem ? null : parseDbUrl(close);
+    const transport = problem ? null : closeTransportProblem(close);
     if (problem) add("FAIL", "SEASON_CLOSE_DATABASE_URL", problem);
     else if (!db) add("FAIL", "SEASON_CLOSE_DATABASE_URL", "has no user name");
     else if (db.role !== CLOSE_ROLE) add("FAIL", "SEASON_CLOSE_DATABASE_URL", `must log in as ${CLOSE_ROLE}, not another role`);
-    else if (!db.ref) add("FAIL", "SEASON_CLOSE_DATABASE_URL", "cannot identify the project (use the Supabase direct or pooler address)");
+    else if (!db.ref) add("FAIL", "SEASON_CLOSE_DATABASE_URL", `cannot identify the project (use the Transaction pooler address, user ${CLOSE_ROLE}.<project-ref>)`);
     else if (forbidden && db.ref === forbidden) add("FAIL", "SEASON_CLOSE_DATABASE_URL", `points at ${OTHER} — stop`);
     else if (ref && db.ref !== ref) add("FAIL", "SEASON_CLOSE_DATABASE_URL", "points at a different project than NEXT_PUBLIC_SUPABASE_URL");
-    else add("PASS", "SEASON_CLOSE_DATABASE_URL", `${CLOSE_ROLE} on ${db.ref}`);
+    else if (transport) add("FAIL", "SEASON_CLOSE_DATABASE_URL", transport);
+    else add("PASS", "SEASON_CLOSE_DATABASE_URL", `${CLOSE_ROLE} on ${db.ref} (Transaction pooler, port ${TRANSACTION_POOLER_PORT})`);
   }
 
   // 5. Migration connection (operator only, optional here; required by the migrate/psql commands).

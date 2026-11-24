@@ -12,7 +12,8 @@ configured: `docs/ENVIRONMENT_VARIABLES.md` (single reference). Behaviour when m
 - the service key: leaderboards, TV and server writes fail with an error, no data exposed;
 - `SEASON_CLOSE_DATABASE_URL`: Close answers 503 and nothing changes;
 - `CRON_SECRET`: the daily job is refused (401); the first TV request of each day still writes the snapshot;
-- `APP_ORIGIN`: the TV link uses the request's own host.
+- `APP_ORIGIN`: the TV link uses the request's own host. That is fine locally and in staging, where
+  it is optional. In production it is **required**: `npm run prod:preflight` fails without it.
 
 Production setup and releases: `docs/PRODUCTION_RUNBOOK.md`; rollback: `docs/ROLLBACK.md`;
 release gates: `docs/RELEASE_CHECKLIST.md`.

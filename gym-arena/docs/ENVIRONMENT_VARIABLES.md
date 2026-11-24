@@ -49,7 +49,7 @@ The isolation check (`scripts/staging-check.ts`, run first by every `staging:*` 
 command) fails when any of the following is true:
 - a value names the other environment's project;
 - two values name different projects;
-- the close connection is not the restricted role;
+- the close connection is not the restricted role, or not the Transaction pooler (host `<region>.pooler.supabase.com`, port 6543);
 - a URL carries `?host=`/`?user=` or several hosts;
 - the shell overrides the file;
 - the folder is linked to the other project.

@@ -81,14 +81,14 @@ Repository hygiene, all **VERIFIED**:
 | `SUPABASE_SERVICE_ROLE_KEY` | `src/lib/supabase/service.ts` (`server-only`) | yes | staging API keys | Vercel |
 | `SEASON_CLOSE_DATABASE_URL` | `src/modules/seasons/close.ts` (`server-only`; the only reader) | yes | staging Transaction pooler, role `arena_season_closer` | Vercel |
 | `CRON_SECRET` | `src/app/api/cron/snapshot/route.ts` | yes for staging | new random value, staging only | Vercel |
-| `APP_ORIGIN` | `src/lib/origin.ts` (TV link address only) | optional | unset | not set |
+| `APP_ORIGIN` | `src/lib/origin.ts` (TV link address only) | optional in staging; **required in production** (`prod:preflight`) | unset | not set |
 | `NODE_ENV` | `next.config.ts` | — | platform | never set by hand |
 | `NEXT_DIST_DIR` | `next.config.ts` (test-only build folder; default `.next`) | — | — | never set (Vercel expects `.next`) |
 | `VERCEL` | `src/lib/supabase/cookie-security.ts` (auth cookies always Secure) | — | platform (Vercel system variable) | never set by hand |
 | `AUTH_COOKIES_ALLOW_LOCAL_HTTP` | `src/lib/supabase/cookie-security.ts` (test-only; works only with `GITHUB_ACTIONS=true`) | — | — | never set (the preflight refuses it) |
 | `GITHUB_ACTIONS` | `src/lib/supabase/cookie-security.ts` | — | platform (GitHub Actions) | never set by hand |
 
-**Five or six?** The app reads six configuration variables. Staging sets five of them, because `APP_ORIGIN` is optional and stays unset.
+**Five or six?** The app reads six configuration variables. Staging sets five of them, because `APP_ORIGIN` is optional in staging and stays unset (production requires it).
 
 Other notes:
 - Only two names start with `NEXT_PUBLIC_`: the project URL and the anon key, both public by design.
