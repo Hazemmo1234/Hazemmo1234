@@ -10,6 +10,7 @@ import type { Locale } from "@/i18n/config";
 import { formatNumber } from "@/lib/i18n/format";
 import type { Leaderboard, LeaderboardRow } from "@/modules/leaderboard/board";
 import { MemberAvatar } from "./shared";
+import { NameText } from "../name-text";
 
 type Tab = "main" | "rookies";
 
@@ -96,10 +97,10 @@ function BoardRow({ row }: { row: LeaderboardRow }) {
       <MemberAvatar name={row.full_name} url={row.photo_url} size="size-10" />
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-2">
-          <span className="truncate font-bold"><bdi>{row.full_name}</bdi></span>
+          <NameText className="font-bold">{row.full_name}</NameText>
           {row.own && <Badge tone="brand">{t("yourClient")}</Badge>}
         </span>
-        {row.coach_name && <span className="block truncate text-xs text-text-muted"><bdi>{row.coach_name}</bdi></span>}
+        {row.coach_name && <NameText className="block text-xs text-text-muted">{row.coach_name}</NameText>}
       </span>
       <span className="shrink-0 text-end">
         <span className="display tabular block text-xl leading-none">{formatNumber(row.total_display, locale, 0)}</span>

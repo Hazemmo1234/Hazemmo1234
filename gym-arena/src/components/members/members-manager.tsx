@@ -19,6 +19,7 @@ import type { Standing } from "@/modules/leaderboard/board";
 import type { MemberDetail, MemberListItem } from "@/modules/members/service";
 import { MemberDetailDialog, MemberStatusDialog, ReassignDialog } from "./member-dialogs";
 import { MemberFormDialog } from "./member-form";
+import { NameText } from "@/components/name-text";
 
 export interface MemberFilters {
   q: string;
@@ -204,7 +205,7 @@ export function MembersManager({
                       <Avatar name={m.full_name} url={m.photo_url} />
                       <span className="min-w-0">
                         <span className="flex flex-wrap items-center gap-2">
-                          <span className="truncate font-bold"><bdi>{m.full_name}</bdi></span>
+                          <NameText className="font-bold">{m.full_name}</NameText>
                           {m.is_rookie && <Badge tone="warning">{t("rookie")}</Badge>}
                         </span>
                         <span className="block truncate text-xs text-text-muted lg:hidden">
@@ -214,7 +215,7 @@ export function MembersManager({
                       </span>
                     </span>
                     <span dir="ltr" className="hidden text-sm tabular lg:block rtl:text-end">{formatEgyptianMobile(m.phone)}</span>
-                    <span className="hidden truncate text-sm lg:block"><bdi>{m.coach_name ?? "—"}</bdi></span>
+                    <NameText className="hidden text-sm lg:block">{m.coach_name ?? "—"}</NameText>
                     <span className="justify-self-end lg:justify-self-start">
                       <Badge tone={m.status === "active" ? "success" : "neutral"}>{m.status === "active" ? t("status.active") : t("status.inactive")}</Badge>
                     </span>

@@ -13,6 +13,7 @@ import { Toast, useToast } from "@/components/ui/toast";
 import { initials } from "@/lib/initials";
 import type { CoachListItem } from "@/modules/coaches/service";
 import { CoachStatusDialog, CreateCoachDialog, RenameCoachDialog } from "./coach-dialogs";
+import { NameText } from "@/components/name-text";
 
 type DialogState = { kind: "create" } | { kind: "rename"; coach: CoachListItem } | { kind: "status"; coach: CoachListItem } | null;
 
@@ -53,7 +54,7 @@ export function CoachesManager({ coaches, membersAvailable }: { coaches: CoachLi
                       {initials(c.full_name)}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-base font-bold"><bdi>{c.full_name}</bdi></p>
+                      <NameText as="p" className="text-base font-bold">{c.full_name}</NameText>
                       <p className="truncate text-sm text-text-muted" dir="ltr" style={{ textAlign: "start" }}>{c.email}</p>
                     </div>
                   </div>

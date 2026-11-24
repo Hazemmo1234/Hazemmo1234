@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { LOCAL_ONLY, TV_KEY, requireWriteTarget, signIn } from "./helpers";
+import { cutAtEndProblems, namesShown, wholeProblems } from "./names";
 
 // M5 TV (UX section C, API_SPECIFICATION "TV", BR-X2, AC-26). Real API, real database.
 // @writes: the first TV request of a day writes that day's rank snapshot (server-side, idempotent).
@@ -198,6 +199,77 @@ test.describe("TV state API and screen @writes", () => {
         await expectReadable(page, "winner-name", "winner-total");
         await expect.poll(() => podiumProblems(page), { message: `places ${winners.map((w) => w.place).join("-")}`, timeout: 5_000 }).toEqual([]);
       }
+    });
+  }
+
+  // Names are cut at their END in either script (NameText): a long Latin name in Arabic mode keeps
+  // its beginning ("Abdelrahman Moh…", never "…lsayed Abdelaziz"), an Arabic name stays
+  // right-to-left in English mode, short names are never cut, and a cut-able line keeps the
+  // alignment of the surrounding layout. Real geometry (e2e/names.ts).
+  const LATIN = ["Abdelrahman Mohamed Elsayed Abdelaziz Elshennawy", "Mostafa Abdelhamid Ibrahim Elsherbiny Mansour", "Youssef Abdelrahman Mahmoud Elgendy Abdelmoneim"];
+  const ARABIC = ["عبد الرحمن محمد السيد عبد العزيز الشناوي المنصوري", "مصطفى عبد الحميد إبراهيم الشربيني عبد المنعم", "يوسف عبد الرحمن محمود الجندي عبد الله الدسوقي"];
+  const SHORT = { latin: "Omar Ali", arabic: "منى علي" };
+  const byText = (list: Awaited<ReturnType<typeof namesShown>>, text: string) => {
+    const n = list.find((x) => x.text === text);
+    if (!n) throw new Error(`name not shown: ${text}`);
+    return n;
+  };
+
+  for (const locale of ["ar", "en"] as const) {
+    test(`names are cut at their end in either script; short names are whole (${locale})`, async ({ page }) => {
+      test.setTimeout(75_000); // two page loads, each waiting for one 10 s poll
+      const now = Date.now();
+      const row = (rank: number, name: string) => ({ ref: `n${rank}`, rank, name, photo_url: null, initials: initialsOf(name), total: 1000 - rank, movement: 0, gap_to_next: rank === 1 ? 0 : 1, pr_at: null, categories: {} });
+      const rookie = (rank: number, name: string) => ({ ref: `k${rank}`, rank, name, photo_url: null, initials: initialsOf(name), total: 300 - rank });
+      const names = [LATIN[0]!, ARABIC[0]!, SHORT.latin, LATIN[1]!, ARABIC[1]!, SHORT.latin + " Hassan", SHORT.arabic];
+      const live = {
+        ...tvBase(locale, now),
+        version: `names-${locale}`,
+        mode: "live",
+        board: [...names.map((n, i) => row(i + 1, n)), ...Array.from({ length: 6 }, (_, i) => row(i + 8, `Member ${i + 8}`))],
+        rookies: [rookie(1, LATIN[2]!), rookie(2, "Sara Adel"), rookie(3, ARABIC[2]!)],
+      };
+      const final = {
+        ...tvBase(locale, now),
+        version: `names-final-${locale}`,
+        mode: "reveal",
+        board: [],
+        reveal: { started_at: new Date(now - 600_000).toISOString(), winners: [{ ref: "w1", place: 1, name: LATIN[0]!, photo_url: null, initials: "AM", total: 1000 }, { ref: "w2", place: 2, name: ARABIC[0]!, photo_url: null, initials: "عم", total: 999 }, { ref: "w3", place: 3, name: SHORT.latin, photo_url: null, initials: "OA", total: 998 }] },
+      };
+      let current: object = live;
+      await page.route("**/api/tv/state*", (route) => route.fulfill({ json: current }));
+      await page.goto(`/tv?key=${TV_KEY}`);
+      await expect(page.getByTestId("podium-name")).toHaveText([LATIN[0]!, ARABIC[0]!, SHORT.latin], { timeout: 15_000 });
+      await expect(page.locator("html")).toHaveAttribute("dir", locale === "ar" ? "rtl" : "ltr");
+
+      const podium = await namesShown(page, '[data-testid="podium-name"]');
+      const board = await namesShown(page, '[data-testid="board-name"]');
+      const rookies = await namesShown(page, '[data-testid="rookie-name"]');
+      const problems = [
+        ...cutAtEndProblems(byText(podium, LATIN[0]!), "ltr"), // 1st place
+        ...cutAtEndProblems(byText(podium, ARABIC[0]!), "rtl"), // 2nd place
+        ...wholeProblems(byText(podium, SHORT.latin), "ltr"), // 3rd place
+        ...cutAtEndProblems(byText(board, LATIN[1]!), "ltr"),
+        ...cutAtEndProblems(byText(board, ARABIC[1]!), "rtl"),
+        ...wholeProblems(byText(board, SHORT.latin + " Hassan"), "ltr"),
+        ...wholeProblems(byText(board, SHORT.arabic), "rtl"),
+        ...cutAtEndProblems(byText(rookies, LATIN[2]!), "ltr"),
+        ...cutAtEndProblems(byText(rookies, ARABIC[2]!), "rtl"),
+        ...wholeProblems(byText(rookies, "Sara Adel"), "ltr"),
+      ];
+      expect(problems).toEqual([]);
+      // a standings line keeps the screen's alignment, whatever the script of the name
+      for (const name of [SHORT.latin + " Hassan", SHORT.arabic]) expect(byText(board, name).startGap, `${name} aligned with the layout`).toBeLessThanOrEqual(2);
+
+      current = final;
+      await page.goto(`/tv?key=${TV_KEY}`);
+      await expect(page.getByTestId("winner-name")).toHaveCount(3, { timeout: 15_000 });
+      const winners = await namesShown(page, '[data-testid="winner-name"]');
+      expect([
+        ...cutAtEndProblems(byText(winners, LATIN[0]!), "ltr"),
+        ...cutAtEndProblems(byText(winners, ARABIC[0]!), "rtl"),
+        ...wholeProblems(byText(winners, SHORT.latin), "ltr"),
+      ]).toEqual([]);
     });
   }
 

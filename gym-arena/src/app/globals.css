@@ -54,6 +54,18 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* A person's name that may be cut (src/components/name-text.tsx). Its own direction follows its
+   script (dir="auto"), so the cut is at the end of the name; match-parent keeps it aligned with the
+   surrounding layout. Chromium understands only the prefixed value, Safari ≥ 15.4 and Firefox the
+   standard one: each browser keeps the last declaration it understands. In the components layer,
+   so an explicit alignment utility (text-center) still wins. */
+@layer components {
+  .name-text {
+    text-align: -webkit-match-parent;
+    text-align: match-parent;
+  }
+}
+
 /* Condensed italic sports face for numbers/headings (echoes the logo) */
 .display {
   font-family: var(--font-barlow), var(--font-cairo), system-ui, sans-serif;

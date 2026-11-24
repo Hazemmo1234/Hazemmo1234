@@ -20,6 +20,7 @@ import type { CategoryCode } from "@/lib/supabase/types";
 import type { IsoDate } from "@/lib/time";
 import type { AdminEntryRow, EntriesPage } from "@/modules/entries/admin";
 import type { SeasonStatus } from "@/modules/seasons/status";
+import { NameText } from "@/components/name-text";
 
 export interface EntryFilters {
   season_id: string;
@@ -335,7 +336,7 @@ export function EntriesManager({
             {page.rows.map((r) => (
               <li key={r.id} className={`grid grid-cols-1 gap-3 px-5 py-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-center ${r.voided_at ? "opacity-70" : ""}`}>
                 <div className="min-w-0">
-                  <p className="truncate font-bold"><bdi>{r.member_name}</bdi> <span className="text-xs font-normal text-text-muted" dir="ltr">{r.member_code}</span></p>
+                  <NameText as="p" className="font-bold">{r.member_name} <span className="text-xs font-normal text-text-muted" dir="ltr">{r.member_code}</span></NameText>
                   <p className="text-sm text-text-muted">{formatDate(r.performed_on, locale)}{r.coach_name && <>{" · "}<bdi>{r.coach_name}</bdi></>}</p>
                 </div>
                 <div className="min-w-0">

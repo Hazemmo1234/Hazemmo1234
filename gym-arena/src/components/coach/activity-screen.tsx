@@ -15,6 +15,7 @@ import { CATEGORY_LABEL } from "@/lib/categories";
 import { formatDate, formatTime } from "@/lib/i18n/format";
 import type { ActivityRow } from "@/modules/entries/service";
 import { ActionToast, api, useApiErrorText } from "./shared";
+import { NameText } from "../name-text";
 
 /** Entries log — recent results for the coach's own clients, with same-day Undo (BR-E9). */
 export function ActivityScreen({ rows, days, today }: { rows: ActivityRow[]; days: 1 | 7; today: string }) {
@@ -110,7 +111,7 @@ export function ActivityScreen({ rows, days, today }: { rows: ActivityRow[]; day
                 <li key={r.id} className={`flex items-center gap-3 px-4 py-3 ${r.voided ? "opacity-60" : ""}`}>
                   <Link href={`/members/${r.member_id}`} className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-2">
-                      <span className="truncate font-bold"><bdi>{r.member_name}</bdi></span>
+                      <NameText className="font-bold">{r.member_name}</NameText>
                       {r.voided && <Badge>{tc("undoneBadge")}</Badge>}
                     </span>
                     <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-text-muted">

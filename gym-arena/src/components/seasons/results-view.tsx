@@ -10,6 +10,7 @@ import type { Locale } from "@/i18n/config";
 import { formatDateRange, formatNumber } from "@/lib/i18n/format";
 import type { LeaderboardRow } from "@/modules/leaderboard/board";
 import type { SeasonResults } from "@/modules/seasons/lifecycle";
+import { NameText } from "@/components/name-text";
 
 const PLACE: Record<number, string> = { 1: "text-gold", 2: "text-silver", 3: "text-bronze" };
 const RING: Record<number, string> = { 1: "border-gold/60", 2: "border-silver/50", 3: "border-bronze/50" };
@@ -21,8 +22,8 @@ function Row({ r, locale, highlightOwn }: { r: LeaderboardRow; locale: Locale; h
       <span className={`w-8 text-center text-lg font-extrabold tabular ${PLACE[r.rank] ?? "text-text-muted"}`}>{formatNumber(r.rank, locale, 0)}</span>
       <MemberAvatar name={r.full_name} url={r.photo_url} size="size-10" />
       <div className="min-w-0 flex-1">
-        <p className="truncate font-bold"><bdi>{r.full_name}</bdi></p>
-        {r.coach_name && <p className="truncate text-xs text-text-muted"><bdi>{r.coach_name}</bdi></p>}
+        <NameText as="p" className="font-bold">{r.full_name}</NameText>
+        {r.coach_name && <NameText as="p" className="text-xs text-text-muted">{r.coach_name}</NameText>}
       </div>
       {highlightOwn && r.own && <Badge tone="brand">{t("yourClient")}</Badge>}
       <span className="text-lg font-extrabold tabular">{formatNumber(r.total_display, locale, 0)}</span>
@@ -55,7 +56,7 @@ export function ResultsView({ results, highlightOwn = false }: { results: Season
               <TrophyIcon size={28} className={PLACE[w.rank]} />
               <p className={`text-sm font-extrabold uppercase ${PLACE[w.rank]}`}>{t("place", { place: formatNumber(w.rank, locale, 0) })}</p>
               <MemberAvatar name={w.full_name} url={w.photo_url} size="size-20" text="text-xl" />
-              <p className="max-w-full truncate text-lg font-extrabold"><bdi>{w.full_name}</bdi></p>
+              <NameText as="p" className="max-w-full text-lg font-extrabold">{w.full_name}</NameText>
               <p className="text-2xl font-extrabold tabular">{formatNumber(w.total_display, locale, 0)} <span className="text-sm font-semibold text-text-muted">{t("pts")}</span></p>
             </Card>
           ))}
@@ -87,7 +88,7 @@ export function ResultsView({ results, highlightOwn = false }: { results: Season
                 {unranked.map((u, i) => (
                   <li key={i} className="flex items-center gap-3 px-5 py-3">
                     <span className="w-8 text-center text-text-muted">{"–"}</span>
-                    <p className="min-w-0 flex-1 truncate font-semibold"><bdi>{u.full_name}</bdi></p>
+                    <NameText as="p" className="min-w-0 flex-1 font-semibold">{u.full_name}</NameText>
                     <Badge>{t("inactiveAtClose")}</Badge>
                     <span className="font-bold tabular text-text-muted">{formatNumber(u.total, locale, 0)}</span>
                   </li>

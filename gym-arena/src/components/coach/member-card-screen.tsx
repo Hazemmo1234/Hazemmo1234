@@ -18,6 +18,7 @@ import type { CardSeason, CategoryTile, MemberCard } from "@/modules/entries/car
 import type { MemberDetail } from "@/modules/members/service";
 import { EntrySheet, type SavedEntry } from "./entry-sheet";
 import { ActionToast, MemberAvatar, SeasonBanner, api, useApiErrorText } from "./shared";
+import { NameText } from "../name-text";
 
 type Toast = { message: string; action?: { label: string; run: () => void } } | null;
 
@@ -111,7 +112,7 @@ export function MemberCardScreen({
         <div className="flex items-center gap-4">
           <MemberAvatar name={member.full_name} url={member.photo_url} size="size-20" text="text-2xl" />
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-xl font-extrabold"><bdi>{member.full_name}</bdi></h1>
+            <NameText as="h1" className="text-xl font-extrabold">{member.full_name}</NameText>
             <p className="text-sm text-text-muted" dir="ltr">{member.member_code}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {season && card.is_rookie && <Badge tone="warning">{tm("rookie")}</Badge>}

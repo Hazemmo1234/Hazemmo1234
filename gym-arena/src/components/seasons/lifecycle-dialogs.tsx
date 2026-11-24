@@ -10,6 +10,7 @@ import type { Locale } from "@/i18n/config";
 import { formatNumber } from "@/lib/i18n/format";
 import type { ClosePreview } from "@/modules/seasons/lifecycle";
 import type { SeasonListItem } from "@/modules/seasons/service";
+import { NameText } from "@/components/name-text";
 
 async function call<T>(method: "GET" | "POST", url: string): Promise<{ ok: true; data: T } | { ok: false; error: ApiError }> {
   try {
@@ -104,7 +105,7 @@ export function CloseSeasonDialog({ season, onClose, onDone }: { season: SeasonL
                       <li key={i} className="flex items-center gap-3 rounded-xl bg-surface-2 px-4 py-3">
                         <TrophyIcon size={18} className={PLACE[w.rank] ?? "text-text-muted"} />
                         <span className={`w-6 font-extrabold tabular ${PLACE[w.rank] ?? ""}`}>{formatNumber(w.rank, locale, 0)}</span>
-                        <bdi className="min-w-0 flex-1 truncate font-bold">{w.full_name}</bdi>
+                        <NameText className="min-w-0 flex-1 font-bold">{w.full_name}</NameText>
                         <span className="font-extrabold tabular">{formatNumber(w.total, locale, 0)}</span>
                       </li>
                     ))}

@@ -6,6 +6,7 @@ import { formatDate, formatNumber } from "@/lib/i18n/format";
 import { revealStepAt, revealTimeline, type RevealStepKind } from "@/modules/tv/reveal";
 import type { TvState, TvWinner } from "@/modules/tv/payload";
 import { Ticker, TvAvatar, type TvT } from "./tv-parts";
+import { NameText } from "../name-text";
 
 function BigCountdown({ title, days, date, locale, t }: { title: string; days: number; date: string | null; locale: Locale; t: TvT }) {
   return (
@@ -104,7 +105,7 @@ function WinnerGroup({ winners, place, locale, t, size }: { winners: TvWinner[];
       {winners.filter((w) => w.place === place).map((w) => (
         <div key={w.ref} data-testid="winner" className={`flex min-w-0 flex-1 flex-col items-center ${hero ? "tv-rise" : ""}`} style={{ maxWidth: WINNER_MAX[size] }}>
           <TvAvatar photoUrl={w.photo_url} initials={w.initials} size={hero ? 320 : place === 1 ? 220 : 170} ring={PLACE_RING[place]} />
-          <p data-testid="winner-name" className={`mt-8 w-full truncate font-extrabold leading-tight ${hero ? "text-[88px]" : "text-[48px]"}`}><bdi>{w.name}</bdi></p>
+          <NameText as="p" data-testid="winner-name" className={`mt-8 w-full font-extrabold leading-tight ${hero ? "text-[88px]" : "text-[48px]"}`}>{w.name}</NameText>
           <p data-testid="winner-total" className={`display leading-none ${PLACE_TEXT[place]} ${hero ? "text-[140px]" : "text-[80px]"}`}>
             {formatNumber(w.total, locale, 0)}
             <span className="ms-4 text-[36px] not-italic text-text-muted">{t("pts")}</span>

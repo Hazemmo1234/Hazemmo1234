@@ -12,6 +12,7 @@ import { inputClasses } from "@/components/ui/field";
 import { ChevronIcon, MembersIcon, PlusIcon, SearchIcon } from "@/components/ui/icons";
 import type { TodayOverview } from "@/modules/entries/service";
 import { ActionToast, ActivityDots, MemberAvatar, SeasonBanner } from "./shared";
+import { NameText } from "../name-text";
 
 type Filter = "all" | "pending" | "done";
 
@@ -99,7 +100,7 @@ export function TodayScreen({ data }: { data: TodayOverview }) {
                 <MemberAvatar name={m.full_name} url={m.photo_url} />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
-                    <span className="truncate font-bold"><bdi>{m.full_name}</bdi></span>
+                    <NameText className="font-bold">{m.full_name}</NameText>
                     {context.current && m.card.is_rookie && <Badge tone="warning">{tm("rookie")}</Badge>}
                   </span>
                   <span className="mt-1.5 flex items-center gap-3">

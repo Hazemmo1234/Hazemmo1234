@@ -6,6 +6,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { SignOutButton } from "@/components/sign-out-button";
 import { initials } from "@/lib/initials";
 import { AdminBottomNav, AdminSideNav } from "./admin-nav";
+import { NameText } from "@/components/name-text";
 
 /**
  * Admin frame (UX section B — desktop + mobile-friendly):
@@ -33,7 +34,7 @@ export async function AdminShell({ fullName, children }: { fullName: string; chi
           <div className="hidden items-center gap-3 px-1 pb-3 lg:flex">
             <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand/15 text-sm font-bold text-brand-text">{initials(fullName)}</span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-bold">{fullName}</span>
+              <NameText className="block text-sm font-bold">{fullName}</NameText>
               <span className="block text-xs text-text-muted">{t("role")}</span>
             </span>
           </div>
@@ -53,7 +54,7 @@ export async function AdminShell({ fullName, children }: { fullName: string; chi
           <Image src="/brand/logo-tile.png" alt="DFN GYM" width={32} height={32} className="rounded-md" />
           <span className="min-w-0 flex-1">
             <span className="display block truncate text-base uppercase leading-none">{c("appName")}</span>
-            <span className="block truncate text-xs text-text-muted">{fullName}</span>
+            <NameText className="block text-xs text-text-muted">{fullName}</NameText>
           </span>
           <LanguageSwitcher variant="compact" />
           <SignOutButton variant="icon" />

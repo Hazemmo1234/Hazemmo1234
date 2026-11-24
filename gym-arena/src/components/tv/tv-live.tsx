@@ -6,6 +6,7 @@ import { formatNumber } from "@/lib/i18n/format";
 import { PAGE_SECONDS, ROWS_PER_PAGE, isFreshPr, pageAt, pageCount, pageRows, splitBoard } from "@/modules/tv/paging";
 import type { TvBoardRow, TvRookieRow, TvState } from "@/modules/tv/payload";
 import { CountUp, Movement, Ticker, TvAvatar, type TvT } from "./tv-parts";
+import { NameText } from "../name-text";
 
 const ROW_H = 66;
 const PLACE_COLOR: Record<number, { text: string; ring: string; bg: string }> = {
@@ -51,7 +52,7 @@ function PodiumCard({ row, big, locale, t, serverNow }: { row: TvBoardRow; big: 
         {pr && <PrBadge t={t} />}
       </div>
       <TvAvatar photoUrl={row.photo_url} initials={row.initials} size={s.avatar} ring={color.ring} />
-      <p data-testid="podium-name" className={`mt-3 w-full shrink-0 truncate text-center font-extrabold leading-tight ${s.name}`}><bdi>{row.name}</bdi></p>
+      <NameText as="p" data-testid="podium-name" className={`mt-3 w-full shrink-0 text-center font-extrabold leading-tight ${s.name}`}>{row.name}</NameText>
       <p data-testid="podium-total" className={`display mt-1 shrink-0 leading-none ${color.text}`} style={{ fontSize: s.total }}>
         <CountUp value={row.total} locale={locale} />
         <span className={`ms-3 not-italic text-text-muted ${s.pts}`}>{t("pts")}</span>
@@ -71,7 +72,7 @@ function BoardRow({ row, index, locale, t, serverNow }: { row: TvBoardRow; index
       <span className="display tabular relative w-[72px] text-center text-[44px] text-text">{formatNumber(row.rank, locale, 0)}</span>
       <span className="relative"><Movement value={row.movement} locale={locale} size={26} /></span>
       <span className="relative"><TvAvatar photoUrl={row.photo_url} initials={row.initials} size={50} /></span>
-      <p className="relative min-w-0 flex-1 truncate text-[40px] font-bold leading-none"><bdi>{row.name}</bdi></p>
+      <NameText as="p" data-testid="board-name" className="relative min-w-0 flex-1 text-[40px] font-bold leading-none">{row.name}</NameText>
       {pr && <span className="relative"><PrBadge t={t} /></span>}
       {row.gap_to_next > 0 && (
         <span dir="ltr" className="relative w-[96px] text-end text-[24px] font-semibold text-text-muted tabular">{`-${formatNumber(row.gap_to_next, locale, 0)}`}</span>
@@ -94,7 +95,7 @@ function RookiesStrip({ rookies, locale, t }: { rookies: TvRookieRow[]; locale: 
             <span className="display tabular text-[30px] text-text-muted">{formatNumber(r.rank, locale, 0)}</span>
             <TvAvatar photoUrl={r.photo_url} initials={r.initials} size={44} />
             <div className="min-w-0">
-              <p className="truncate text-[24px] font-bold leading-tight"><bdi>{r.name}</bdi></p>
+              <NameText as="p" data-testid="rookie-name" className="text-[24px] font-bold leading-tight">{r.name}</NameText>
               <p className="display tabular text-[28px] leading-tight">{formatNumber(r.total, locale, 0)}</p>
             </div>
           </li>

@@ -17,6 +17,7 @@ import { addDays } from "@/lib/time";
 import { getAdminOverview, type AdminOverview } from "@/modules/dashboard/overview";
 import { topOf } from "@/modules/leaderboard/board";
 import { dashboardBoard, type DashboardBoard } from "@/modules/leaderboard/service";
+import { NameText } from "@/components/name-text";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("dashboard");
@@ -104,8 +105,8 @@ async function BoardCards({ board, locale }: { board: DashboardBoard; locale: Lo
                     <span className={`display tabular w-8 shrink-0 text-center text-xl ${r.rank <= 3 ? "text-gold" : "text-text-muted"}`}>{n(r.rank)}</span>
                     <MemberAvatar name={r.full_name} url={r.photo_url} size="size-10" />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-bold"><bdi>{r.full_name}</bdi></span>
-                      {r.coach_name && <span className="block truncate text-xs text-text-muted"><bdi>{r.coach_name}</bdi></span>}
+                      <NameText className="block font-bold">{r.full_name}</NameText>
+                      {r.coach_name && <NameText className="block text-xs text-text-muted">{r.coach_name}</NameText>}
                     </span>
                     <span className="shrink-0 text-end">
                       <span className="display tabular block text-xl leading-none">{n(r.total_display)}</span>
