@@ -140,6 +140,13 @@ test.describe("members", () => {
         await page.setViewportSize(vp);
         await openMembers(page, locale, "?q=GA-00000");
         await expect(page.getByRole("main").getByRole("listitem")).toHaveCount(9);
+        // phones fold the coach / status / rookie filters behind one button: open it like a user
+        // would, so the filter controls are measured too
+        const filtersToggle = page.locator('button[aria-controls="member-filters"]');
+        if (await filtersToggle.isVisible()) {
+          await filtersToggle.click();
+          await expect(page.locator("#member-filters")).toBeVisible();
+        }
         const taps = await smallTapTargets(page);
         expect(taps.measured).toBeGreaterThanOrEqual(9 + 3); // every row + the filter controls
         expect(taps.offenders).toEqual([]);
