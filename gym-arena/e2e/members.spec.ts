@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { LOCAL_ONLY, expectLanguage, requireWriteTarget, signIn } from "./helpers";
+import { LOCAL_ONLY, expectLanguage, motionSettled, requireWriteTarget, signIn } from "./helpers";
 
 // UX A3 Members (M2): list, filters, detail panel, and the admin workflows in both languages.
 const VIEWPORTS = { phone: { width: 360, height: 780 }, phone390: { width: 390, height: 844 }, ipad: { width: 820, height: 1180 }, desktop: { width: 1440, height: 900 } };
@@ -147,6 +147,7 @@ test.describe("members", () => {
           await filtersToggle.click();
           await expect(page.locator("#member-filters")).toBeVisible();
         }
+        await motionSettled(page);
         const taps = await smallTapTargets(page);
         expect(taps.measured).toBeGreaterThanOrEqual(9 + 3); // every row + the filter controls
         expect(taps.offenders).toEqual([]);
@@ -154,6 +155,8 @@ test.describe("members", () => {
         await expect(page.getByRole("main").getByText(locale === "ar" ? "الكود" : "Code", { exact: true })).toBeVisible({ visible: vp.width >= 1024 });
         await row(page, "GA-000001").getByRole("button").click();
         const dialog = page.getByRole("dialog");
+        await expect(dialog).toBeVisible();
+        await motionSettled(page);
         const box = (await dialog.boundingBox())!;
         expect(box.x).toBeGreaterThanOrEqual(0);
         expect(box.x + box.width).toBeLessThanOrEqual(vp.width + 0.5);

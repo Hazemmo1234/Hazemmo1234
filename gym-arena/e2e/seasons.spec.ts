@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
-import { LOCAL_ONLY, expectLanguage, requireWriteTarget, signIn } from "./helpers";
+import { LOCAL_ONLY, expectLanguage, motionSettled, requireWriteTarget, signIn } from "./helpers";
 
 // UX A2 Seasons (M2). Read-only and rejected-write tests run anywhere; tests that create
 // or change rows are tagged @writes and run only on a disposable database.
@@ -149,6 +149,7 @@ test.describe("seasons", () => {
         await openSeasons(page, locale);
         await page.getByRole("button", { name: locale === "ar" ? "بطولة جديدة" : "New season" }).click();
         await expect(page.getByRole("dialog")).toBeVisible();
+        await motionSettled(page);
         const box = (await page.getByRole("dialog").boundingBox())!;
         expect(box.x).toBeGreaterThanOrEqual(0);
         expect(box.x + box.width).toBeLessThanOrEqual(vp.width + 0.5);

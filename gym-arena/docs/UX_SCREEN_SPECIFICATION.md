@@ -58,7 +58,7 @@ Email + password. Language switcher. Errors: wrong credentials, account inactive
 - Search by name.
 - List of own active members: avatar, name, small row of 7 dots (filled = logged today), total points + rank (or "Rookie").
 - Sort: logged today first (most recent on top), then alphabetical.
-- FAB: "+ Add client".
+- "+ Add client": a primary button in the sticky search toolbar (it began as a floating button, which covered client rows on phones — `docs/PRODUCT_AUDIT.md` §5).
 - Empty: "No clients yet — add your first participant".
 - Error: retry banner.
 
@@ -91,6 +91,8 @@ Past seasons → final top 3 + own clients' final ranks.
 ---
 
 ## B. Admin (desktop + mobile-friendly)
+
+Navigation: sidebar on iPad landscape and desktop, icon rail on iPad portrait, and on phones four tabs (Dashboard, Seasons, Members, Entries) plus "More" for Coaches, Audit log and Settings.
 
 ### A1 Dashboard
 Cards: season status & days left · participants (active) · entries today · members with ≥1 entry this week (%) · new bests this season · Top 5 now · entries per category (bar) · coaches with clients logged today. Alerts: "Season ended — close it" (if today > ends_on and not closed), "No season scheduled for next month".
@@ -136,5 +138,5 @@ Rank number · movement arrow (▲2 green / ▼1 red / – ) · avatar · full n
 - Position changes animate (FLIP, 600 ms ease-out). No flashing faster than 3 Hz.
 - Readable at 5 m: names ≥ 40 px, points ≥ 56 px on 1080p.
 - Network loss: keep last state, small "reconnecting" dot; never blank screen.
-- Invalid key: plain "Display not authorized" (in the TV language).
+- Invalid key: "Display not authorized" (in the TV language) with the brand and one line on how to fix it; no data (`docs/PRODUCT_AUDIT.md` §5).
 - Rookies: a compact strip under the main list ("Rookies of the month") showing top 5.

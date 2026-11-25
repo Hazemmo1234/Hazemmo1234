@@ -51,3 +51,19 @@ export async function ownerSql(sql: string): Promise<void> {
     await db.end();
   }
 }
+
+/**
+ * Waits until the finite CSS animations in the page (page and dialog entrances, globals.css) have
+ * finished, so geometry is measured at rest. A moving element can report 43.99998 px for a 44 px
+ * control. Endless animations (spinners, the live dot) are ignored.
+ */
+export async function motionSettled(page: Page): Promise<void> {
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+        .map((a) => a.finished.then(() => undefined, () => undefined)),
+    ),
+  );
+}
