@@ -302,7 +302,9 @@ test.describe("TV state API and screen @writes", () => {
       const live = { ...tvBase("en", now), version: "geometry", mode: "live", board: Array.from({ length: 13 }, (_, i) => row(i + 1)), rookies: Array.from({ length: 5 }, (_, i) => rookie(i + 1)) };
       await page.route("**/api/tv/state*", (route) => route.fulfill({ json: live }));
       await page.goto(`/tv?key=${TV_KEY}`);
-      await expect(page.getByTestId("board-name")).toHaveCount(10, { timeout: 15_000 });
+      // wait for the MOCKED board (the first poll replaces the server-rendered state), not just any 10 rows
+      await expect(page.getByTestId("board-name").first()).toHaveText("Member 4", { timeout: 15_000 });
+      await expect(page.getByTestId("board-name")).toHaveCount(10);
       await page.waitForTimeout(800); // page-in animation
       const geometry = await page.evaluate(() => {
         const rows = [...document.querySelectorAll('[data-testid="standings-list"] li')].map((li) => li.getBoundingClientRect());
