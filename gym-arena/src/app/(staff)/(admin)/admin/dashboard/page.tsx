@@ -30,7 +30,9 @@ function Stat({ icon, label, value, hint }: { icon: React.ReactNode; label: stri
       <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-surface-2 text-text-muted">{icon}</div>
       <div className="min-w-0">
         <p className="text-sm text-text-muted">{label}</p>
-        <p className="display tabular mt-1 text-3xl leading-none">{value}</p>
+        {/* a value such as "3 / 5" is a left-to-right number pair, like the tiles' "71 / 100"; isolated
+            so Arabic layout does not flip it to "5 / 3" */}
+        <p className="display tabular mt-1 text-3xl leading-none"><bdi dir="ltr">{value}</bdi></p>
         {hint && <p className="mt-2 text-xs text-text-muted">{hint}</p>}
       </div>
     </Card>
