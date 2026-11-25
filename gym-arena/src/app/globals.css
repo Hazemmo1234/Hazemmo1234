@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+/* DFN GYM brand tokens — docs/UX_SCREEN_SPECIFICATION.md "Brand". Dark theme only (MVP). */
+:root {
+  --brand: #c42a1e;
+  --brand-hover: #a82217;
+  --brand-text: #ff5a4a;
+  --bg: #0b0b0d;
+  --surface: #17171a;
+  --surface-2: #222226;
+  --border: #2e2e33;
+  --text: #ffffff;
+  --text-muted: #a1a1aa;
+  --gold: #e3b341;
+  --silver: #c9ced6;
+  --bronze: #d08a4e;
+  --up: #22c55e;
+  --down: #ff5a4a;
+  /* Motion tokens (staff screens). One easing family, three durations; everything collapses
+     under prefers-reduced-motion (end of file). TV motion keeps its own spec timings below. */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-text: var(--brand-text);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-gold: var(--gold);
+  --color-silver: var(--silver);
+  --color-bronze: var(--bronze);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --font-sans: var(--font-cairo), system-ui, sans-serif;
+  --font-display: var(--font-barlow), var(--font-cairo), system-ui, sans-serif;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  font-family: var(--font-cairo), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular numerals for all scores */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* A person's name that may be cut (src/components/name-text.tsx). Its own direction follows its
+   script (dir="auto"), so the cut is at the end of the name; match-parent keeps it aligned with the
+   surrounding layout. Chromium understands only the prefixed value, Safari ≥ 15.4 and Firefox the
+   standard one: each browser keeps the last declaration it understands. In the components layer,
+   so an explicit alignment utility (text-center) still wins. */
+@layer components {
+  .name-text {
+    text-align: -webkit-match-parent;
+    text-align: match-parent;
+  }
+}
+
+/* ── Staff motion ── */
+/* Page content entering after navigation (route templates re-mount it): a short rise + fade. */
+@keyframes page-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+/* fill-mode backwards: once finished no transform remains, so fixed toasts inside the page keep
+   the viewport as their containing block */
+.page-enter { animation: page-enter var(--dur-slow) var(--ease-out) backwards; }
+
+/* Dialogs: bottom sheet slides up on phones, centred dialog scales in from iPad up. */
+@keyframes sheet-in { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+/* translate + fade only: a scale would make controls briefly smaller than their 44 px tap size */
+@keyframes dialog-in { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+dialog[open] { animation: sheet-in var(--dur-slow) var(--ease-out) both; }
+dialog[open]::backdrop { animation: backdrop-in var(--dur-base) linear both; }
+@media (min-width: 48rem) {
+  dialog[open] { animation-name: dialog-in; animation-duration: var(--dur-base); }
+}
+
+/* Toasts rise into place. */
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.toast-in { animation: toast-in var(--dur-base) var(--ease-out) both; }
+
+/* Condensed italic sports face for numbers/headings (echoes the logo) */
+.display {
+  font-family: var(--font-barlow), var(--font-cairo), system-ui, sans-serif;
+  font-style: italic;
+  font-weight: 800;
+}
+
+/* ── TV motion (UX "Motion"). Nothing flashes faster than 3 Hz. ── */
+/* New best: red glow pulse, 2 × 600 ms */
+@keyframes tv-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(255 90 74 / 0); }
+  50% { box-shadow: 0 0 0 6px rgb(255 90 74 / 0.85), 0 0 48px 8px rgb(196 42 30 / 0.6); }
+}
+.tv-glow { animation: tv-glow 600ms ease-in-out 2; }
+
+/* Rank 1: subtle gold shimmer every 10 s */
+@keyframes tv-shimmer {
+  0%, 88% { background-position: -150% 0; }
+  100% { background-position: 250% 0; }
+}
+.tv-shimmer {
+  background-image: linear-gradient(110deg, transparent 35%, rgb(227 179 65 / 0.22) 50%, transparent 65%);
+  background-size: 60% 100%;
+  background-repeat: no-repeat;
+  animation: tv-shimmer 10s linear infinite;
+}
+
+/* Ticker: two identical copies, scrolled by half the track */
+@keyframes tv-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.tv-ticker { animation: tv-ticker 30s linear infinite; }
+
+/* Leaderboard page change */
+@keyframes tv-page-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+.tv-page-in { animation: tv-page-in 600ms ease-out both; }
+
+/* Reveal: red curtain wipe, rising winners, drumroll, gold burst */
+@keyframes tv-curtain { from { transform: scaleY(1); } to { transform: scaleY(0); } }
+.tv-curtain { transform-origin: top; animation: tv-curtain 1200ms cubic-bezier(0.7, 0, 0.3, 1) 200ms both; }
+@keyframes tv-rise { from { opacity: 0; transform: translateY(60px) scale(0.96); } to { opacity: 1; transform: none; } }
+.tv-rise { animation: tv-rise 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes tv-drumroll { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.04); opacity: 1; } }
+.tv-drumroll { animation: tv-drumroll 1s ease-in-out infinite; }
+@keyframes tv-burst {
+  from { opacity: 0.95; transform: scale(0.2); }
+  to { opacity: 0; transform: scale(2.2); }
+}
+.tv-burst {
+  background: radial-gradient(circle at 50% 55%, rgb(227 179 65 / 0.7) 0%, rgb(227 179 65 / 0.25) 30%, transparent 60%);
+  animation: tv-burst 1600ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

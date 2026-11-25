@@ -1,0 +1,127 @@
+import type { Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import { LOCAL_ONLY, expectLanguage, signIn } from "./helpers";
+
+// M2 step 1 — admin layout & navigation across phone, iPad and desktop, AR + EN.
+test.describe("admin shell", () => {
+  test.skip(LOCAL_ONLY, "seed accounts exist only locally");
+
+  const VIEWPORTS = {
+    phone: { width: 360, height: 780 },
+    ipadPortrait: { width: 820, height: 1180 },
+    ipadLandscape: { width: 1180, height: 820 },
+    desktop: { width: 1440, height: 900 },
+  };
+
+  async function setLanguage(page: Page, locale: "ar" | "en") {
+    const status = (await page.request.patch("/api/me", { data: { locale } })).status();
+    expect(status).toBe(200);
+    await page.reload();
+    await expectLanguage(page, locale);
+  }
+
+  test.beforeEach(async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "coach-mobile", "viewports are set per test; run once");
+    await signIn(page, "admin@gym-arena.local");
+    await expect(page).toHaveURL(/\/admin\/dashboard$/);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await page.request.patch("/api/me", { data: { locale: "ar" } });
+  });
+
+  test("dashboard shows live data from the database", async ({ page }) => {
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("الرئيسية");
+    await expect(page.getByRole("heading", { name: "Arena — Active (seed)" })).toBeVisible();
+    await expect(page.getByText("الأعضاء النشطون")).toBeVisible();
+  });
+
+  for (const locale of ["ar", "en"] as const) {
+    test(`phone (${locale}): top bar + bottom tabs, no side navigation, no overflow`, async ({ page }) => {
+      await page.setViewportSize(VIEWPORTS.phone);
+      await setLanguage(page, locale);
+      // the side navigation is display:none on phones, so only the bottom bar is exposed
+      await expect(page.getByRole("navigation")).toHaveCount(1);
+      await expect(page.locator("aside")).toBeHidden();
+      const bottom = page.locator("nav.fixed");
+      await expect(bottom).toBeVisible();
+      const box = (await bottom.boundingBox())!;
+      expect(box.y + box.height).toBeGreaterThanOrEqual(780 - 1);
+      for (const link of await bottom.getByRole("link").all()) {
+        expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      }
+      // four tabs + "More", all fully on the screen (seven tabs used to scroll sideways, hiding
+      // three sections with no hint)
+      const tabs = [...(await bottom.getByRole("link").all()), bottom.getByRole("button", { name: locale === "ar" ? "المزيد" : "More" })];
+      expect(tabs).toHaveLength(5);
+      for (const tab of tabs) {
+        const b = (await tab.boundingBox())!;
+        expect(b.x).toBeGreaterThanOrEqual(0);
+        expect(b.x + b.width).toBeLessThanOrEqual(VIEWPORTS.phone.width + 1);
+        expect(b.height).toBeGreaterThanOrEqual(44);
+      }
+      // the other sections are one tap away in the More sheet, and it navigates
+      await tabs[4]!.click();
+      const sheet = page.getByTestId("more-sheet");
+      await expect(sheet.getByRole("link")).toHaveCount(3);
+      await sheet.getByRole("link", { name: locale === "ar" ? "الإعدادات" : "Settings" }).click();
+      await expect(page).toHaveURL(/\/admin\/settings$/);
+      await expect(page.getByTestId("more-sheet")).toHaveCount(0);
+      await expect(bottom.getByRole("button", { name: locale === "ar" ? "المزيد" : "More" })).toHaveClass(/text-brand-text/);
+    });
+
+    test(`iPad portrait (${locale}): icon rail on the start side`, async ({ page }) => {
+      await page.setViewportSize(VIEWPORTS.ipadPortrait);
+      await setLanguage(page, locale);
+      const aside = page.locator("aside");
+      await expect(aside).toBeVisible();
+      await expect(page.locator("nav.fixed")).toBeHidden();
+      const box = (await aside.boundingBox())!;
+      expect(box.width).toBeLessThan(120);
+      // start side: right in Arabic, left in English
+      if (locale === "ar") expect(box.x).toBeGreaterThan(VIEWPORTS.ipadPortrait.width / 2);
+      else expect(box.x).toBe(0);
+    });
+
+    test(`iPad landscape + desktop (${locale}): full sidebar with labels`, async ({ page }) => {
+      for (const vp of [VIEWPORTS.ipadLandscape, VIEWPORTS.desktop]) {
+        await page.setViewportSize(vp);
+        await setLanguage(page, locale);
+        const aside = page.locator("aside");
+        const box = (await aside.boundingBox())!;
+        expect(box.width).toBeGreaterThan(200);
+        if (locale === "ar") expect(box.x + box.width).toBeCloseTo(vp.width, 0);
+        else expect(box.x).toBe(0);
+        await expect(aside.getByRole("link", { name: locale === "ar" ? "الرئيسية" : "Dashboard" })).toHaveAttribute("aria-current", "page");
+      }
+    });
+  }
+
+  test("every section is a working link (no dead pages, none left unfinished)", async ({ page }) => {
+    await page.setViewportSize(VIEWPORTS.desktop);
+    const aside = page.locator("aside");
+    const links = await aside.getByRole("link").allTextContents();
+    expect(links.some((l) => l.includes("الرئيسية"))).toBe(true);
+    // M6 shipped the last sections (Entries, Audit log, Settings): nothing is disabled any more
+    await expect(aside.locator('[aria-disabled="true"]')).toHaveCount(0);
+    for (const href of await aside.getByRole("link").evaluateAll((els) => els.map((e) => e.getAttribute("href")))) {
+      expect((await page.request.get(href!)).status(), href!).toBe(200);
+    }
+  });
+
+  test("language switch from the sidebar flips direction without a manual reload", async ({ page }) => {
+    await page.setViewportSize(VIEWPORTS.desktop);
+    await page.waitForLoadState("networkidle"); // click only once the switcher is hydrated
+    await page.locator("aside").getByRole("button", { name: "English" }).click();
+    await expectLanguage(page, "en");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Dashboard");
+    const box = (await page.locator("aside").boundingBox())!;
+    expect(box.x).toBe(0);
+  });
+
+  test("sign out from the phone top bar returns to login", async ({ page }) => {
+    await page.setViewportSize(VIEWPORTS.phone);
+    await page.locator("header").getByRole("button", { name: "خروج" }).click();
+    await expect(page).toHaveURL(/\/login$/);
+  });
+});
