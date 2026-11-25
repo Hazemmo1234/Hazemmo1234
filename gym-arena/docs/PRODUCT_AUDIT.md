@@ -69,6 +69,7 @@ the test that guards it), **Open**, **Decision** (needs the owner).
 | GA-21 | P3 | all (dev only) | Development "N" badge covered the last phone tab | dev indicator | `devIndicators: false` | — | Fixed `33450a9` |
 | GA-22 | P3 | `/api/entries` (coach) | A `performed_on` sent by a coach is ignored (stored as today) rather than refused | server derives the date (BR-E3) | none — behaviour matches BR-E3 | QA probe: entry stored with today's date | Accepted |
 | GA-23 | P3 | `/api/tv/state` at scale | 188 KB payload with ~1,300 participants (budget is 100 KB at 150 members) | payload grows with the board | none — within budget at the planned size (11 KB at 40 members) | perf measurement | Accepted (scale note) |
+| GA-24 | P3 | `/admin/dashboard` (ar) | "Coaches who logged today" read "3 / 0" instead of "0 / 3" | number pair laid out right to left in the Arabic paragraph | value isolated as a left-to-right pair (like the tiles' "71 / 100") | after screenshots (re-captured) | Fixed `201b9d5` |
 
 No P0 issue was found. Security and data-integrity checks are in §3.
 
