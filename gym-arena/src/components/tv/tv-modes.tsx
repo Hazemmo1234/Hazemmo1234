@@ -5,7 +5,7 @@ import type { Locale } from "@/i18n/config";
 import { formatDate, formatNumber } from "@/lib/i18n/format";
 import { revealStepAt, revealTimeline, type RevealStepKind } from "@/modules/tv/reveal";
 import type { TvState, TvWinner } from "@/modules/tv/payload";
-import { Ticker, TvAvatar, type TvT } from "./tv-parts";
+import { Ticker, TvAvatar, TvTagLabel, type TvT } from "./tv-parts";
 import { NameText } from "../name-text";
 
 function BigCountdown({ title, days, date, locale, t }: { title: string; days: number; date: string | null; locale: Locale; t: TvT }) {
@@ -28,6 +28,7 @@ export function TvPreseason({ state, locale, t }: { state: TvState; locale: Loca
   const ticker = p.recent.map((r) => (
     <>
       <bdi className="font-bold">{r.name}</bdi>
+      {r.tag && <TvTagLabel tag={r.tag} size={26} className="ms-3" />}
       <span className="ms-3 text-text-muted">{t("baselineLogged")}</span>
       <span className="ms-3 text-brand-text" dir="ltr">{CATEGORY_LABEL[r.category]}</span>
     </>
@@ -104,8 +105,14 @@ function WinnerGroup({ winners, place, locale, t, size }: { winners: TvWinner[];
     <div className={`flex w-full min-w-0 items-end justify-center ${hero ? "gap-16" : "gap-8"}`}>
       {winners.filter((w) => w.place === place).map((w) => (
         <div key={w.ref} data-testid="winner" className={`flex min-w-0 flex-1 flex-col items-center ${hero ? "tv-rise" : ""}`} style={{ maxWidth: WINNER_MAX[size] }}>
-          <TvAvatar photoUrl={w.photo_url} initials={w.initials} size={hero ? 320 : place === 1 ? 220 : 170} ring={PLACE_RING[place]} />
+          {/* D34: a winner with a name tag gives the tag line's height back from the avatar */}
+          <TvAvatar photoUrl={w.photo_url} initials={w.initials} size={(hero ? 320 : place === 1 ? 220 : 170) - (w.tag ? (hero ? 56 : 38) : 0)} ring={PLACE_RING[place]} />
           <NameText as="p" data-testid="winner-name" className={`mt-8 w-full font-extrabold leading-tight ${hero ? "text-[88px]" : "text-[48px]"}`}>{w.name}</NameText>
+          {w.tag && (
+            <p className="flex w-full justify-center" style={{ height: hero ? 56 : 38 }}>
+              <TvTagLabel tag={w.tag} size={hero ? 40 : 28} />
+            </p>
+          )}
           <p data-testid="winner-total" className={`display leading-none ${PLACE_TEXT[place]} ${hero ? "text-[140px]" : "text-[80px]"}`}>
             {formatNumber(w.total, locale, 0)}
             <span className="ms-4 text-[36px] not-italic text-text-muted">{t("pts")}</span>

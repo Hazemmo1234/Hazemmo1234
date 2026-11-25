@@ -30,10 +30,25 @@ test.describe("TV state API and screen @writes", () => {
     );
     expect(["live", "preseason", "between", "reveal"]).toContain(state.mode);
     const text = JSON.stringify(state);
-    expect(text).not.toMatch(/member_id|member_code|phone|\+20\d|coach|photo_path|evidence|entries\//);
+    // no ids, codes, phones, coach references or evidence; the only coach data is a D34 tag's text
+    expect(text).not.toMatch(/member_id|member_code|GA-\d|phone|\+20\d|coach_id|coach_name|photo_path|evidence|entries\//);
     for (const row of state.board) {
-      expect(Object.keys(row).sort()).toEqual(["categories", "gap_to_next", "initials", "movement", "name", "photo_url", "pr_at", "rank", "ref", "total"]);
+      expect(Object.keys(row).sort()).toEqual(["categories", "gap_to_next", "initials", "movement", "name", "photo_url", "pr_at", "rank", "ref", "tag", "total"]);
       expect(Number.isInteger(row.total)).toBe(true);
+    }
+    // D34: names shown more than once carry distinct tags (coach name or "#number"); others carry none
+    type Shown = { name: string; tag: { kind: "coach" | "member"; text: string } | null };
+    const shown: Shown[] = [...state.board, ...state.rookies];
+    const byName = new Map<string, Shown[]>();
+    for (const r of shown) byName.set(r.name.trim().toLowerCase(), [...(byName.get(r.name.trim().toLowerCase()) ?? []), r]);
+    for (const [name, rows] of byName) {
+      if (rows.length < 2) continue;
+      expect(rows.every((r) => r.tag !== null), `${name}: every duplicate is tagged`).toBe(true);
+      expect(new Set(rows.map((r) => `${r.tag!.kind}:${r.tag!.text}`)).size, `${name}: tags differ`).toBe(rows.length);
+      for (const r of rows) {
+        expect(["coach", "member"]).toContain(r.tag!.kind);
+        if (r.tag!.kind === "member") expect(r.tag!.text).toMatch(/^#\d+$/);
+      }
     }
     // the version only changes when the content does
     const again = await (await page.request.get(`/api/tv/state?key=${TV_KEY}`)).json();
@@ -280,8 +295,10 @@ test.describe("TV state API and screen @writes", () => {
       test.setTimeout(45_000);
       await page.setViewportSize(viewport);
       const now = Date.now();
-      const row = (rank: number) => ({ ref: `g${rank}`, rank, name: `Member ${rank}`, photo_url: null, initials: "M", total: 1000 - rank, movement: 0, gap_to_next: rank === 1 ? 0 : 1, pr_at: null, categories: {} });
-      const rookie = (rank: number) => ({ ref: `r${rank}`, rank, name: `Rookie Number ${rank}`, photo_url: null, initials: "R", total: 300 - rank });
+      // D34 worst case: every other row (podium included) and every rookie carries a name tag
+      const tag = (n: number) => (n % 2 ? { kind: "coach", text: "Coach Abdelrahman" } : { kind: "member", text: `#${100 + n}` });
+      const row = (rank: number) => ({ ref: `g${rank}`, rank, name: `Member ${rank}`, tag: rank % 2 ? tag(rank) : null, photo_url: null, initials: "M", total: 1000 - rank, movement: 0, gap_to_next: rank === 1 ? 0 : 1, pr_at: null, categories: {} });
+      const rookie = (rank: number) => ({ ref: `r${rank}`, rank, name: `Rookie Number ${rank}`, tag: tag(rank), photo_url: null, initials: "R", total: 300 - rank });
       const live = { ...tvBase("en", now), version: "geometry", mode: "live", board: Array.from({ length: 13 }, (_, i) => row(i + 1)), rookies: Array.from({ length: 5 }, (_, i) => rookie(i + 1)) };
       await page.route("**/api/tv/state*", (route) => route.fulfill({ json: live }));
       await page.goto(`/tv?key=${TV_KEY}`);
@@ -294,6 +311,21 @@ test.describe("TV state API and screen @writes", () => {
       });
       expect(geometry.lastBottom, "10th row ends above the rookies strip").toBeLessThanOrEqual(geometry.stripTop);
       expect(geometry.stripBottom, "strip stays on the screen").toBeLessThanOrEqual(geometry.height);
+      // tags are drawn, and a tagged podium card keeps all of its content inside the card
+      const tags = await page.evaluate(() => {
+        const out = { board: 0, podiumOverflow: [] as string[] };
+        out.board = document.querySelectorAll('[data-testid="standings-list"] [data-testid="name-tag"]').length;
+        for (const card of document.querySelectorAll('[data-testid="podium-card"]')) {
+          const c = card.getBoundingClientRect();
+          for (const el of card.querySelectorAll("*")) {
+            const r = el.getBoundingClientRect();
+            if (r.height > 0 && (r.bottom > c.bottom + 0.5 || r.top < c.top - 0.5)) { out.podiumOverflow.push((el.textContent ?? "").slice(0, 24)); break; }
+          }
+        }
+        return out;
+      });
+      expect(tags.board).toBe(5); // ranks 5, 7, 9, 11, 13
+      expect(tags.podiumOverflow).toEqual([]);
     });
   }
 

@@ -5,7 +5,7 @@ import type { Locale } from "@/i18n/config";
 import { formatNumber } from "@/lib/i18n/format";
 import { PAGE_SECONDS, ROWS_PER_PAGE, isFreshPr, pageAt, pageCount, pageRows, splitBoard } from "@/modules/tv/paging";
 import type { TvBoardRow, TvRookieRow, TvState } from "@/modules/tv/payload";
-import { CountUp, Movement, Ticker, TvAvatar, type TvT } from "./tv-parts";
+import { CountUp, Movement, Ticker, TvAvatar, TvTagLabel, type TvT } from "./tv-parts";
 import { NameText } from "../name-text";
 
 /**
@@ -35,9 +35,11 @@ function PrBadge({ t }: { t: TvT }) {
  * at 1080p (readable at 5 m): names ≥ 40 px, points ≥ 56 px.
  */
 const PODIUM = {
-  big: { pad: "py-6", rank: 64, move: 30, avatar: 160, name: "text-[50px]", total: 96, pts: "text-[30px]" },
-  small: { pad: "py-5", rank: 48, move: 24, avatar: 112, name: "text-[40px]", total: 64, pts: "text-[26px]" },
+  big: { pad: "py-6", rank: 64, move: 30, avatar: 160, name: "text-[50px]", total: 96, pts: "text-[30px]", tag: 26, tagLine: 34 },
+  small: { pad: "py-5", rank: 48, move: 24, avatar: 112, name: "text-[40px]", total: 64, pts: "text-[26px]", tag: 22, tagLine: 30 },
 } as const;
+// D34: a card with a name tag gives the tag line's height back from its avatar, so the card keeps
+// exactly the height budgeted above.
 
 /** One podium card. Rank 1 gets the gold shimmer every 10 s (UX "Motion"). */
 function PodiumCard({ row, big, locale, t, serverNow }: { row: TvBoardRow; big: boolean; locale: Locale; t: TvT; serverNow: number }) {
@@ -57,8 +59,13 @@ function PodiumCard({ row, big, locale, t, serverNow }: { row: TvBoardRow; big: 
         <Movement value={row.movement} locale={locale} size={s.move} />
         {pr && <PrBadge t={t} />}
       </div>
-      <TvAvatar photoUrl={row.photo_url} initials={row.initials} size={s.avatar} ring={color.ring} />
+      <TvAvatar photoUrl={row.photo_url} initials={row.initials} size={row.tag ? s.avatar - s.tagLine : s.avatar} ring={color.ring} />
       <NameText as="p" data-testid="podium-name" className={`mt-3 w-full shrink-0 text-center font-extrabold leading-tight ${s.name}`}>{row.name}</NameText>
+      {row.tag && (
+        <p className="flex w-full shrink-0 justify-center" style={{ height: s.tagLine }}>
+          <TvTagLabel tag={row.tag} size={s.tag} />
+        </p>
+      )}
       <p data-testid="podium-total" className={`display mt-1 shrink-0 leading-none ${color.text}`} style={{ fontSize: s.total }}>
         <CountUp value={row.total} locale={locale} />
         <span className={`ms-3 not-italic text-text-muted ${s.pts}`}>{t("pts")}</span>
@@ -78,7 +85,11 @@ function BoardRow({ row, index, locale, t, serverNow }: { row: TvBoardRow; index
       <span className="display tabular relative w-[72px] text-center text-[44px] text-text">{formatNumber(row.rank, locale, 0)}</span>
       <span className="relative"><Movement value={row.movement} locale={locale} size={26} /></span>
       <span className="relative"><TvAvatar photoUrl={row.photo_url} initials={row.initials} size={50} /></span>
-      <NameText as="p" data-testid="board-name" className="relative min-w-0 flex-1 text-[40px] font-bold leading-none">{row.name}</NameText>
+      {/* the name keeps priority over its D34 tag: the tag shrinks first */}
+      <span className="relative flex min-w-0 flex-1 items-baseline gap-4">
+        <NameText as="p" data-testid="board-name" className="min-w-0 shrink text-[40px] font-bold leading-none">{row.name}</NameText>
+        {row.tag && <span className="flex min-w-0 max-w-[45%] shrink-[3]"><TvTagLabel tag={row.tag} size={24} /></span>}
+      </span>
       {pr && <span className="relative"><PrBadge t={t} /></span>}
       {row.gap_to_next > 0 && (
         <span dir="ltr" className="relative w-[96px] text-end text-[24px] font-semibold text-text-muted tabular">{`-${formatNumber(row.gap_to_next, locale, 0)}`}</span>
@@ -111,7 +122,10 @@ function RookiesStrip({ rookies, locale, t }: { rookies: TvRookieRow[]; locale: 
             </span>
             <div className="min-w-0 flex-1">
               <NameText as="p" data-testid="rookie-name" className="text-[22px] font-bold leading-[27px]">{r.name}</NameText>
-              <p className="display tabular text-[24px] leading-[26px] text-text-muted">{formatNumber(r.total, locale, 0)}</p>
+              <p className="flex min-w-0 items-baseline gap-2 leading-[26px]">
+                <span className="display tabular shrink-0 text-[24px] text-text-muted">{formatNumber(r.total, locale, 0)}</span>
+                {r.tag && <TvTagLabel tag={r.tag} size={16} />}
+              </p>
             </div>
           </li>
         ))}
@@ -137,6 +151,7 @@ export function TvLive({ state, locale, t, serverNow }: { state: TvState; locale
     <>
       <span className="me-3 font-extrabold text-brand-text">{t("newBest")}</span>
       <bdi className="font-bold">{b.name}</bdi>
+      {b.tag && <TvTagLabel tag={b.tag} size={26} className="ms-3" />}
       <span className="ms-3 text-text-muted" dir="ltr">{b.text}</span>
     </>
   ));

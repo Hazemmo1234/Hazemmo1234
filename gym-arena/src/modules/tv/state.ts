@@ -5,16 +5,20 @@ import { chunk, fetchAll } from "@/lib/supabase/fetch-all";
 import { createServiceClient } from "@/lib/supabase/service";
 import { daysBetween, type IsoDate } from "@/lib/time";
 import { rankParticipants, type BoardSeason } from "@/modules/leaderboard/board";
-import { loadSeasonInputs } from "@/modules/leaderboard/service";
+import { coachNamesOf, loadSeasonInputs } from "@/modules/leaderboard/service";
 import {
+  duplicateNameTags,
   liveContent,
   preseasonContent,
   resolveTvMode,
   revealWinners,
+  sameNameKey,
   seasonSummary,
   versionMaterial,
   type FrozenPodiumRow,
+  type TagSource,
   type TvMember,
+  type TvTag,
   type TvSeasonRow,
   type TvState,
 } from "./payload";
@@ -70,6 +74,43 @@ async function listSeasons(): Promise<TvSeasonRow[]> {
     .order("starts_on", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []) as TvSeasonRow[];
+}
+
+/**
+ * D34 tags for the people who can appear on this TV. The member code is read only for members
+ * whose name is shared (rare), and leaves this module only as the short number "#127".
+ */
+async function tagsFor(people: ReadonlyMap<string, { full_name: string; coach_name: string | null }>, refOf: (id: string) => string): Promise<Map<string, TvTag>> {
+  const counts = new Map<string, number>();
+  for (const p of people.values()) counts.set(sameNameKey(p.full_name), (counts.get(sameNameKey(p.full_name)) ?? 0) + 1);
+  const shared = [...people].filter(([, p]) => (counts.get(sameNameKey(p.full_name)) ?? 0) > 1);
+  if (shared.length === 0) return new Map();
+  const codes = new Map<string, string>();
+  for (const ids of chunk(shared.map(([id]) => id))) {
+    const { data, error } = await createServiceClient().from("members").select("id, member_code").in("id", ids);
+    if (error) throw new Error(error.message);
+    for (const m of data ?? []) codes.set(m.id as string, m.member_code as string);
+  }
+  const sources = new Map<string, TagSource>(shared.map(([id, p]) => [id, { full_name: p.full_name, coach_name: p.coach_name, member_code: codes.get(id) ?? null }]));
+  return duplicateNameTags(sources, (id) => `#${refOf(id).slice(0, 4)}`);
+}
+
+/** Everyone ranked in a closed season, for the reveal's D34 tags (a winner may share a name with a non-winner). */
+async function frozenParticipants(seasonId: string): Promise<Map<string, { full_name: string; coach_name: string | null }>> {
+  type Row = { member_id: string; members: { full_name: string; coach_id: string } | null };
+  const rows = await fetchAll<Row>((from, to) =>
+    createServiceClient()
+      .from("season_results")
+      .select("member_id, members(full_name, coach_id)")
+      .eq("season_id", seasonId)
+      .or("rank.not.is.null,rookie_rank.not.is.null")
+      .order("member_id")
+      .range(from, to) as never,
+  );
+  const coaches = await coachNamesOf(rows.map((r) => r.members?.coach_id).filter((x): x is string => !!x));
+  const out = new Map<string, { full_name: string; coach_name: string | null }>();
+  for (const r of rows) if (r.members) out.set(r.member_id, { full_name: r.members.full_name, coach_name: coaches.get(r.members.coach_id) ?? null });
+  return out;
 }
 
 type MemberDisplay = { full_name: string; status: string; photo_path: string | null; photo_consent: boolean };
@@ -131,19 +172,22 @@ export async function buildTvState(settings: TvSettings & { tvKey: string }, tod
     for (const [id, m] of inputs.members) {
       members.set(id, { full_name: m.full_name, is_active: m.is_active, photo_url: m.photo_consent && m.photo_path ? photos.get(m.photo_path) ?? null : null });
     }
+    // D34: tags among the active participants — everyone this TV can show in this season
+    const tags = await tagsFor(new Map([...inputs.members].filter(([, m]) => m.is_active)), refOf);
     if (decision.mode === "live") {
       await ensureDailySnapshot(season, inputs.participants, today);
       const snapshot = await readSnapshot(season.id, today);
       Object.assign(
         base,
-        liveContent({ standings: rankParticipants(season, inputs.participants), members, records: inputs.records, seasonStart: season.starts_on, today, snapshot, refOf }),
+        liveContent({ standings: rankParticipants(season, inputs.participants), members, records: inputs.records, seasonStart: season.starts_on, today, snapshot, refOf, tags }),
       );
     } else {
-      base.preseason = preseasonContent(inputs.participants, members, inputs.records, season.starts_on, refOf);
+      base.preseason = preseasonContent(inputs.participants, members, inputs.records, season.starts_on, refOf, tags);
     }
   } else if (s && decision.mode === "reveal" && s.reveal_started_at) {
     const { rows, members } = await frozenPodium(s.id, now);
-    base.reveal = { started_at: s.reveal_started_at, winners: revealWinners(rows, members, refOf) };
+    const tags = await tagsFor(await frozenParticipants(s.id), refOf);
+    base.reveal = { started_at: s.reveal_started_at, winners: revealWinners(rows, members, refOf, tags) };
   }
 
   const state: TvState = {

@@ -14,9 +14,11 @@ import {
   versionMaterial,
   type SnapshotRow,
   type TimedEntry,
+  type TagSource,
   type TvMember,
   type TvSeasonRow,
 } from "@/modules/tv/payload";
+import { duplicateNameTags, sameNameKey, shortMemberNumber } from "@/modules/tv/payload";
 
 // M5 TV payload (API_SPECIFICATION "TV", UX section C, BR-X2). Points and ranks come from
 // modules/scoring; these tests cover the TV-specific shaping: mode, movement, gaps, new bests,
@@ -161,7 +163,8 @@ describe("liveContent (BR-X2 allow-list, gaps, PR, rookies)", () => {
 
   it("only allow-listed fields — no member id, phone, coach or evidence", () => {
     for (const row of out.board) {
-      expect(Object.keys(row).sort()).toEqual(["categories", "gap_to_next", "initials", "movement", "name", "photo_url", "pr_at", "rank", "ref", "total"]);
+      expect(Object.keys(row).sort()).toEqual(["categories", "gap_to_next", "initials", "movement", "name", "photo_url", "pr_at", "rank", "ref", "tag", "total"]);
+      expect(row.tag).toBeNull(); // no shared names here → no tag (D34)
     }
     expect(JSON.stringify(out)).not.toMatch(/"a"|member_id|coach|phone|photo_path/);
     expect(out.board[0]).toMatchObject({ photo_url: "https://signed/a", initials: "MA" });
@@ -171,7 +174,7 @@ describe("liveContent (BR-X2 allow-list, gaps, PR, rookies)", () => {
     expect(out.board.find((r) => r.ref === "ref-c")!.pr_at).toBe("2026-03-07T09:30:00Z");
     expect(out.board.find((r) => r.ref === "ref-a")!.pr_at).toBeNull();
     expect(out.rookies.map((r) => [r.ref, r.rank])).toEqual([["ref-r", 1]]);
-    expect(out.recent_bests).toEqual([{ ref: "ref-c", name: "Member c", category: "pullups", text: "Pull-ups +20.0%", at: "2026-03-07T09:30:00Z" }]);
+    expect(out.recent_bests).toEqual([{ ref: "ref-c", name: "Member c", tag: null, category: "pullups", text: "Pull-ups +20.0%", at: "2026-03-07T09:30:00Z" }]);
   });
 });
 
@@ -193,7 +196,7 @@ describe("preseason, reveal, summary, version", () => {
     expect(preseasonContent(parts, members, records, "2026-03-01", (id) => `ref-${id}`)).toEqual({
       baselines_logged: 1,
       participants: 2,
-      recent: [{ ref: "ref-a", name: "A", category: "squat", at: "2026-03-02T10:00:00Z" }],
+      recent: [{ ref: "ref-a", name: "A", tag: null, category: "squat", at: "2026-03-02T10:00:00Z" }],
     });
   });
 
@@ -222,10 +225,91 @@ describe("preseason, reveal, summary, version", () => {
   it("version ignores re-issued photo URLs but not a photo appearing", () => {
     const state = (url: string | null) => ({
       locale: "ar" as const, gym_name: "G", mode: "live" as const, season: null, next_season_starts_on: null, next_season_in_days: null, between: null,
-      board: [{ ref: "r", rank: 1, name: "N", photo_url: url, initials: "N", total: 1, movement: null, gap_to_next: 0, categories: {} as never, pr_at: null }],
+      board: [{ ref: "r", rank: 1, name: "N", tag: null, photo_url: url, initials: "N", total: 1, movement: null, gap_to_next: 0, categories: {} as never, pr_at: null }],
       rookies: [], recent_bests: [], preseason: null, reveal: null,
     });
     expect(versionMaterial(state("https://a?token=1"))).toBe(versionMaterial(state("https://a?token=2")));
     expect(versionMaterial(state(null))).not.toBe(versionMaterial(state("https://a?token=1")));
+  });
+});
+
+// D34 (owner decision 2026-11-25): identical names on the TV get a second identifier — the coach's
+// name when it tells them apart, otherwise a short member number. Display only.
+describe("duplicate names on the TV (D34)", () => {
+  const src = (full_name: string, coach_name: string | null, member_code: string | null = null): TagSource => ({ full_name, coach_name, member_code });
+  const fallback = (id: string) => `#ref-${id}`;
+
+  it("names compare by what they read: spacing, case and Unicode forms", () => {
+    expect(sameNameKey("  Omar   Ali ")).toBe(sameNameKey("omar ali"));
+    expect(sameNameKey("ＯＭＡＲ Ali")).toBe(sameNameKey("Omar Ali")); // full-width letters (NFKC)
+    expect(sameNameKey("منى  علي")).toBe(sameNameKey("منى علي"));
+    expect(sameNameKey("Omar Ali")).not.toBe(sameNameKey("Omar Aly"));
+  });
+
+  it("short member number from the member code", () => {
+    expect(shortMemberNumber("GA-000127")).toBe("#127");
+    expect(shortMemberNumber("GA-001000")).toBe("#1000");
+    expect(shortMemberNumber(null)).toBeNull();
+    expect(shortMemberNumber("no digits")).toBeNull();
+  });
+
+  it("unique names get no tag", () => {
+    const tags = duplicateNameTags(new Map([["a", src("Omar Ali", "Coach A")], ["b", src("Sara Adel", "Coach A")]]), fallback);
+    expect(tags.size).toBe(0);
+  });
+
+  it("identical names with different coaches → each shows their coach", () => {
+    const tags = duplicateNameTags(new Map([["a", src("Omar Ali", "Coach Youssef")], ["b", src("omar  ali", "Coach Omar")], ["c", src("Sara", "Coach Omar")]]), fallback);
+    expect(Object.fromEntries(tags)).toEqual({ a: { kind: "coach", text: "Coach Youssef" }, b: { kind: "coach", text: "Coach Omar" } });
+  });
+
+  it("same coach (or no coach) → short member number; a third with a distinct coach still shows the coach", () => {
+    const tags = duplicateNameTags(
+      new Map([
+        ["a", src("Omar Ali", "Coach Omar", "GA-000012")],
+        ["b", src("Omar Ali", "coach omar", "GA-000127")], // same coach, different spelling case
+        ["c", src("Omar Ali", "Coach Mariam", "GA-000300")],
+        ["d", src("Omar Ali", null, "GA-000301")],
+        ["e", src("Omar Ali", "  ", null)], // blank coach and no code → fallback
+      ]),
+      fallback,
+    );
+    expect(Object.fromEntries(tags)).toEqual({
+      a: { kind: "member", text: "#12" },
+      b: { kind: "member", text: "#127" },
+      c: { kind: "coach", text: "Coach Mariam" },
+      d: { kind: "member", text: "#301" },
+      e: { kind: "member", text: "#ref-e" },
+    });
+  });
+
+  it("Arabic and Latin names are handled alike; a Latin and an Arabic spelling are different names", () => {
+    const tags = duplicateNameTags(new Map([["a", src("منى علي", "مدرب أ")], ["b", src("منى علي", "مدرب ب")], ["c", src("Mona Ali", "مدرب أ")]]), fallback);
+    expect(Object.fromEntries(tags)).toEqual({ a: { kind: "coach", text: "مدرب أ" }, b: { kind: "coach", text: "مدرب ب" } });
+  });
+
+  it("tags reach the board, rookies, ticker, preseason and reveal rows — and never change ranks or points", () => {
+    const SEASON: BoardSeason = { id: "s", name: "S", type: "championship", starts_on: "2026-03-01", ends_on: "2026-03-28" };
+    const base: ScoringEntry = { category: "pullups", performedOn: "2026-02-10", reps: 5 };
+    const tread = (day: string, km: string): ScoringEntry => ({ category: "treadmill", performedOn: day, km });
+    const participants: ParticipantHistory[] = [
+      { memberId: "a", isActive: true, plannedSessions: 12, entries: [base, tread("2026-03-05", "2.5")], attendance: [] },
+      { memberId: "b", isActive: true, plannedSessions: 12, entries: [base, tread("2026-03-06", "2")], attendance: [] },
+      { memberId: "r", isActive: true, plannedSessions: 12, entries: [tread("2026-03-05", "3")], attendance: [] },
+    ];
+    const members = new Map<string, TvMember>([
+      ["a", { full_name: "Omar Ali", is_active: true, photo_url: null }],
+      ["b", { full_name: "Omar Ali", is_active: true, photo_url: null }],
+      ["r", { full_name: "Omar Ali", is_active: true, photo_url: null }],
+    ]);
+    const tags = duplicateNameTags(new Map([["a", src("Omar Ali", "Coach A")], ["b", src("Omar Ali", "Coach B")], ["r", src("Omar Ali", "Coach B", "GA-000009")]]), fallback);
+    const input = { standings: rankParticipants(SEASON, participants), members, records: new Map<string, TimedEntry[]>(), seasonStart: SEASON.starts_on, today: "2026-03-07", snapshot: null, refOf: (id: string) => `ref-${id}` };
+    const plain = liveContent(input);
+    const tagged = liveContent({ ...input, tags });
+    expect(tagged.board.map((r) => [r.ref, r.rank, r.total, r.gap_to_next])).toEqual(plain.board.map((r) => [r.ref, r.rank, r.total, r.gap_to_next]));
+    expect(tagged.board.map((r) => [r.ref, r.tag])).toEqual([["ref-a", { kind: "coach", text: "Coach A" }], ["ref-b", { kind: "member", text: "#ref-b" }]]);
+    expect(tagged.rookies.map((r) => [r.ref, r.rank, r.tag])).toEqual([["ref-r", 1, { kind: "member", text: "#9" }]]);
+    const winners = revealWinners([{ member_id: "a", rank: 1, total: "10" }, { member_id: "b", rank: 2, total: "9" }], members, (id) => id, tags);
+    expect(winners.map((w) => [w.place, w.tag?.text])).toEqual([[1, "Coach A"], [2, "#ref-b"]]);
   });
 });

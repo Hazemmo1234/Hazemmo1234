@@ -130,7 +130,9 @@ Language: taken from the Admin's TV language setting (A7), delivered in the TV s
 | **Reveal** | closed + reveal_started_at set | Sequence: "THE CHAMPIONS OF <MONTH>" → 3rd (8 s) → 2nd (8 s) → "THE CHAMPION IS…" (4 s drumroll) → 1st with gold burst → final podium held |
 
 ### Row anatomy (live)
-Rank number · movement arrow (▲2 green / ▼1 red / – ) · avatar · full name · total points (big, animated count-up) · gap to the person above (small, "-14").
+Rank number · movement arrow (▲2 green / ▼1 red / – ) · avatar · full name · [name tag] · total points (big, animated count-up) · gap to the person above (small, "-14").
+
+Name tag (D34): only when another member shown has the same full name — a coach icon and the coach's name, or "#127" (short member number) when the coach does not tell them apart. Muted, smaller than the name; the name keeps priority when space is short. Shown wherever the name is: standings row (after the name), podium and winners (a line under the name, taken from the avatar's height so the layout keeps its size), rookies strip (beside the points), ticker (after the name).
 
 ### Behaviors
 - Poll every 10 s; animate only when `version` changes.

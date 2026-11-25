@@ -62,7 +62,7 @@ the test that guards it), **Open**, **Decision** (needs the owner).
 | GA-14 | P2 | coach screens, iPad landscape | Narrow centre column | `max-w-3xl` everywhere | wider containers; two-column client list | after screenshots | Fixed `33450a9` |
 | GA-15 | P2 | `/members/[id]`, phones | Client name cut to "Mohamed …" | total + rank beside the name | total and rank on their own row; name may wrap | after screenshots | Fixed `33450a9` |
 | GA-16 | P2 | `/tv` rookies | Rookie names cut | 5 columns, rank + avatar ate the width | rank on the avatar (~60 % more name width); long names still end in "…" | `e2e/tv.spec.ts` names | Fixed `33450a9` (partly — very long names are still cut) |
-| GA-17 | P2 | `/tv` | Identical names cannot be told apart | the TV payload carries names only (BR-X2); coach names are deliberately not on the TV (OPEN_DECISIONS) | — | — | **Decision** (§4 Q1) |
+| GA-17 | P2 | `/tv` | Identical names cannot be told apart | the TV payload carries names only (BR-X2); coach names are deliberately not on the TV (OPEN_DECISIONS) | D34 (owner, 2026-11-25): coach name as a second identifier, else a short member number "#127"; shown after the name on the board, under it on the podium and winners, beside the points for rookies, after it in the ticker | `tests/unit/tv-payload.test.ts` (rule, ranks unchanged), `e2e/tv.spec.ts` (distinct tags in the live payload, geometry with tags) | Fixed (D34) |
 | GA-18 | P3 | date inputs | Browser date control shows mm/dd/yyyy in Chromium | native control follows the device locale | — | real iPad check | Open (verify on device) |
 | GA-19 | P3 | admin pages with `loading.tsx` | `notFound()` returns HTTP 200 with the 404 page (streaming already started) | framework behaviour with streaming | none needed (private app; the page is correct) | — | Open (accepted) |
 | GA-20 | P3 | dialogs / pages | No entrance motion; no press feedback | — | motion tokens, rise + fade entrances, press feedback, reduced-motion respected | CI layout tests wait for motion (`motionSettled`) | Fixed `33450a9`, `6a2bbc6` |
@@ -111,7 +111,7 @@ check 16/16.
 
 | # | Question | Options | Recommendation |
 |---|---|---|---|
-| Q1 | Two members with the same full name look identical on the TV (GA-17). | (a) register them with a distinguishing name (e.g. "Omar Ali S.") — no change; (b) add a short coach label on the TV — changes BR-X2 and the "no coach on the TV" decision; (c) rely on photos (consent). | (a) now; it needs no rule change. |
+| Q1 | Two members with the same full name look identical on the TV (GA-17). | Decided by the owner on 2026-11-25: coach name, else a short member number (D34). | Implemented. |
 | Q2 | Hosting for free staging (Vercel Hobby is for non-commercial use only). | Netlify Free (commercial use allowed, never charged, hard credit limit) · Render Free (sleeps after 15 min, "not for production") · Vercel Pro (paid). | Netlify Free for staging — see `FREE_STAGING.md`. |
 
 ## 5. Design decisions taken in this pass (reversible, presentation only)

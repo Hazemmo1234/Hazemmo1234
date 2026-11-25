@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Locale } from "@/i18n/config";
+import { CoachIcon } from "@/components/ui/icons";
 import { formatNumber, formatTime } from "@/lib/i18n/format";
+import type { TvTag } from "@/modules/tv/payload";
+import { NameText } from "../name-text";
 
 /** Translator handed down from the TV screen (TV language, not the viewer's — BR-L4). */
 export type TvT = (key: string, values?: Record<string, string | number>) => string;
@@ -160,5 +163,24 @@ export function TvNotAuthorized({ title, hint }: { title: string; hint: string }
       <p className="display text-[72px] uppercase leading-none">{title}</p>
       <p className="max-w-[1200px] text-[36px] leading-snug text-text-muted">{hint}</p>
     </main>
+  );
+}
+
+/**
+ * D34: the second identifier shown after a name that another member shares — the coach (icon +
+ * coach name, any script, cut at its end) or the short member number ("#127", left to right).
+ */
+export function TvTagLabel({ tag, size, className = "" }: { tag: TvTag; size: number; className?: string }) {
+  return (
+    <span data-testid="name-tag" data-kind={tag.kind} className={`inline-flex min-w-0 max-w-full items-center gap-[0.3em] font-semibold not-italic text-text-muted ${className}`} style={{ fontSize: size }}>
+      {tag.kind === "coach" ? (
+        <>
+          <CoachIcon size={Math.round(size * 0.95)} />
+          <NameText className="leading-tight">{tag.text}</NameText>
+        </>
+      ) : (
+        <bdi dir="ltr" className="tabular leading-tight">{tag.text}</bdi>
+      )}
+    </span>
   );
 }

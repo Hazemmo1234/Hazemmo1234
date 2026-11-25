@@ -48,7 +48,7 @@ Every rule has an ID. Code comments and tests should reference these IDs.
 
 ## Privacy & security (technical minimum)
 - **BR-X1** All staff sign in. Coaches see and edit only their own clients (enforced by RLS).
-- **BR-X2** TV payload contains only: rank, full name, photo URL (if consented), points, category points, rank movement, rookie flag, recent new-best events. Never phone numbers, member IDs, coach notes, or evidence photos.
+- **BR-X2** TV payload contains only: rank, full name, photo URL (if consented), points, category points, rank movement, rookie flag, recent new-best events, and — only for a member whose full name another member shown on the TV shares — a name tag (D34): the coach's name when it tells them apart, otherwise the short member number ("#127"). Never phone numbers, member IDs (the full member code or the database id), coach notes, or evidence photos.
 - **BR-X3** Evidence photos are private; visible to the Admin and the coach of that member only, via short-lived signed URLs.
 - **BR-X4** Entries and attendance are written only through authenticated server-side APIs. The server takes the acting user from the verified sign-in session, never from a user ID sent by the client, and re-checks every rule (role, own member, active season, date, uniqueness, photo rule). Clients cannot write these tables directly.
 

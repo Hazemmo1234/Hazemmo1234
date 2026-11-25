@@ -34,7 +34,7 @@ Trust model (unchanged): coaches are fully trusted to report results honestly (P
 
 ## 3. TV access
 - `/tv?key=…`; key stored in `app_settings`, compared in constant time, regenerable by the Admin (D3).
-- The TV state is built by the server from an explicit allow-list of fields (API_SPECIFICATION "TV", BR-X2). Never phones, member codes, notes or evidence. Photo only with consent, as a 1-hour signed URL (BR-P8).
+- The TV state is built by the server from an explicit allow-list of fields (API_SPECIFICATION "TV", BR-X2). Never phones, full member codes, notes or evidence; a member who shares their full name with another member shown carries a D34 name tag (coach name or "#number" only). Photo only with consent, as a 1-hour signed URL (BR-P8).
 - The key grants nothing else: no staff session, no write path.
 
 ## 4. Server-only write paths (D19, BR-X4)

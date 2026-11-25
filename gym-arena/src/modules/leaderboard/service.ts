@@ -137,7 +137,7 @@ async function seasonFor(client: SupabaseClient, seasonId: string | undefined, t
 type Embedded = { full_name: string; coach_id: string; status: string; photo_path: string | null; photo_consent: boolean } | null;
 
 /** Coach display names for these coach ids (chunked reads). */
-async function coachNamesOf(coachIds: readonly string[]): Promise<Map<string, string>> {
+export async function coachNamesOf(coachIds: readonly string[]): Promise<Map<string, string>> {
   const service = createServiceClient();
   const names = new Map<string, string>();
   for (const ids of chunk([...new Set(coachIds)])) {

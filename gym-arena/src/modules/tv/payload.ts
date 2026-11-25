@@ -84,10 +84,71 @@ export interface TvMember {
 
 export type RefOf = (memberId: string) => string;
 
+/**
+ * D34 (owner decision, 2026-11-25): when two members the TV may show have the same full name, each
+ * of them carries a second identifier so the gym can tell them apart: the coach's name when it
+ * differs between them, otherwise a short, stable member number ("#127", from the member code).
+ * Everyone else carries no tag. Display only — never part of ranking or scoring.
+ */
+export interface TvTag {
+  kind: "coach" | "member";
+  text: string;
+}
+
+/** What the tag rule needs to know about a member. */
+export interface TagSource {
+  full_name: string;
+  coach_name: string | null;
+  member_code: string | null;
+}
+
+/** Names compare equal when they read the same: Unicode-normalised, spaces collapsed, case-folded. */
+export function sameNameKey(name: string): string {
+  return name.normalize("NFKC").replace(/\s+/g, " ").trim().toLocaleLowerCase("en");
+}
+
+/** "GA-000127" → "#127". Null when there is no number to show. */
+export function shortMemberNumber(code: string | null | undefined): string | null {
+  const m = code?.match(/(\d+)$/);
+  return m ? `#${Number(m[1])}` : null;
+}
+
+/**
+ * The D34 tags for a set of people who can appear together on the TV. Only members whose name is
+ * shared get a tag. Within a group of identical names, a coach name that only one of them has
+ * identifies that member; members whose coach name is shared within the group, or missing, get
+ * their short member number (or `fallback(id)` if a code were ever missing).
+ */
+export function duplicateNameTags(people: ReadonlyMap<string, TagSource>, fallback: (id: string) => string): Map<string, TvTag> {
+  const groups = new Map<string, string[]>();
+  for (const [id, p] of people) {
+    const key = sameNameKey(p.full_name);
+    groups.set(key, [...(groups.get(key) ?? []), id]);
+  }
+  const tags = new Map<string, TvTag>();
+  for (const ids of groups.values()) {
+    if (ids.length < 2) continue;
+    const coachCount = new Map<string, number>();
+    for (const id of ids) {
+      const coach = people.get(id)!.coach_name?.trim();
+      if (coach) coachCount.set(sameNameKey(coach), (coachCount.get(sameNameKey(coach)) ?? 0) + 1);
+    }
+    for (const id of ids) {
+      const p = people.get(id)!;
+      const coach = p.coach_name?.trim();
+      if (coach && coachCount.get(sameNameKey(coach)) === 1) tags.set(id, { kind: "coach", text: coach });
+      else tags.set(id, { kind: "member", text: shortMemberNumber(p.member_code) ?? fallback(id) });
+    }
+  }
+  return tags;
+}
+
 export interface TvBoardRow {
   ref: string;
   rank: number;
   name: string;
+  /** D34: second identifier, only when another member the TV may show has the same name */
+  tag: TvTag | null;
   photo_url: string | null;
   initials: string;
   /** integer, half-up (SCORING §5) */
@@ -105,6 +166,8 @@ export interface TvRookieRow {
   ref: string;
   rank: number;
   name: string;
+  /** D34: second identifier, only when another member the TV may show has the same name */
+  tag: TvTag | null;
   photo_url: string | null;
   initials: string;
   total: number;
@@ -113,6 +176,8 @@ export interface TvRookieRow {
 export interface TvRecentBest {
   ref: string;
   name: string;
+  /** D34: second identifier, only when another member the TV may show has the same name */
+  tag: TvTag | null;
   category: CategoryCode;
   /** category name + numbers only, so it reads the same in both languages (API spec) */
   text: string;
@@ -122,6 +187,8 @@ export interface TvRecentBest {
 export interface TvRecentBaseline {
   ref: string;
   name: string;
+  /** D34: second identifier, only when another member the TV may show has the same name */
+  tag: TvTag | null;
   category: CategoryCode;
   at: string;
 }
@@ -130,6 +197,8 @@ export interface TvWinner {
   ref: string;
   place: number;
   name: string;
+  /** D34: second identifier, only when another member the TV may show has the same name */
+  tag: TvTag | null;
   photo_url: string | null;
   initials: string;
   total: number;
@@ -256,11 +325,14 @@ export interface LiveInputs {
   today: IsoDate;
   snapshot: ReadonlyMap<string, SnapshotRow> | null;
   refOf: RefOf;
+  /** D34 tags by member id (duplicateNameTags); absent = no tag */
+  tags?: ReadonlyMap<string, TvTag>;
 }
 
 /** Live mode: the whole main board, the top rookies and the recent new bests. */
 export function liveContent(input: LiveInputs): Pick<TvState, "board" | "rookies" | "recent_bests"> {
   const { standings, members, refOf } = input;
+  const tagOf = (id: string) => input.tags?.get(id) ?? null;
   const shown = (id: string) => members.get(id)?.is_active === true;
   const bests = seasonNewBests(input.records, input.seasonStart, shown);
   const prAt = new Map<string, string>();
@@ -275,6 +347,7 @@ export function liveContent(input: LiveInputs): Pick<TvState, "board" | "rookies
       ref: refOf(r.memberId),
       rank: r.rank,
       name: m.full_name,
+      tag: tagOf(r.memberId),
       photo_url: m.photo_url,
       initials: initials(m.full_name),
       total: int(r.total),
@@ -289,11 +362,12 @@ export function liveContent(input: LiveInputs): Pick<TvState, "board" | "rookies
     .slice(0, ROOKIES_ON_TV)
     .map((r) => {
       const m = members.get(r.memberId)!;
-      return { ref: refOf(r.memberId), rank: r.rank, name: m.full_name, photo_url: m.photo_url, initials: initials(m.full_name), total: int(r.total) };
+      return { ref: refOf(r.memberId), rank: r.rank, name: m.full_name, tag: tagOf(r.memberId), photo_url: m.photo_url, initials: initials(m.full_name), total: int(r.total) };
     });
   const recent_bests: TvRecentBest[] = bests.slice(0, RECENT_EVENTS).map((b) => ({
     ref: refOf(b.member_id),
     name: members.get(b.member_id)!.full_name,
+    tag: tagOf(b.member_id),
     category: b.category,
     text: newBestText(b.category, b.previous, b.value),
     at: b.at,
@@ -311,6 +385,7 @@ export function preseasonContent(
   records: ReadonlyMap<string, readonly TimedEntry[]>,
   seasonStart: IsoDate,
   refOf: RefOf,
+  tags?: ReadonlyMap<string, TvTag>,
 ): NonNullable<TvState["preseason"]> {
   const active = participants.filter((p) => members.get(p.memberId)?.is_active);
   const logged = active.filter((p) => p.entries.some((e) => !e.voided && e.performedOn >= seasonStart)).length;
@@ -318,7 +393,7 @@ export function preseasonContent(
     .flatMap((p) => (records.get(p.memberId) ?? []).filter((e) => e.performed_on >= seasonStart && e.created_at).map((e) => ({ p, e })))
     .sort((a, b) => (a.e.created_at < b.e.created_at ? 1 : a.e.created_at > b.e.created_at ? -1 : 0))
     .slice(0, RECENT_EVENTS)
-    .map(({ p, e }) => ({ ref: refOf(p.memberId), name: members.get(p.memberId)!.full_name, category: e.category, at: e.created_at }));
+    .map(({ p, e }) => ({ ref: refOf(p.memberId), name: members.get(p.memberId)!.full_name, tag: tags?.get(p.memberId) ?? null, category: e.category, at: e.created_at }));
   return { baselines_logged: logged, participants: active.length, recent };
 }
 
@@ -334,7 +409,7 @@ export interface FrozenPodiumRow {
  * D10: shared ranks → every tied member is a winner). Members inactive at close were stored
  * unranked (D29) and can never appear. Never recomputed from current entries.
  */
-export function revealWinners(rows: readonly FrozenPodiumRow[], members: ReadonlyMap<string, Omit<TvMember, "is_active">>, refOf: RefOf): TvWinner[] {
+export function revealWinners(rows: readonly FrozenPodiumRow[], members: ReadonlyMap<string, Omit<TvMember, "is_active">>, refOf: RefOf, tags?: ReadonlyMap<string, TvTag>): TvWinner[] {
   return rows
     .filter((r) => r.rank !== null && r.rank <= 3 && members.has(r.member_id))
     .map((r) => ({ r, m: members.get(r.member_id)! }))
@@ -343,6 +418,7 @@ export function revealWinners(rows: readonly FrozenPodiumRow[], members: Readonl
       ref: refOf(r.member_id),
       place: r.rank!,
       name: m.full_name,
+      tag: tags?.get(r.member_id) ?? null,
       photo_url: m.photo_url,
       initials: initials(m.full_name),
       total: Rational.from(r.total).roundHalfUp(),
